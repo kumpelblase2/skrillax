@@ -1,0 +1,33 @@
+[package]
+name = "silkroad-agent"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tracing-subscriber = "0.3"
+silkroad-network = { path = "../silkroad-network" }
+silkroad-protocol = { path = "../silkroad-protocol" }
+silkroad-rpc = { path = "../silkroad-rpc" }
+silkroad-navmesh = { path = "../silkroad-navmesh", features = ["pk2"] }
+tokio = { version = "1.16.1", features = ["full"] }
+bytes = "1.1.0"
+lazy_static = "1.4.0"
+byteorder = "1.4.3"
+rand = "0.8.4"
+crossbeam-channel = "0.5.2"
+tracing = "*"
+salvo = "0.16"
+config = "*"
+sqlx = { version = "0.5", default-features = false, features = [ "runtime-tokio-native-tls", "postgres", "macros", "uuid", "chrono" ] }
+log = "*"
+serde = "1"
+serde_derive = "1"
+thiserror = "*"
+chrono = "0.4"
+itertools = "*"
+bevy_ecs = "0.6.1"
+bevy_ecs_macros = "0.6.0"
+cgmath = "0.18.0"
+pk2 = "0.1.0"

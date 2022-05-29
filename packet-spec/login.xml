@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<packets module="login">
+    <enum name="SecurityCodeAction" type="u8">
+        <variation name="Define" value="0x01"/>
+        <variation name="Enter" value="0x04" />
+        <variation name="Unknown" value="0xFF" />
+    </enum>
+
+    <enum name="PasscodeRequiredCode" type="u8">
+        <variation name="DefinePasscode" value="0" />
+        <variation name="PasscodeRequired" value="1" />
+        <variation name="PasscodeBlocked" value="2" />
+        <variation name="PasscodeInvalid" value="3" />
+    </enum>
+
+    <enum name="PatchError" type="u8">
+        <variation name="InvalidVersion" value="1" />
+        <variation name="Update" value="2">
+            <attribute name="server_ip" type="String" />
+            <attribute name="server_port" type="u16" />
+            <attribute name="current_version" type="u32" />
+            <attribute name="patch_files" type="Vec" inner="PatchFile" list-type="has-more" />
+            <attribute name="http_server" type="String" />
+        </variation>
+        <variation name="Offline" value="3" />
+        <variation name="InvalidClient" value="4" />
+        <variation name="PatchDisabled" value="5" />
+    </enum>
+
+    <enum name="PatchResult" type="u8">
+        <variation name="UpToDate" value="1">
+            <attribute name="unknown" type="u8" value="0" />
+        </variation>
+        <variation name="Problem" value="2">
+            <attribute name="error" type="PatchError" />
+        </variation>
+    </enum>
+
+    <enum name="PasscodeAccountStatus" type="u8">
+        <variation name="Ok" value="4" />
+        <variation name="EmailUnverified" value="2" />
+    </enum>
+
+    <enum name="BlockReason" type="u8">
+        <variation name="AccountInspection" value="2" />
+        <variation name="Punishment" value="1">
+            <attribute name="reason" type="String" />
+            <attribute name="end" type="DateTime" />
+        </variation>
+    </enum>
+
+    <enum name="SecurityError" type="u8">
+        <variation name="InvalidCredentials" value="1">
+            <attribute name="max_attempts" type="u32" />
+            <attribute name="current_attempts" type="u32" />
+        </variation>
+        <variation name="Blocked" value="2">
+            <attribute name="reason" type="BlockReason" />
+        </variation>
+        <variation name="AlreadyConnected" value="3" />
+        <variation name="Inspection" value="4" />
+        <variation name="ServerFull" value="6" />
+        <variation name="LoginQueue" value="0x1A">
+            <attribute name="total_in_queue" type="u16" />
+            <attribute name="expected_wait_time" type="u32" />
+        </variation>
+        <variation name="PasswordExpired" value="0x2A" />
+        <variation name="IpLimit" value="8" />
+    </enum>
+
+    <enum name="LoginResult" type="u8">
+        <variation name="Success" value="1">
+            <attribute name="session_id" type="u32" />
+            <attribute name="agent_ip" type="String" />
+            <attribute name="agent_port" type="u16" />
+            <attribute name="unknown" type="u8" value="1" />
+        </variation>
+        <variation name="Error" value="2">
+            <attribute name="error" type="SecurityError" />
+        </variation>
+        <variation name="Unknown" value="3" />
+    </enum>
+
+    <struct name="QueueUpdateStatus">
+        <attribute name="total_in_queue" type="u16" />
+        <attribute name="expected_wait_time" type="u32" />
+        <attribute name="current_position" type="u16" />
+    </struct>
+
+    <struct name="PatchFile">
+        <attribute name="file_id" type="u32" />
+        <attribute name="filename" type="String" />
+        <attribute name="file_path" type="String" />
+        <attribute name="size" type="u32" />
+        <attribute name="in_pk2" type="bool" />
+    </struct>
+
+    <struct name="GatewayNotice">
+        <attribute name="subject" type="String" />
+        <attribute name="article" type="String" />
+        <attribute name="published" type="DateTime" />
+    </struct>
+
+    <struct name="PingServer">
+        <attribute name="index" type="u8" />
+        <attribute name="domain" type="String" />
+        <attribute name="unknown_1" type="u8" value="0xbd" />
+        <attribute name="unknown_2" type="u8" value="0x32" />
+    </struct>
+
+    <struct name="Shard">
+        <attribute name="id" type="u16" />
+        <attribute name="name" type="String" />
+        <attribute name="status" type="u8" />
+        <attribute name="is_online" type="bool" />
+    </struct>
+
+    <struct name="Farm">
+        <attribute name="id" type="u8" />
+        <attribute name="name" type="String" />
+    </struct>
+
+    <packet name="PatchRequest" source="client" opcode="0x6100">
+        <attribute name="content" type="u8" />
+        <attribute name="module" type="String" />
+        <attribute name="version" type="u32" />
+    </packet>
+
+    <packet name="PatchResponse" source="server" opcode="0xA100" option="massive">
+        <attribute name="result" type="PatchResult" />
+    </packet>
+
+    <packet name="LoginRequest" source="client" opcode="0x610A">
+        <attribute name="unknown_1" type="u8" />
+        <attribute name="username" type="String" />
+        <attribute name="password" type="String" />
+        <attribute name="shard_id" type="u16" />
+        <attribute name="unknown_2" type="u8" />
+    </packet>
+
+    <packet name="LoginResponse" source="server" opcode="0xA10A" option="encrypted">
+        <attribute name="result" type="LoginResult" />
+    </packet>
+
+    <packet name="SecurityCodeInput" source="client" opcode="0x6117">
+        <attribute name="action" type="SecurityCodeAction" />
+        <attribute name="inner_size" type="u16" />
+        <attribute name="data" type="raw" length="8" />
+    </packet>
+
+    <packet name="SecurityCodeResponse" source="server" opcode="0xA117">
+        <attribute name="account_status" type="PasscodeAccountStatus" />
+        <attribute name="result" type="u8" />
+        <attribute name="invalid_attempts" type="u8" />
+    </packet>
+
+    <packet name="GatewayNoticeRequest" source="client" opcode="0x6104">
+        <attribute name="unknown" type="u8" />
+    </packet>
+
+    <packet name="GatewayNoticeResponse" source="server" opcode="0xA104" option="massive">
+        <attribute name="notices" type="Vec" inner="GatewayNotice" list-type="length" />
+    </packet>
+
+    <packet name="PingServerRequest" source="client" opcode="0x6107" />
+
+    <packet name="PingServerResponse" source="server" opcode="0xA107">
+        <attribute name="servers" type="Vec" inner="PingServer" list-type="length" />
+    </packet>
+
+    <packet name="ShardListRequest" source="client" opcode="0x6101" />
+
+    <packet name="ShardListResponse" source="server" opcode="0xA101">
+        <attribute name="farms" type="Vec" inner="Farm" list-type="has-more" />
+        <attribute name="shards" type="Vec" inner="Shard" list-type="has-more" />
+    </packet>
+
+    <packet name="PasscodeRequiredResponse" source="server" opcode="0x2116">
+        <attribute name="result" type="PasscodeRequiredCode" />
+    </packet>
+
+    <packet name="PasscodeResponse" source="server" opcode="0xA117">
+        <attribute name="unknown_1" type="u8" />
+        <attribute name="status" type="u8" />
+        <attribute name="invalid_attempts" type="u8" />
+    </packet>
+
+    <packet name="QueueUpdate" source="server" opcode="0x210E">
+        <attribute name="still_in_queue" type="bool" />
+        <attribute name="status" type="QueueUpdateStatus" />
+    </packet>
+</packets>

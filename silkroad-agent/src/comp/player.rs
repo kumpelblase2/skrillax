@@ -1,0 +1,162 @@
+use crate::comp::pos::{GlobalPosition, Heading};
+use crate::comp::stats::Stats;
+use crate::db::character::CharacterItem;
+use crate::db::user::ServerUser;
+use bevy_ecs::prelude::*;
+use cgmath::{Quaternion, Vector3};
+use std::collections::HashMap;
+
+pub(crate) struct Item {
+    ref_id: i32,
+    variance: Option<u64>,
+    upgrade_level: u8,
+    type_data: ItemTypeData,
+}
+
+pub(crate) enum ItemTypeData {
+    Default,
+    Equipment,
+    COS,
+    Consumable(),
+}
+
+pub(crate) struct Inventory {
+    size: usize,
+    items: HashMap<u8, Item>,
+}
+
+impl Inventory {
+    pub fn size(&self) -> usize {
+        self.size
+    }
+
+    pub fn from(items: &[CharacterItem], size: usize) -> Inventory {
+        let mut my_items = HashMap::new();
+
+        for item in items {
+            my_items.insert(
+                item.slot as u8,
+                Item {
+                    ref_id: item.item_obj_id,
+                    variance: item.variance.map(|v| v as u64),
+                    upgrade_level: item.upgrade_level as u8,
+                    type_data: ItemTypeData::Default,
+                },
+            );
+        }
+
+        Inventory { items: my_items, size }
+    }
+}
+
+impl Default for Inventory {
+    fn default() -> Self {
+        Inventory {
+            items: HashMap::new(),
+            size: 45,
+        }
+    }
+}
+
+#[derive(Eq, PartialEq)]
+pub enum SpawningState {
+    Loading,
+    Spawning,
+    Finished,
+}
+
+pub(crate) enum Race {
+    European,
+    Chinese,
+}
+
+pub enum MovementState {
+    Sitting,
+    Standing,
+    Moving,
+    Walking,
+}
+
+pub(crate) struct Character {
+    pub name: String,
+    pub race: Race,
+    pub scale: u8,
+    pub level: u8,
+    pub max_level: u8,
+    pub exp: u64,
+    pub sp: u32,
+    pub sp_exp: u32,
+    pub stats: Stats,
+    pub stat_points: u16,
+    pub current_hp: u32,
+    pub current_mp: u32,
+    pub berserk_points: u8,
+    pub gold: u64,
+    pub beginner_mark: bool,
+    pub gm: bool,
+    pub state: SpawningState,
+}
+
+impl Character {
+    pub fn max_hp(&self) -> u32 {
+        self.stats.max_health(self.level)
+    }
+
+    pub fn max_mp(&self) -> u32 {
+        self.stats.max_mana(self.level)
+    }
+
+    pub fn from_db_character(data: &crate::db::character::CharacterData) -> Character {
+        Character {
+            name: data.charname.clone(),
+            race: Race::Chinese,
+            scale: data.scale as u8,
+            level: data.levels as u8,
+            max_level: data.max_level as u8,
+            exp: data.exp as u64,
+            sp: data.sp as u32,
+            sp_exp: data.sp_exp as u32,
+            stats: Stats::new_preallocated(data.strength as u16, data.intelligence as u16),
+            stat_points: data.stat_points as u16,
+            current_hp: data.current_hp as u32,
+            current_mp: data.current_mp as u32,
+            berserk_points: data.berserk_points as u8,
+            gold: data.gold as u64,
+            beginner_mark: data.beginner_mark,
+            gm: data.gm,
+            state: SpawningState::Loading,
+        }
+    }
+}
+//
+// pub(crate) struct FriendList {
+//
+// }
+
+#[derive(Component)]
+pub(crate) struct Player {
+    pub user: ServerUser,
+    pub character: Character,
+    pub inventory: Inventory,
+    pub logout: Option<f64>, // pub friend_list: FriendList,
+}
+
+pub(crate) enum MovementTarget {
+    Location(GlobalPosition),
+    Direction(Quaternion<f32>),
+    Turn(Heading),
+}
+
+#[derive(Component)]
+pub(crate) struct Agent {
+    pub id: u32,
+    pub ref_id: u32,
+    pub movement_speed: f32,
+    pub movement_state: MovementState,
+    pub movement_target: Option<MovementTarget>,
+}
+
+#[derive(Component)]
+pub(crate) struct Buffed {
+    // pub buffs: Vec<Buff>
+}

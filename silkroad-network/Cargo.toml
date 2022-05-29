@@ -1,0 +1,18 @@
+[package]
+name = "silkroad-network"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+blowfish-compat = { path = "../blowfish-compat.rs" }
+bytes = "1"
+byteorder = "1"
+tracing = "0.1.30"
+rand = "0.8.4"
+thiserror = "1"
+tokio = { version = "1", features = ["net", "sync", "macros"] }
+tokio-util = { version = "0.6.9", features = ["codec"] }
+silkroad-protocol = { path = "../silkroad-protocol" }
+silkroad-security = { path = "../silkroad-security" }
+crossbeam-channel = "0.5.2"
+futures = "0.3.21"

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<packets module="general">
+    <enum name="HandshakeStage" type="u8">
+        <variation name="Initialize" value="0xE">
+            <attribute name="blowfish_seed" type="u64" />
+            <attribute name="seed_count" type="u32" />
+            <attribute name="seed_crc" type="u32" />
+            <attribute name="handshake_seed" type="u64" />
+            <attribute name="a" type="u32" />
+            <attribute name="b" type="u32" />
+            <attribute name="c" type="u32" />
+        </variation>
+        <variation name="Finalize" value="0x10">
+            <attribute name="challenge" type="u64" />
+        </variation>
+    </enum>
+
+    <packet name="IdentityInformation" source="both" opcode="0x2001">
+        <attribute name="module_name" type="String" />
+        <attribute name="locality" type="u8" />
+        <!-- the server seems to send two more bytes for the agent server: 0x56d9 -->
+    </packet>
+    <packet name="KeepAlive" source="client" opcode="0x2002">
+    </packet>
+    <packet name="ServerInfoSeed" source="server" opcode="0x2005" option="massive">
+        <attribute name="unknown_1" type="u8" value="1" />
+        <attribute name="unknown_2" type="u8" value="0" />
+        <attribute name="unknown_3" type="u8" value="1" />
+        <attribute name="seed_value" type="u16" />
+        <attribute name="unknown_4" type="u32" value="5" /> <!-- shouldn't this be u32? -->
+        <attribute name="unknown_5" type="u8" value="2" />
+    </packet>
+    <packet name="ServerStateSeed" source="server" opcode="0x6005" option="massive">
+        <attribute name="unknown_1" type="u8" value="3" />
+        <attribute name="unknown_2" type="u8" value="0" />
+        <attribute name="unknown_3" type="u8" value="2" />
+        <attribute name="unknown_4" type="u8" value="0" />
+        <attribute name="unknown_5" type="u8" value="2" />
+    </packet>
+    <packet name="SecuritySetup" source="server" opcode="0x5000">
+        <attribute name="stage" type="HandshakeStage" />
+    </packet>
+    <packet name="HandshakeChallenge" source="client" opcode="0x5000">
+        <attribute name="b" type="u32" />
+        <attribute name="key" type="u64" />
+    </packet>
+    <packet name="HandshakeAccepted" source="client" opcode="0x9000" />
+</packets>

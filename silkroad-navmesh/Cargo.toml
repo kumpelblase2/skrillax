@@ -1,0 +1,21 @@
+[package]
+name = "silkroad-navmesh"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cgmath = "0.18.0"
+byteorder = "1.4"
+bytes = "1.0"
+thiserror = "1"
+encoding_rs = "0.8"
+sr_formats = { git = "https://github.com/Veykril/sr_formats" }
+nom = "7"
+pk2 = { version = "0.1.0", optional = true }
+mint = "0.5.9"
+navmesh = "0.12.1"
+
+[features]
+pk2 = ["dep:pk2"]

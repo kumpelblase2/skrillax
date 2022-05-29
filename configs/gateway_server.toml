@@ -1,0 +1,19 @@
+listen-port = 15779
+
+[patch]
+remote-url = "localhost/"
+dir = "./patch-files"
+expected-client-version = 594
+minimum-client-version = 590
+
+[database]
+host = "localhost"
+user = "skrillax"
+password = "skrillax"
+database = "skrillax"
+
+[servers]
+[servers.Testing]
+region = "EU"
+address = "localhost:1337"
+token = "abeetr98gae98rg7as9rbt"

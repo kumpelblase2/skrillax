@@ -1,0 +1,10 @@
+name = "Testing"
+listen-port = 15780
+server-id = 1
+max-player-count = 2
+
+[database]
+host = "localhost"
+user = "skrillax"
+password = "skrillax"
+database = "skrillax"
