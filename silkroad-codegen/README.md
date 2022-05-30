@@ -17,5 +17,5 @@ This project is mostly done from my perspective, but there might be some things 
 things is some conditional logic in the parsing which is provided in the spec. In a few cases, a packet contents may 
 vary depending on certain conditions of the previous data. An example would be if an area is a dungeon, the position 
 gets presented differently (u32 instead of u16). So far, this has mostly been encountered on the server side, which I 
-can work around without conditional logic, but in the future there may be client packets that require such a thing. A 
-smaller addition would be to generate `::new()` for non-packet structs as it currently is only done for packet structs.
+can work around without conditional logic, but in the future there may be client packets that require such a thing. It 
+might also be nice to re-use enums/structs from an existing crate so things don't get duplicated.
