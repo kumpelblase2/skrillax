@@ -1,3 +1,4 @@
+use crate::comp::monster::Monster;
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
@@ -5,10 +6,12 @@ use crate::comp::{Client, NetworkedEntity};
 use bevy_ecs::prelude::*;
 use cgmath::prelude::*;
 use silkroad_protocol::world::{
-    ActionState, ActiveScroll, AliveState, BodyState, EntityDespawn, EntityRarity, EntitySpawn, EntityState,
-    EntityTypeSpawnData, JobType, PlayerKillState, PvpCape,
+    ActionState, ActiveScroll, AliveState, BodyState, EntityRarity, EntitySpawn, EntityState, EntityTypeSpawnData,
+    GroupEntitySpawnData, GroupEntitySpawnEnd, GroupEntitySpawnStart, GroupSpawnDataContent, GroupSpawnType,
+    InteractOptions, JobType, PlayerKillState, PvpCape,
 };
 use silkroad_protocol::ServerPacket;
+use tracing::debug;
 
 pub(crate) fn visibility(
     mut query: Query<(Entity, &mut Visibility, &Position)>,
@@ -16,7 +19,7 @@ pub(crate) fn visibility(
 ) {
     for (entity, mut visibility, position) in query.iter_mut() {
         let entity: Entity = entity;
-        let mut visibility: &mut Visibility = &mut visibility;
+        let visibility: &mut Visibility = &mut visibility;
         let position: &Position = position;
 
         let entities_in_range = lookup
@@ -36,13 +39,22 @@ pub(crate) fn visibility(
         let removed: Vec<Entity> = visibility
             .entities_in_radius
             .difference(&entities_in_range)
-            .map(|e| *e)
+            .copied()
             .collect();
-        let added: Vec<Entity> = visibility
-            .entities_in_radius
-            .symmetric_difference(&entities_in_range)
-            .map(|e| *e)
+        let added: Vec<Entity> = entities_in_range
+            .difference(&visibility.entities_in_radius)
+            .copied()
             .collect();
+
+        for removed in removed.iter() {
+            debug!("Removed entity {:?} from visibility.", removed);
+            visibility.entities_in_radius.remove(removed);
+        }
+
+        for added in added.iter() {
+            debug!("Added entity {:?} to visibility.", added);
+            visibility.entities_in_radius.insert(*added);
+        }
 
         visibility.added_entities.extend(added);
         visibility.removed_entities.extend(removed);
@@ -51,24 +63,27 @@ pub(crate) fn visibility(
 
 pub(crate) fn player_visibility_update(
     mut query: Query<(&Client, &mut Visibility)>,
-    lookup: Query<(&Position, &NetworkedEntity, Option<&Player>)>,
+    lookup: Query<(&Position, &NetworkedEntity, Option<&Player>, Option<&Monster>)>,
 ) {
     for (client, mut visibility) in query.iter_mut() {
-        let mut visibility: &mut Visibility = &mut visibility;
+        let visibility: &mut Visibility = &mut visibility;
 
+        let mut spawns = Vec::new();
         for added in visibility.added_entities.iter() {
-            if let Ok((pos, network_id, player_opt)) = lookup.get(*added) {
+            if let Ok((pos, network_id, player_opt, monster_opt)) = lookup.get(*added) {
                 let pos: &Position = pos;
                 let network_id: &NetworkedEntity = network_id;
                 let player_opt: Option<&Player> = player_opt;
+                let monster_opt: Option<&Monster> = monster_opt;
 
                 if let Some(player) = player_opt {
-                    client.send(ServerPacket::EntitySpawn(EntitySpawn::new(
-                        EntityTypeSpawnData::Character {
+                    spawns.push(GroupSpawnDataContent::Spawn {
+                        object_id: 0, // TODO needs this from agent
+                        data: EntityTypeSpawnData::Character {
                             scale: 0,
                             berserk_level: 0,
                             pvp_cape: PvpCape::None,
-                            beginner: true,
+                            beginner: false,
                             title: 0,
                             equipment: vec![],
                             avatar_items: vec![],
@@ -94,18 +109,58 @@ pub(crate) fn player_visibility_update(
                             active_scroll: ActiveScroll::None,
                             unknown2: 0,
                         },
-                    )));
+                    });
+                } else if let Some(monster) = monster_opt {
+                    debug!("Spawning monster {}.", network_id.0);
+                    spawns.push(GroupSpawnDataContent::spawn(
+                        monster.ref_id,
+                        EntityTypeSpawnData::Monster {
+                            unique_id: network_id.0,
+                            position: pos.as_protocol(),
+                            movement: pos.as_movement(),
+                            entity_state: EntityState {
+                                alive: AliveState::Alive,
+                                unknown1: 0,
+                                action_state: ActionState::None,
+                                body_state: BodyState::None,
+                                unknown2: 0,
+                                walk_speed: 20.0,
+                                run_speed: 40.0,
+                                berserk_speed: 80.0,
+                                active_buffs: vec![],
+                            },
+                            interaction_options: InteractOptions::None,
+                            rarity: EntityRarity::Normal,
+                            unknown: 0,
+                        },
+                    ));
                 }
             }
         }
 
+        send_group_spawn_packet(client, GroupSpawnType::Spawn, spawns);
+
+        let mut despawns = Vec::new();
         for removed in visibility.removed_entities.iter() {
-            if let Ok((_, network_id, _)) = lookup.get(*removed) {
-                client.send(ServerPacket::EntityDespawn(EntityDespawn::new(network_id.0)));
+            if let Ok((_, network_id, _, _)) = lookup.get(*removed) {
+                despawns.push(GroupSpawnDataContent::despawn(network_id.0));
             }
         }
 
+        send_group_spawn_packet(client, GroupSpawnType::Despawn, despawns);
+
         visibility.added_entities.clear();
         visibility.removed_entities.clear();
+    }
+}
+
+fn send_group_spawn_packet(client: &Client, mode: GroupSpawnType, spawns: Vec<GroupSpawnDataContent>) {
+    if !spawns.is_empty() {
+        client.send(ServerPacket::GroupEntitySpawnStart(GroupEntitySpawnStart::new(
+            mode,
+            spawns.len() as u16,
+        )));
+        client.send(ServerPacket::GroupEntitySpawnData(GroupEntitySpawnData::new(spawns)));
+        client.send(ServerPacket::GroupEntitySpawnEnd(GroupEntitySpawnEnd));
     }
 }

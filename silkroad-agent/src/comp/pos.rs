@@ -89,7 +89,7 @@ impl Into<u16> for Heading {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub(crate) struct Position {
     pub location: GlobalPosition,
     pub rotation: Heading,

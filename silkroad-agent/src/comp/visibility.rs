@@ -8,3 +8,14 @@ pub struct Visibility {
     pub added_entities: Vec<Entity>,
     pub removed_entities: Vec<Entity>,
 }
+
+impl Visibility {
+    pub fn with_radius(radius: f32) -> Self {
+        Visibility {
+            visibility_radius: radius,
+            entities_in_radius: HashSet::new(),
+            added_entities: vec![],
+            removed_entities: vec![],
+        }
+    }
+}

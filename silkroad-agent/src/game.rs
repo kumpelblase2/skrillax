@@ -6,6 +6,7 @@ use crate::sys::in_game::in_game;
 use crate::sys::login::login;
 use crate::sys::movement::movement;
 use crate::sys::net::{accept, disconnected, receive};
+use crate::sys::visibility::{player_visibility_update, visibility};
 use crate::{CharacterLoaderFacade, JobCoordinator, LoginQueue};
 use bevy_ecs::event::Events;
 use bevy_ecs::schedule::{Schedule, Stage, SystemStage};
@@ -79,7 +80,13 @@ impl Game {
                 .with_system(charselect)
                 .with_system(in_game),
         );
-        schedule.add_stage("world", SystemStage::parallel().with_system(movement));
+        schedule.add_stage(
+            "world",
+            SystemStage::parallel()
+                .with_system(visibility)
+                .with_system(player_visibility_update)
+                .with_system(movement),
+        );
 
         schedule
     }

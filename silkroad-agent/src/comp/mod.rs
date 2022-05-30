@@ -1,3 +1,4 @@
+pub(crate) mod monster;
 pub(crate) mod player;
 pub(crate) mod pos;
 pub(crate) mod stats;

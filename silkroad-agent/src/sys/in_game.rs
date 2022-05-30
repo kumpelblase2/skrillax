@@ -1,6 +1,8 @@
+use crate::comp::monster::Monster;
 use crate::comp::player::{Agent, Character, MovementState, MovementTarget, Player, SpawningState};
 use crate::comp::pos::{Heading, LocalPosition, Position};
-use crate::comp::Client;
+use crate::comp::visibility::Visibility;
+use crate::comp::{Client, NetworkedEntity};
 use crate::resources::Delta;
 use crate::GameSettings;
 use bevy_ecs::prelude::*;
@@ -11,8 +13,8 @@ use silkroad_protocol::chat::{
     ChatMessageResponse, ChatMessageResult, ChatSource, ChatUpdate, TextCharacterInitialization,
 };
 use silkroad_protocol::world::{
-    CelestialUpdate, EntityUpdateState, MovementSource, MovementType, PlayerMovementRequest, PlayerMovementResponse,
-    Rotation,
+    CelestialUpdate, EntityRarity, EntityUpdateState, MovementSource, MovementType, PlayerMovementRequest,
+    PlayerMovementResponse, Rotation, TargetEntity, TargetEntityResponse, TargetEntityResult,
 };
 use silkroad_protocol::{ClientPacket, ServerPacket};
 use std::panic::Location;
@@ -39,6 +41,17 @@ pub(crate) fn in_game(
                     if let Some(notice) = &settings.join_notice {
                         client.send(ChatUpdate::new(ChatSource::Notice, notice.clone()));
                     }
+
+                    cmd.spawn()
+                        .insert(position.clone())
+                        .insert(Monster {
+                            ref_id: 0x078d,
+                            rarity: EntityRarity::Normal,
+                            max_health: 100,
+                            current_health: 100,
+                        })
+                        .insert(Visibility::with_radius(10.))
+                        .insert(NetworkedEntity(1337u32));
                 },
                 ClientPacket::PlayerMovementRequest(PlayerMovementRequest { kind }) => match kind {
                     silkroad_protocol::world::MovementTarget::TargetLocation { region, x, y, z } => {
@@ -50,12 +63,12 @@ pub(crate) fn in_game(
                             x,
                             y,
                             z,
-                            Some(MovementSource {
-                                region: local_position.0.id(),
-                                x: (local_position.1.x * 10.) as u16,
-                                y: local_position.1.y,
-                                z: (local_position.1.z * 10.) as u16,
-                            }),
+                            Some(MovementSource::new(
+                                local_position.0.id(),
+                                (local_position.1.x * 10.) as u16,
+                                local_position.1.y,
+                                (local_position.1.z * 10.) as u16,
+                            )),
                         ));
                         client.send(response);
                         let target_pos = LocalPosition(region.into(), Vector3::new(x as f32, y as f32, z as f32));
@@ -85,10 +98,15 @@ pub(crate) fn in_game(
                 ClientPacket::LogoutRequest(LogoutRequest { mode }) => {
                     let logout_duration = settings.logout_duration as f64;
                     player.logout = Some(logout_duration);
-                    client.send(LogoutResponse::new(LogoutResult::Success {
-                        seconds_to_logout: settings.logout_duration as u32,
+                    client.send(LogoutResponse::new(LogoutResult::success(
+                        settings.logout_duration as u32,
                         mode,
-                    }));
+                    )));
+                },
+                ClientPacket::TargetEntity(TargetEntity { unique_id }) => {
+                    client.send(ServerPacket::TargetEntityResponse(TargetEntityResponse::new(
+                        TargetEntityResult::success(unique_id),
+                    )));
                 },
                 _ => {},
             }
@@ -97,7 +115,7 @@ pub(crate) fn in_game(
         if let Some(logout_time_remaining) = player.logout {
             let remaining_time = logout_time_remaining - delta.0;
             if remaining_time < 0.0 {
-                client.send(LogoutFinished::new());
+                client.send(LogoutFinished);
                 cmd.entity(entity).despawn();
             } else {
                 player.logout = Some(remaining_time);

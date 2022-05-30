@@ -86,8 +86,9 @@ pub(crate) fn charselect(
                             cmd.entity(entity)
                                 .insert(player)
                                 .insert(agent)
-                                .insert(position)
+                                .insert(position.clone())
                                 .insert(Buffed {})
+                                .insert(Visibility::with_radius(50.))
                                 .remove::<CharacterSelect>();
                         },
                         None => {
