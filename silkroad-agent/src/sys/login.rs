@@ -35,44 +35,26 @@ fn handle_packets(
         match packet {
             ClientPacket::IdentityInformation(_id) => {
                 send_identity_information(&client.0)?;
-            }
-            ClientPacket::AuthRequest(request) => {
-                match login_queue.hand_in_reservation(request.token) {
-                    Ok((token, user)) => {
-                        debug!(id = ?client.0.id(), token = request.token, "Accepted token");
-                        buffer
-                            .entity(entity)
-                            .remove::<Login>()
-                            .insert(Playing(user, token))
-                            .insert(CharacterSelect(None));
-                        send_login_result(
-                            &client.0,
-                            AuthResult::Success {
-                                unknown_1: 3,
-                                unknown_2: 0,
-                            },
-                        )?;
-                        break;
-                    }
-                    Err(ReservationError::NoSuchToken) => {
-                        send_login_result(
-                            &client.0,
-                            AuthResult::Error {
-                                code: AuthResultError::InvalidData,
-                            },
-                        )?;
-                    }
-                    _ => {
-                        send_login_result(
-                            &client.0,
-                            AuthResult::Error {
-                                code: AuthResultError::ServerFull,
-                            },
-                        )?;
-                    }
-                }
-            }
-            _ => {}
+            },
+            ClientPacket::AuthRequest(request) => match login_queue.hand_in_reservation(request.token) {
+                Ok((token, user)) => {
+                    debug!(id = ?client.0.id(), token = request.token, "Accepted token");
+                    buffer
+                        .entity(entity)
+                        .remove::<Login>()
+                        .insert(Playing(user, token))
+                        .insert(CharacterSelect(None));
+                    send_login_result(&client.0, AuthResult::success())?;
+                    break;
+                },
+                Err(ReservationError::NoSuchToken) => {
+                    send_login_result(&client.0, AuthResult::error(AuthResultError::InvalidData))?;
+                },
+                _ => {
+                    send_login_result(&client.0, AuthResult::error(AuthResultError::ServerFull))?;
+                },
+            },
+            _ => {},
         }
     }
     Ok(())

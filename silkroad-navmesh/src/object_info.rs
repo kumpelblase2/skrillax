@@ -51,11 +51,11 @@ impl ObjectInfo {
         let mut entries = HashMap::with_capacity(count);
         for _ in 0..count {
             let line = lines.next().unwrap_or_else(|| todo!());
-            let split: Vec<&str> = line.splitn(3, " ").collect();
+            let split: Vec<&str> = line.splitn(3, ' ').collect();
             let id = u32::from_str(split[0])?;
             let flag = u32::from_str_radix(split[1].trim_start_matches("0x"), 16)?;
             let mut mesh = split[2].trim_matches('"').replace('\\', "/");
-            mesh.insert_str(0, "/");
+            mesh.insert(0, '/');
             entries.insert(id, ObjectInfoEntry { flag, file: mesh });
         }
         Ok(ObjectInfo { entries })
@@ -88,8 +88,8 @@ pub struct ObjectStringsInfo {
 
 impl ObjectStringsInfo {
     pub fn from(data: &[u8]) -> Result<ObjectStringsInfo, ObjectInfoError> {
-        let (content, _enc, _bool) = WINDOWS_1252.decode(&data);
-        let mut lines = content.split("\n");
+        let (content, _enc, _bool) = WINDOWS_1252.decode(data);
+        let mut lines = content.split('\n');
         let magic = lines.next().unwrap();
         if magic != OBJ_MAGIC {
             return Err(ObjectInfoError::InvalidMagic);
@@ -100,7 +100,7 @@ impl ObjectStringsInfo {
         let mut objects = Vec::with_capacity(count);
         for _ in 0..count {
             let line = lines.next().unwrap_or_else(|| todo!());
-            let split: Vec<&str> = line.splitn(9, " ").collect();
+            let split: Vec<&str> = line.splitn(9, ' ').collect();
             let unique_id = u32::from_str_radix(split[0].trim_start_matches("0x"), 16)?;
             let flag = u32::from_str_radix(split[1].trim_start_matches("0x"), 16)?;
             let region_x = split[2].parse()?;

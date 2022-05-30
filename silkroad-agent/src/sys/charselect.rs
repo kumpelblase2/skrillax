@@ -1,7 +1,9 @@
 use crate::character_loader::Character;
+use crate::comp::monster::Monster;
 use crate::comp::player::{Agent, Buffed, Inventory, MovementState, Player};
 use crate::comp::pos::{Heading, LocalPosition, Position};
-use crate::comp::{CharacterSelect, Client, Playing};
+use crate::comp::visibility::Visibility;
+use crate::comp::{CharacterSelect, Client, NetworkedEntity, Playing};
 use crate::db::character::CharacterItem;
 use crate::job_coordinator::JobCoordinator;
 use crate::time::AsSilkroadTime;
@@ -16,7 +18,7 @@ use silkroad_protocol::character::{
 };
 use silkroad_protocol::world::{
     ActionState, AliveState, BodyState, CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, EntityMovementState,
-    EntityState, JobType, MovementType,
+    EntityRarity, EntityState, JobType, MovementType,
 };
 use silkroad_protocol::ClientPacket;
 
@@ -150,18 +152,13 @@ fn from_character(character: &Character) -> CharacterListEntry {
 }
 
 fn from_item(item: &CharacterItem) -> CharacterListEquippedItem {
-    CharacterListEquippedItem {
-        id: item.item_obj_id as u32,
-        upgrade_level: item.upgrade_level as u8,
-    }
+    CharacterListEquippedItem::new(item.item_obj_id as u32, item.upgrade_level as u8)
 }
 
 fn send_job_spread(client: &Client, hunters: u8, thieves: u8) {
     client.send(CharacterListResponse::new(
         CharacterListAction::ShowJobSpread,
-        CharacterListResult::Ok {
-            content: CharacterListContent::JobSpread { hunters, thieves },
-        },
+        CharacterListResult::ok(CharacterListContent::jobspread(hunters, thieves)),
     ));
 }
 
