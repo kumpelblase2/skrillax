@@ -22,9 +22,9 @@ pub type SendResult = StreamResult<()>;
 pub enum StreamError {
     #[error("Handshake did not complete")]
     IncompleteHandshake,
-    #[error("A frame level error occurred when sending a packet")]
+    #[error("A frame level error occurred when sending a packet: {0}")]
     FrameError(#[from] FrameError),
-    #[error("Error occurred at the protocol level")]
+    #[error("Error occurred at the protocol level: {0}")]
     ProtocolError(#[from] ProtocolError),
     #[error("Stream has been closed")]
     StreamClosed,
@@ -62,6 +62,9 @@ impl StreamReader {
                 Ok(packet) => match writer.send(packet) {
                     Ok(_) => {},
                     Err(_) => return,
+                },
+                Err(StreamError::ProtocolError(proto_err)) => {
+                    tracing::warn!("Could not handle packet: {:?}", proto_err);
                 },
                 Err(e) => {
                     tracing::warn!("Could not parse frame :( {:?}", e);
