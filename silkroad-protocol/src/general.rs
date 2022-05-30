@@ -5,12 +5,13 @@
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
-use bytes::{Buf, Bytes, BytesMut, BufMut};
-use chrono::{DateTime, Datelike, Timelike, Utc};
-use byteorder::ReadBytesExt;
+
+use crate::error::ProtocolError;
 use crate::ClientPacket;
 use crate::ServerPacket;
-use crate::error::ProtocolError;
+use byteorder::ReadBytesExt;
+use bytes::{Buf, BufMut, Bytes, BytesMut};
+use chrono::{DateTime, Datelike, Timelike, Utc};
 
 #[derive(Clone)]
 pub enum HandshakeStage {
@@ -22,12 +23,36 @@ pub enum HandshakeStage {
         a: u32,
         b: u32,
         c: u32,
-    }
-    ,
+    },
     Finalize {
         challenge: u64,
+    },
+}
+
+impl HandshakeStage {
+    pub fn initialize(
+        blowfish_seed: u64,
+        seed_count: u32,
+        seed_crc: u32,
+        handshake_seed: u64,
+        a: u32,
+        b: u32,
+        c: u32,
+    ) -> Self {
+        HandshakeStage::Initialize {
+            blowfish_seed,
+            seed_count,
+            seed_crc,
+            handshake_seed,
+            a,
+            b,
+            c,
+        }
     }
-    ,
+
+    pub fn finalize(challenge: u64) -> Self {
+        HandshakeStage::Finalize { challenge }
+    }
 }
 
 #[derive(Clone)]
@@ -44,17 +69,17 @@ impl TryFrom<Bytes> for IdentityInformation {
         let module_name_string_len = data_reader.read_u16::<byteorder::LittleEndian>()?;
         let mut module_name_bytes = Vec::with_capacity(module_name_string_len as usize);
         for _ in 0..module_name_string_len {
-            	module_name_bytes.push(data_reader.read_u8()?);
+            module_name_bytes.push(data_reader.read_u8()?);
         }
         let module_name = String::from_utf8(module_name_bytes)?;
         let locality = data_reader.read_u8()?;
-        Ok(IdentityInformation { module_name, locality,  })
+        Ok(IdentityInformation { module_name, locality })
     }
 }
 
-impl Into<ClientPacket> for IdentityInformation {
-    fn into(self) -> ClientPacket {
-        ClientPacket::IdentityInformation(self)
+impl From<IdentityInformation> for ClientPacket {
+    fn from(other: IdentityInformation) -> Self {
+        ClientPacket::IdentityInformation(other)
     }
 }
 
@@ -68,15 +93,15 @@ impl From<IdentityInformation> for Bytes {
     }
 }
 
-impl Into<ServerPacket> for IdentityInformation {
-    fn into(self) -> ServerPacket {
-        ServerPacket::IdentityInformation(self)
+impl From<IdentityInformation> for ServerPacket {
+    fn from(other: IdentityInformation) -> Self {
+        ServerPacket::IdentityInformation(other)
     }
 }
 
 impl IdentityInformation {
     pub fn new(module_name: String, locality: u8) -> Self {
-        IdentityInformation { module_name, locality,  }
+        IdentityInformation { module_name, locality }
     }
 }
 
@@ -88,13 +113,13 @@ impl TryFrom<Bytes> for KeepAlive {
 
     fn try_from(data: Bytes) -> Result<Self, Self::Error> {
         let mut data_reader = data.reader();
-        Ok(KeepAlive {  })
+        Ok(KeepAlive {})
     }
 }
 
-impl Into<ClientPacket> for KeepAlive {
-    fn into(self) -> ClientPacket {
-        ClientPacket::KeepAlive(self)
+impl From<KeepAlive> for ClientPacket {
+    fn from(other: KeepAlive) -> Self {
+        ClientPacket::KeepAlive(other)
     }
 }
 
@@ -121,15 +146,22 @@ impl From<ServerInfoSeed> for Bytes {
     }
 }
 
-impl Into<ServerPacket> for ServerInfoSeed {
-    fn into(self) -> ServerPacket {
-        ServerPacket::ServerInfoSeed(self)
+impl From<ServerInfoSeed> for ServerPacket {
+    fn from(other: ServerInfoSeed) -> Self {
+        ServerPacket::ServerInfoSeed(other)
     }
 }
 
 impl ServerInfoSeed {
     pub fn new(seed_value: u16) -> Self {
-        ServerInfoSeed { unknown_1: 1, unknown_2: 0, unknown_3: 1, seed_value, unknown_4: 5, unknown_5: 2,  }
+        ServerInfoSeed {
+            unknown_1: 1,
+            unknown_2: 0,
+            unknown_3: 1,
+            seed_value,
+            unknown_4: 5,
+            unknown_5: 2,
+        }
     }
 }
 
@@ -154,15 +186,21 @@ impl From<ServerStateSeed> for Bytes {
     }
 }
 
-impl Into<ServerPacket> for ServerStateSeed {
-    fn into(self) -> ServerPacket {
-        ServerPacket::ServerStateSeed(self)
+impl From<ServerStateSeed> for ServerPacket {
+    fn from(other: ServerStateSeed) -> Self {
+        ServerPacket::ServerStateSeed(other)
     }
 }
 
 impl ServerStateSeed {
     pub fn new() -> Self {
-        ServerStateSeed { unknown_1: 3, unknown_2: 0, unknown_3: 2, unknown_4: 0, unknown_5: 2,  }
+        ServerStateSeed {
+            unknown_1: 3,
+            unknown_2: 0,
+            unknown_3: 2,
+            unknown_4: 0,
+            unknown_5: 2,
+        }
     }
 }
 
@@ -175,7 +213,15 @@ impl From<SecuritySetup> for Bytes {
     fn from(op: SecuritySetup) -> Bytes {
         let mut data_writer = BytesMut::new();
         match &op.stage {
-            HandshakeStage::Initialize { blowfish_seed, seed_count, seed_crc, handshake_seed, a, b, c,  } => {
+            HandshakeStage::Initialize {
+                blowfish_seed,
+                seed_count,
+                seed_crc,
+                handshake_seed,
+                a,
+                b,
+                c,
+            } => {
                 data_writer.put_u8(0xE);
                 data_writer.put_u64_le(*blowfish_seed);
                 data_writer.put_u32_le(*seed_count);
@@ -184,25 +230,25 @@ impl From<SecuritySetup> for Bytes {
                 data_writer.put_u32_le(*a);
                 data_writer.put_u32_le(*b);
                 data_writer.put_u32_le(*c);
-            }
-            HandshakeStage::Finalize { challenge,  } => {
+            },
+            HandshakeStage::Finalize { challenge } => {
                 data_writer.put_u8(0x10);
                 data_writer.put_u64_le(*challenge);
-            }
+            },
         }
         data_writer.freeze()
     }
 }
 
-impl Into<ServerPacket> for SecuritySetup {
-    fn into(self) -> ServerPacket {
-        ServerPacket::SecuritySetup(self)
+impl From<SecuritySetup> for ServerPacket {
+    fn from(other: SecuritySetup) -> Self {
+        ServerPacket::SecuritySetup(other)
     }
 }
 
 impl SecuritySetup {
     pub fn new(stage: HandshakeStage) -> Self {
-        SecuritySetup { stage,  }
+        SecuritySetup { stage }
     }
 }
 
@@ -219,13 +265,13 @@ impl TryFrom<Bytes> for HandshakeChallenge {
         let mut data_reader = data.reader();
         let b = data_reader.read_u32::<byteorder::LittleEndian>()?;
         let key = data_reader.read_u64::<byteorder::LittleEndian>()?;
-        Ok(HandshakeChallenge { b, key,  })
+        Ok(HandshakeChallenge { b, key })
     }
 }
 
-impl Into<ClientPacket> for HandshakeChallenge {
-    fn into(self) -> ClientPacket {
-        ClientPacket::HandshakeChallenge(self)
+impl From<HandshakeChallenge> for ClientPacket {
+    fn from(other: HandshakeChallenge) -> Self {
+        ClientPacket::HandshakeChallenge(other)
     }
 }
 
@@ -237,12 +283,12 @@ impl TryFrom<Bytes> for HandshakeAccepted {
 
     fn try_from(data: Bytes) -> Result<Self, Self::Error> {
         let mut data_reader = data.reader();
-        Ok(HandshakeAccepted {  })
+        Ok(HandshakeAccepted {})
     }
 }
 
-impl Into<ClientPacket> for HandshakeAccepted {
-    fn into(self) -> ClientPacket {
-        ClientPacket::HandshakeAccepted(self)
+impl From<HandshakeAccepted> for ClientPacket {
+    fn from(other: HandshakeAccepted) -> Self {
+        ClientPacket::HandshakeAccepted(other)
     }
 }

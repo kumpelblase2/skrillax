@@ -5,12 +5,13 @@
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
-use bytes::{Buf, Bytes, BytesMut, BufMut};
-use chrono::{DateTime, Datelike, Timelike, Utc};
-use byteorder::ReadBytesExt;
+
+use crate::error::ProtocolError;
 use crate::ClientPacket;
 use crate::ServerPacket;
-use crate::error::ProtocolError;
+use byteorder::ReadBytesExt;
+use bytes::{Buf, BufMut, Bytes, BytesMut};
+use chrono::{DateTime, Datelike, Timelike, Utc};
 
 #[derive(Clone, PartialEq, PartialOrd)]
 pub enum LogoutMode {
@@ -20,15 +21,21 @@ pub enum LogoutMode {
 
 #[derive(Clone)]
 pub enum LogoutResult {
-    Success {
-        seconds_to_logout: u32,
-        mode: LogoutMode,
+    Success { seconds_to_logout: u32, mode: LogoutMode },
+    Error { error: u16 },
+}
+
+impl LogoutResult {
+    pub fn success(seconds_to_logout: u32, mode: LogoutMode) -> Self {
+        LogoutResult::Success {
+            seconds_to_logout,
+            mode,
+        }
     }
-    ,
-    Error {
-        error: u16,
+
+    pub fn error(error: u16) -> Self {
+        LogoutResult::Error { error }
     }
-    ,
 }
 
 #[derive(Clone, PartialEq, PartialOrd)]
@@ -41,15 +48,21 @@ pub enum AuthResultError {
 
 #[derive(Clone)]
 pub enum AuthResult {
-    Success {
-        unknown_1: u8,
-        unknown_2: u8,
+    Success { unknown_1: u8, unknown_2: u8 },
+    Error { code: AuthResultError },
+}
+
+impl AuthResult {
+    pub fn success() -> Self {
+        AuthResult::Success {
+            unknown_1: 3,
+            unknown_2: 0,
+        }
     }
-    ,
-    Error {
-        code: AuthResultError,
+
+    pub fn error(code: AuthResultError) -> Self {
+        AuthResult::Error { code }
     }
-    ,
 }
 
 #[derive(Clone)]
@@ -70,28 +83,34 @@ impl TryFrom<Bytes> for AuthRequest {
         let username_string_len = data_reader.read_u16::<byteorder::LittleEndian>()?;
         let mut username_bytes = Vec::with_capacity(username_string_len as usize);
         for _ in 0..username_string_len {
-            	username_bytes.push(data_reader.read_u8()?);
+            username_bytes.push(data_reader.read_u8()?);
         }
         let username = String::from_utf8(username_bytes)?;
         let password_string_len = data_reader.read_u16::<byteorder::LittleEndian>()?;
         let mut password_bytes = Vec::with_capacity(password_string_len as usize);
         for _ in 0..password_string_len {
-            	password_bytes.push(data_reader.read_u8()?);
+            password_bytes.push(data_reader.read_u8()?);
         }
         let password = String::from_utf8(password_bytes)?;
         let unknown = data_reader.read_u8()?;
         let mut mac_bytes_raw = BytesMut::with_capacity(6);
         for _ in 0..6 {
-            	mac_bytes_raw.put_u8(data_reader.read_u8()?);
+            mac_bytes_raw.put_u8(data_reader.read_u8()?);
         }
         let mac_bytes = mac_bytes_raw.freeze();
-        Ok(AuthRequest { token, username, password, unknown, mac_bytes,  })
+        Ok(AuthRequest {
+            token,
+            username,
+            password,
+            unknown,
+            mac_bytes,
+        })
     }
 }
 
-impl Into<ClientPacket> for AuthRequest {
-    fn into(self) -> ClientPacket {
-        ClientPacket::AuthRequest(self)
+impl From<AuthRequest> for ClientPacket {
+    fn from(other: AuthRequest) -> Self {
+        ClientPacket::AuthRequest(other)
     }
 }
 
@@ -104,12 +123,12 @@ impl From<AuthResponse> for Bytes {
     fn from(op: AuthResponse) -> Bytes {
         let mut data_writer = BytesMut::new();
         match &op.result {
-            AuthResult::Success { unknown_1, unknown_2,  } => {
+            AuthResult::Success { unknown_1, unknown_2 } => {
                 data_writer.put_u8(1);
                 data_writer.put_u8(*unknown_1);
                 data_writer.put_u8(*unknown_2);
-            }
-            AuthResult::Error { code,  } => {
+            },
+            AuthResult::Error { code } => {
                 data_writer.put_u8(2);
                 match &code {
                     AuthResultError::InvalidData => data_writer.put_u8(2),
@@ -117,21 +136,21 @@ impl From<AuthResponse> for Bytes {
                     AuthResultError::ServerFull => data_writer.put_u8(4),
                     AuthResultError::IpLimit => data_writer.put_u8(5),
                 }
-            }
+            },
         }
         data_writer.freeze()
     }
 }
 
-impl Into<ServerPacket> for AuthResponse {
-    fn into(self) -> ServerPacket {
-        ServerPacket::AuthResponse(self)
+impl From<AuthResponse> for ServerPacket {
+    fn from(other: AuthResponse) -> Self {
+        ServerPacket::AuthResponse(other)
     }
 }
 
 impl AuthResponse {
     pub fn new(result: AuthResult) -> Self {
-        AuthResponse { result,  }
+        AuthResponse { result }
     }
 }
 
@@ -148,15 +167,15 @@ impl TryFrom<Bytes> for LogoutRequest {
         let mode = match data_reader.read_u8()? {
             1 => LogoutMode::Logout,
             2 => LogoutMode::Restart,
-            unknown => return Err(ProtocolError::UnknownVariation(unknown, "LogoutMode"))
+            unknown => return Err(ProtocolError::UnknownVariation(unknown, "LogoutMode")),
         };
-        Ok(LogoutRequest { mode,  })
+        Ok(LogoutRequest { mode })
     }
 }
 
-impl Into<ClientPacket> for LogoutRequest {
-    fn into(self) -> ClientPacket {
-        ClientPacket::LogoutRequest(self)
+impl From<LogoutRequest> for ClientPacket {
+    fn from(other: LogoutRequest) -> Self {
+        ClientPacket::LogoutRequest(other)
     }
 }
 
@@ -169,32 +188,35 @@ impl From<LogoutResponse> for Bytes {
     fn from(op: LogoutResponse) -> Bytes {
         let mut data_writer = BytesMut::new();
         match &op.result {
-            LogoutResult::Success { seconds_to_logout, mode,  } => {
+            LogoutResult::Success {
+                seconds_to_logout,
+                mode,
+            } => {
                 data_writer.put_u8(1);
                 data_writer.put_u32_le(*seconds_to_logout);
                 match &mode {
                     LogoutMode::Logout => data_writer.put_u8(1),
                     LogoutMode::Restart => data_writer.put_u8(2),
                 }
-            }
-            LogoutResult::Error { error,  } => {
+            },
+            LogoutResult::Error { error } => {
                 data_writer.put_u8(2);
                 data_writer.put_u16_le(*error);
-            }
+            },
         }
         data_writer.freeze()
     }
 }
 
-impl Into<ServerPacket> for LogoutResponse {
-    fn into(self) -> ServerPacket {
-        ServerPacket::LogoutResponse(self)
+impl From<LogoutResponse> for ServerPacket {
+    fn from(other: LogoutResponse) -> Self {
+        ServerPacket::LogoutResponse(other)
     }
 }
 
 impl LogoutResponse {
     pub fn new(result: LogoutResult) -> Self {
-        LogoutResponse { result,  }
+        LogoutResponse { result }
     }
 }
 
@@ -208,15 +230,15 @@ impl From<LogoutFinished> for Bytes {
     }
 }
 
-impl Into<ServerPacket> for LogoutFinished {
-    fn into(self) -> ServerPacket {
-        ServerPacket::LogoutFinished(self)
+impl From<LogoutFinished> for ServerPacket {
+    fn from(other: LogoutFinished) -> Self {
+        ServerPacket::LogoutFinished(other)
     }
 }
 
 impl LogoutFinished {
     pub fn new() -> Self {
-        LogoutFinished {  }
+        LogoutFinished {}
     }
 }
 
@@ -233,14 +255,14 @@ impl From<Disconnect> for Bytes {
     }
 }
 
-impl Into<ServerPacket> for Disconnect {
-    fn into(self) -> ServerPacket {
-        ServerPacket::Disconnect(self)
+impl From<Disconnect> for ServerPacket {
+    fn from(other: Disconnect) -> Self {
+        ServerPacket::Disconnect(other)
     }
 }
 
 impl Disconnect {
     pub fn new() -> Self {
-        Disconnect { unknown: 0xFF,  }
+        Disconnect { unknown: 0xFF }
     }
 }

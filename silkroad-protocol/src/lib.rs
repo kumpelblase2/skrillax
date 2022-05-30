@@ -1,11 +1,11 @@
-use bytes::Bytes;
-use crate::error::ProtocolError;
-use crate::character::*;
-use crate::world::*;
-use crate::chat::*;
-use crate::login::*;
-use crate::general::*;
 use crate::auth::*;
+use crate::character::*;
+use crate::chat::*;
+use crate::error::ProtocolError;
+use crate::general::*;
+use crate::login::*;
+use crate::world::*;
+use bytes::Bytes;
 
 pub mod error;
 
@@ -31,6 +31,8 @@ pub enum ClientPacket {
     CreateFriendGroup(CreateFriendGroup),
     DeleteFriend(DeleteFriend),
     Rotation(Rotation),
+    TargetEntity(TargetEntity),
+    UnTargetEntity(UnTargetEntity),
     ChatMessage(ChatMessage),
     PatchRequest(PatchRequest),
     LoginRequest(LoginRequest),
@@ -58,6 +60,8 @@ impl ClientPacket {
             0x7310 => Ok(ClientPacket::CreateFriendGroup(data.try_into()?)),
             0x7304 => Ok(ClientPacket::DeleteFriend(data.try_into()?)),
             0x7024 => Ok(ClientPacket::Rotation(data.try_into()?)),
+            0x7045 => Ok(ClientPacket::TargetEntity(data.try_into()?)),
+            0x704B => Ok(ClientPacket::UnTargetEntity(data.try_into()?)),
             0x7025 => Ok(ClientPacket::ChatMessage(data.try_into()?)),
             0x6100 => Ok(ClientPacket::PatchRequest(data.try_into()?)),
             0x610A => Ok(ClientPacket::LoginRequest(data.try_into()?)),
@@ -71,7 +75,7 @@ impl ClientPacket {
             0x9000 => Ok(ClientPacket::HandshakeAccepted(data.try_into()?)),
             0x6103 => Ok(ClientPacket::AuthRequest(data.try_into()?)),
             0x7005 => Ok(ClientPacket::LogoutRequest(data.try_into()?)),
-            _ => Err(ProtocolError::UnknownOpcode(opcode))
+            _ => Err(ProtocolError::UnknownOpcode(opcode)),
         }
     }
 }
@@ -99,6 +103,8 @@ pub enum ServerPacket {
     GameNotification(GameNotification),
     PlayerMovementResponse(PlayerMovementResponse),
     EntityUpdateState(EntityUpdateState),
+    TargetEntityResponse(TargetEntityResponse),
+    UnTargetEntityResponse(UnTargetEntityResponse),
     TextCharacterInitialization(TextCharacterInitialization),
     ChatUpdate(ChatUpdate),
     ChatMessageResponse(ChatMessageResponse),
@@ -146,6 +152,8 @@ impl ServerPacket {
             ServerPacket::GameNotification(data) => (0x300C, data.into()),
             ServerPacket::PlayerMovementResponse(data) => (0xB021, data.into()),
             ServerPacket::EntityUpdateState(data) => (0x30BF, data.into()),
+            ServerPacket::TargetEntityResponse(data) => (0xB045, data.into()),
+            ServerPacket::UnTargetEntityResponse(data) => (0xB04B, data.into()),
             ServerPacket::TextCharacterInitialization(data) => (0x3535, data.into()),
             ServerPacket::ChatUpdate(data) => (0x3026, data.into()),
             ServerPacket::ChatMessageResponse(data) => (0xB025, data.into()),
@@ -170,7 +178,13 @@ impl ServerPacket {
     }
 
     pub fn is_massive(&self) -> bool {
-        matches!(self, Self::PatchResponse(_) | Self::GatewayNoticeResponse(_) | Self::ServerInfoSeed(_) | Self::ServerStateSeed(_))
+        matches!(
+            self,
+            Self::PatchResponse(_)
+                | Self::GatewayNoticeResponse(_)
+                | Self::ServerInfoSeed(_)
+                | Self::ServerStateSeed(_)
+        )
     }
 
     pub fn is_encrypted(&self) -> bool {

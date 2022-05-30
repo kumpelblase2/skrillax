@@ -5,22 +5,20 @@
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
-use bytes::{Buf, Bytes, BytesMut, BufMut};
-use chrono::{DateTime, Datelike, Timelike, Utc};
-use byteorder::ReadBytesExt;
+
+use crate::error::ProtocolError;
 use crate::ClientPacket;
 use crate::ServerPacket;
-use crate::error::ProtocolError;
+use byteorder::ReadBytesExt;
+use bytes::{Buf, BufMut, Bytes, BytesMut};
+use chrono::{DateTime, Datelike, Timelike, Utc};
 
 #[derive(Clone)]
 pub enum ChatSource {
     All,
     AllGm,
     NPC,
-    PrivateMessage {
-        receiver: String,
-    }
-    ,
+    PrivateMessage { receiver: String },
     Party,
     Guild,
     Global,
@@ -30,13 +28,22 @@ pub enum ChatSource {
     Notice,
 }
 
+impl ChatSource {
+    pub fn privatemessage(receiver: String) -> Self {
+        ChatSource::PrivateMessage { receiver }
+    }
+}
+
 #[derive(Clone)]
 pub enum ChatMessageResult {
     Success,
-    Error {
-        code: u16,
+    Error { code: u16 },
+}
+
+impl ChatMessageResult {
+    pub fn error(code: u16) -> Self {
+        ChatMessageResult::Error { code }
     }
-    ,
 }
 
 #[derive(Clone)]
@@ -55,15 +62,15 @@ impl From<TextCharacterInitialization> for Bytes {
     }
 }
 
-impl Into<ServerPacket> for TextCharacterInitialization {
-    fn into(self) -> ServerPacket {
-        ServerPacket::TextCharacterInitialization(self)
+impl From<TextCharacterInitialization> for ServerPacket {
+    fn from(other: TextCharacterInitialization) -> Self {
+        ServerPacket::TextCharacterInitialization(other)
     }
 }
 
 impl TextCharacterInitialization {
     pub fn new(characters: Vec<u64>) -> Self {
-        TextCharacterInitialization { characters,  }
+        TextCharacterInitialization { characters }
     }
 }
 
@@ -80,11 +87,11 @@ impl From<ChatUpdate> for Bytes {
             ChatSource::All => data_writer.put_u8(1),
             ChatSource::AllGm => data_writer.put_u8(3),
             ChatSource::NPC => data_writer.put_u8(13),
-            ChatSource::PrivateMessage { receiver,  } => {
+            ChatSource::PrivateMessage { receiver } => {
                 data_writer.put_u8(2);
                 data_writer.put_u16_le(receiver.len() as u16);
                 data_writer.put_slice(receiver.as_bytes());
-            }
+            },
             ChatSource::Party => data_writer.put_u8(4),
             ChatSource::Guild => data_writer.put_u8(5),
             ChatSource::Global => data_writer.put_u8(6),
@@ -101,15 +108,15 @@ impl From<ChatUpdate> for Bytes {
     }
 }
 
-impl Into<ServerPacket> for ChatUpdate {
-    fn into(self) -> ServerPacket {
-        ServerPacket::ChatUpdate(self)
+impl From<ChatUpdate> for ServerPacket {
+    fn from(other: ChatUpdate) -> Self {
+        ServerPacket::ChatUpdate(other)
     }
 }
 
 impl ChatUpdate {
     pub fn new(source: ChatSource, message: String) -> Self {
-        ChatUpdate { source, message,  }
+        ChatUpdate { source, message }
     }
 }
 
@@ -130,15 +137,15 @@ impl TryFrom<Bytes> for ChatMessage {
             1 => ChatSource::All,
             3 => ChatSource::AllGm,
             13 => ChatSource::NPC,
-            2 =>  {
+            2 => {
                 let receiver_string_len = data_reader.read_u16::<byteorder::LittleEndian>()?;
                 let mut receiver_bytes = Vec::with_capacity(receiver_string_len as usize);
                 for _ in 0..receiver_string_len {
-                    	receiver_bytes.push(data_reader.read_u8()?);
+                    receiver_bytes.push(data_reader.read_u8()?);
                 }
                 let receiver = String::from_utf8(receiver_bytes)?;
-                ChatSource::PrivateMessage { receiver,  }
-            }
+                ChatSource::PrivateMessage { receiver }
+            },
             4 => ChatSource::Party,
             5 => ChatSource::Guild,
             6 => ChatSource::Global,
@@ -146,23 +153,28 @@ impl TryFrom<Bytes> for ChatMessage {
             11 => ChatSource::Union,
             16 => ChatSource::Academy,
             7 => ChatSource::Notice,
-            unknown => return Err(ProtocolError::UnknownVariation(unknown, "ChatSource"))
+            unknown => return Err(ProtocolError::UnknownVariation(unknown, "ChatSource")),
         };
         let index = data_reader.read_u8()?;
         let unknown_2 = data_reader.read_u16::<byteorder::LittleEndian>()?;
         let message_string_len = data_reader.read_u16::<byteorder::LittleEndian>()?;
         let mut message_bytes = Vec::with_capacity(message_string_len as usize);
         for _ in 0..message_string_len {
-            	message_bytes.push(data_reader.read_u16::<byteorder::LittleEndian>()?);
+            message_bytes.push(data_reader.read_u16::<byteorder::LittleEndian>()?);
         }
         let message = String::from_utf16(&message_bytes)?;
-        Ok(ChatMessage { target, index, unknown_2, message,  })
+        Ok(ChatMessage {
+            target,
+            index,
+            unknown_2,
+            message,
+        })
     }
 }
 
-impl Into<ClientPacket> for ChatMessage {
-    fn into(self) -> ClientPacket {
-        ClientPacket::ChatMessage(self)
+impl From<ChatMessage> for ClientPacket {
+    fn from(other: ChatMessage) -> Self {
+        ClientPacket::ChatMessage(other)
     }
 }
 
@@ -178,20 +190,20 @@ impl From<ChatMessageResponse> for Bytes {
         let mut data_writer = BytesMut::new();
         match &op.result {
             ChatMessageResult::Success => data_writer.put_u8(1),
-            ChatMessageResult::Error { code,  } => {
+            ChatMessageResult::Error { code } => {
                 data_writer.put_u8(2);
                 data_writer.put_u16_le(*code);
-            }
+            },
         }
         match &op.source {
             ChatSource::All => data_writer.put_u8(1),
             ChatSource::AllGm => data_writer.put_u8(3),
             ChatSource::NPC => data_writer.put_u8(13),
-            ChatSource::PrivateMessage { receiver,  } => {
+            ChatSource::PrivateMessage { receiver } => {
                 data_writer.put_u8(2);
                 data_writer.put_u16_le(receiver.len() as u16);
                 data_writer.put_slice(receiver.as_bytes());
-            }
+            },
             ChatSource::Party => data_writer.put_u8(4),
             ChatSource::Guild => data_writer.put_u8(5),
             ChatSource::Global => data_writer.put_u8(6),
@@ -205,14 +217,14 @@ impl From<ChatMessageResponse> for Bytes {
     }
 }
 
-impl Into<ServerPacket> for ChatMessageResponse {
-    fn into(self) -> ServerPacket {
-        ServerPacket::ChatMessageResponse(self)
+impl From<ChatMessageResponse> for ServerPacket {
+    fn from(other: ChatMessageResponse) -> Self {
+        ServerPacket::ChatMessageResponse(other)
     }
 }
 
 impl ChatMessageResponse {
     pub fn new(result: ChatMessageResult, source: ChatSource, index: u8) -> Self {
-        ChatMessageResponse { result, source, index,  }
+        ChatMessageResponse { result, source, index }
     }
 }

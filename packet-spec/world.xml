@@ -487,12 +487,40 @@
     </packet>
 
     <packet name="Rotation" source="client" opcode="0x7024">
-        <attribute name="heading" type="u16" />
+        <attribute name="heading" type="u16"/>
     </packet>
 
     <packet name="EntityUpdateState" source="server" opcode="0x30BF">
-        <attribute name="unique_id" type="u32" />
-        <attribute name="kind" type="u8" /><!-- TODO make to proper enum -->
-        <attribute name="value" type="u8" />
+        <attribute name="unique_id" type="u32"/>
+        <attribute name="kind" type="u8"/><!-- TODO make to proper enum -->
+        <attribute name="value" type="u8"/>
+    </packet>
+
+    <enum name="TargetEntityResult" type="u8">
+        <variation name="Failure" value="0">
+            <attribute name="error" type="u16"/>
+        </variation>
+        <variation name="Success" value="1">
+            <attribute name="unique_id" type="u32"/>
+            <attribute name="unknown1" type="u8" value="1"/>
+            <attribute name="unknown2" type="u8" value="5"/>
+            <attribute name="unknown3" type="u8" value="4"/>
+        </variation>
+    </enum>
+
+    <packet name="TargetEntity" source="client" opcode="0x7045">
+        <attribute name="unique_id" type="u32"/>
+    </packet>
+
+    <packet name="TargetEntityResponse" source="server" opcode="0xB045">
+        <attribute name="result" type="TargetEntityResult"/>
+    </packet>
+
+    <packet name="UnTargetEntity" source="client" opcode="0x704B">
+        <attribute name="unique_id" type="u32"/>
+    </packet>
+
+    <packet name="UnTargetEntityResponse" source="server" opcode="0xB04B">
+        <attribute name="success" type="bool"/>
     </packet>
 </packets>
