@@ -13,40 +13,28 @@ fn generate_writer_for_any<T: CodeContainer>(
     let deref = if with_deref { "*" } else { "" };
     match type_name {
         "u8" => {
-            container.new_line(format!(
-                "{}.put_u8({}{});",
-                &context.buffer_name, deref, accessor
-            ));
-        }
+            container.new_line(format!("{}.put_u8({}{});", &context.buffer_name, deref, accessor));
+        },
         "u16" | "u32" | "u64" | "f32" | "f64" => {
             container.new_line(format!(
                 "{}.put_{}_le({}{});",
                 &context.buffer_name, type_name, deref, accessor
             ));
-        }
+        },
         "bool" => {
-            container.new_line(format!(
-                "{}.put_u8({}{} as u8);",
-                &context.buffer_name, deref, accessor
-            ));
-        }
+            container.new_line(format!("{}.put_u8({}{} as u8);", &context.buffer_name, deref, accessor));
+        },
         "String" => {
             container
                 .new_line(format!(
                     "{}.put_u16_le({}.len() as u16);",
                     &context.buffer_name, accessor
                 ))
-                .new_line(format!(
-                    "{}.put_slice({}.as_bytes());",
-                    &context.buffer_name, accessor
-                ));
-        }
+                .new_line(format!("{}.put_slice({}.as_bytes());", &context.buffer_name, accessor));
+        },
         "raw" => {
-            container.new_line(format!(
-                "{}.put_slice(&{});",
-                &context.buffer_name, accessor
-            ));
-        }
+            container.new_line(format!("{}.put_slice(&{});", &context.buffer_name, accessor));
+        },
         "DateTime" => {
             container
                 .new_line(format!(
@@ -77,7 +65,7 @@ fn generate_writer_for_any<T: CodeContainer>(
                     "{}.put_u32_le({}.timestamp_millis() as u32);",
                     &context.buffer_name, accessor
                 ));
-        }
+        },
         typ => {
             if let Some(struct_def) = context.structs.iter().find(|def| def.name == typ) {
                 generate_writer_for_struct(struct_def, context, container, Some(accessor), false);
@@ -86,7 +74,7 @@ fn generate_writer_for_any<T: CodeContainer>(
             } else {
                 panic!("Unknown unsupported attribute type: {}", typ);
             }
-        }
+        },
     };
 }
 
@@ -113,15 +101,12 @@ pub fn generate_writer_for_enum<T: CodeContainer>(
 
         for enum_variation in enum_def.values.iter() {
             let writer = enum_def.primitive_type.as_ref().map(|enum_type| {
-                let value = enum_variation
-                    .value
-                    .as_ref()
-                    .expect("Need value when writing enum");
+                let value = enum_variation.value.as_ref().expect("Need value when writing enum");
                 match enum_type.as_str() {
                     "u8" => format!("{}.put_u8({})", &context.buffer_name, value),
                     "u16" | "u32" | "u64" | "f32" | "f64" => {
                         format!("{}.put_{}_le({})", &context.buffer_name, enum_type, value)
-                    }
+                    },
                     non_primitive => panic!("Unknown primitive {}", non_primitive),
                 }
             });
@@ -175,10 +160,7 @@ pub fn generate_writer_for<T: CodeContainer>(
 
     match attribute.data_type.as_str() {
         "Vec" => {
-            let inner = attribute
-                .inner
-                .as_ref()
-                .expect("Need inner type for vectors.");
+            let inner = attribute.inner.as_ref().expect("Need inner type for vectors.");
             let list_type = attribute
                 .length_type
                 .as_ref()
@@ -188,10 +170,7 @@ pub fn generate_writer_for<T: CodeContainer>(
                 "length" => {
                     let length_size = attribute.size.unwrap_or(1);
                     if length_size == 1 {
-                        function.new_line(format!(
-                            "{}.put_u8({}.len() as u8);",
-                            &context.buffer_name, accessor
-                        ));
+                        function.new_line(format!("{}.put_u8({}.len() as u8);", &context.buffer_name, accessor));
                     } else {
                         function.new_line(format!(
                             "{}.put_u16_le({}.len() as u16);",
@@ -199,18 +178,16 @@ pub fn generate_writer_for<T: CodeContainer>(
                         ));
                     }
                     function.attach_block(|| {
-                        let mut block =
-                            codegen::Block::new(&format!("for element in {}.iter()", accessor));
+                        let mut block = codegen::Block::new(&format!("for element in {}.iter()", accessor));
 
                         generate_writer_for_any(inner, context, &mut block, "element", true);
 
                         block
                     });
-                }
+                },
                 "has-more" => {
                     function.attach_block(|| {
-                        let mut block =
-                            codegen::Block::new(&format!("for element in {}.iter()", accessor));
+                        let mut block = codegen::Block::new(&format!("for element in {}.iter()", accessor));
 
                         block.new_line(format!("{}.put_u8(1);", &context.buffer_name));
 
@@ -220,11 +197,10 @@ pub fn generate_writer_for<T: CodeContainer>(
                     });
 
                     function.new_line(format!("{}.put_u8(0);", &context.buffer_name));
-                }
+                },
                 "break" => {
                     function.attach_block(|| {
-                        let mut block =
-                            codegen::Block::new(&format!("for element in {}.iter()", accessor));
+                        let mut block = codegen::Block::new(&format!("for element in {}.iter()", accessor));
 
                         block.new_line(format!("{}.put_u8(1);", &context.buffer_name));
 
@@ -234,20 +210,19 @@ pub fn generate_writer_for<T: CodeContainer>(
                     });
 
                     function.new_line(format!("{}.put_u8(2);", &context.buffer_name));
-                }
+                },
                 "none" => {
                     function.attach_block(|| {
-                        let mut block =
-                            codegen::Block::new(&format!("for element in {}.iter()", accessor));
+                        let mut block = codegen::Block::new(&format!("for element in {}.iter()", accessor));
 
                         generate_writer_for_any(inner, context, &mut block, "element", true);
 
                         block
                     });
-                }
+                },
                 s => panic!("unknown list type {}", s),
             }
-        }
+        },
         "String" => {
             let typ = attribute.size.unwrap_or(1);
             match typ {
@@ -257,11 +232,8 @@ pub fn generate_writer_for<T: CodeContainer>(
                             "{}.put_u16_le({}.len() as u16);",
                             &context.buffer_name, accessor
                         ))
-                        .new_line(format!(
-                            "{}.put_slice({}.as_bytes());",
-                            &context.buffer_name, accessor
-                        ));
-                }
+                        .new_line(format!("{}.put_slice({}.as_bytes());", &context.buffer_name, accessor));
+                },
                 2 => {
                     function.new_line(format!(
                         "{}.put_u16_le({}.len() as u16);",
@@ -269,29 +241,20 @@ pub fn generate_writer_for<T: CodeContainer>(
                     ));
 
                     function.attach_block(|| {
-                        let mut block = codegen::Block::new(&format!(
-                            "for utf_char in {}.encode_utf16()",
-                            accessor
-                        ));
+                        let mut block = codegen::Block::new(&format!("for utf_char in {}.encode_utf16()", accessor));
                         block.new_line(format!("{}.put_u16_le(utf_char);", &context.buffer_name));
                         block
                     });
-                }
+                },
                 size => panic!("Unsupported size for string: {}", size),
             }
-        }
+        },
         "Option" => {
-            let inner = attribute
-                .inner
-                .as_ref()
-                .expect("Option needs inner type to work.");
+            let inner = attribute.inner.as_ref().expect("Option needs inner type to work.");
 
             function
                 .attach_block(|| {
-                    let mut block = codegen::Block::new(&format!(
-                        "if let Some({}) = &{}",
-                        &attribute.name, accessor
-                    ));
+                    let mut block = codegen::Block::new(&format!("if let Some({}) = &{}", &attribute.name, accessor));
 
                     block.line(format!("{}.put_u8(1);", &context.buffer_name));
                     generate_writer_for_any(inner, context, &mut block, &attribute.name, true);
@@ -305,9 +268,9 @@ pub fn generate_writer_for<T: CodeContainer>(
 
                     block
                 });
-        }
+        },
         typ => {
             generate_writer_for_any(typ, context, function, accessor, with_deref);
-        }
+        },
     };
 }

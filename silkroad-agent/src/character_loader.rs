@@ -1,6 +1,4 @@
-use crate::db::character::{
-    fetch_characters, fetch_characters_items, CharacterData, CharacterItem,
-};
+use crate::db::character::{fetch_characters, fetch_characters_items, CharacterData, CharacterItem};
 use bevy_ecs::entity::Entity;
 use crossbeam_channel::{Receiver, TryRecvError};
 use sqlx::PgPool;
@@ -22,17 +20,12 @@ pub(crate) struct CharacterLoader {
 
 impl CharacterLoader {
     pub fn new(pool: PgPool, shard: u16) -> Self {
-        CharacterLoader {
-            pool,
-            server_id: shard,
-        }
+        CharacterLoader { pool, server_id: shard }
     }
 
     pub(crate) async fn load_characters_sparse(&self, user_id: i32) -> Vec<Character> {
         let pool = self.pool.clone();
-        let characters: Vec<CharacterData> = fetch_characters(&pool, user_id, self.server_id)
-            .await
-            .unwrap();
+        let characters: Vec<CharacterData> = fetch_characters(&pool, user_id, self.server_id).await.unwrap();
 
         let character_ids = characters.iter().map(|char| char.id).collect();
         let mut character_items = fetch_characters_items(&pool, character_ids).await.unwrap();
@@ -90,11 +83,11 @@ impl CharacterLoaderFacade {
             Ok(characters) => {
                 self.callbacks.remove(&entity);
                 Some(characters)
-            }
+            },
             Err(TryRecvError::Empty) => None,
             Err(_) => {
                 todo!("handle error of character data receiver")
-            }
+            },
         }
     }
 }

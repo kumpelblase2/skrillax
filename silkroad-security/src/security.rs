@@ -69,7 +69,7 @@ impl Default for SilkroadSecurity {
 impl SilkroadSecurity {
     pub fn initialize(&mut self) -> Result<InitializationData, SilkroadSecurityError> {
         match self.state {
-            SecurityState::Uninitialized => {}
+            SecurityState::Uninitialized => {},
             _ => return Err(SilkroadSecurityError::AlreadyInitialized),
         }
 
@@ -117,11 +117,7 @@ impl SilkroadSecurity {
         self.state = SecurityState::Uninitialized;
     }
 
-    pub fn start_challenge(
-        &mut self,
-        value_b: u32,
-        client_key: u64,
-    ) -> Result<u64, SilkroadSecurityError> {
+    pub fn start_challenge(&mut self, value_b: u32, client_key: u64) -> Result<u64, SilkroadSecurityError> {
         match self.state {
             SecurityState::HandshakeStarted {
                 count_seed,
@@ -156,8 +152,7 @@ impl SilkroadSecurity {
                 let blowfish = blowfish_from_int(new_key);
 
                 let challenge_key = to_u64(value_a, value_b);
-                let challenge_key =
-                    transform_key(challenge_key, value_k, LOBYTE(LOWORD(value_a)) & 0x07);
+                let challenge_key = transform_key(challenge_key, value_k, LOBYTE(LOWORD(value_a)) & 0x07);
                 let mut key_bytes: [u8; 8] = challenge_key.to_le_bytes();
                 blowfish.encrypt_block(GenericArray::from_mut_slice(&mut key_bytes));
                 let encrypted_challenge = LittleEndian::read_u64(&key_bytes);
@@ -170,7 +165,7 @@ impl SilkroadSecurity {
                 };
 
                 Ok(encrypted_challenge)
-            }
+            },
             _ => Err(SilkroadSecurityError::SecurityUninitialized),
         }
     }
@@ -188,7 +183,7 @@ impl SilkroadSecurity {
                     crc_seed,
                 };
                 Ok(())
-            }
+            },
             _ => Err(SilkroadSecurityError::InitializationUnfinished),
         }
     }
@@ -214,8 +209,7 @@ impl SilkroadSecurity {
     fn cycle_value(seed: u32) -> u32 {
         let mut val = seed;
         for _ in 0..32 {
-            val = (((((((((((val >> 2) ^ val) >> 2) ^ val) >> 1) ^ val) >> 1) ^ val) >> 1) ^ val)
-                & 1)
+            val = (((((((((((val >> 2) ^ val) >> 2) ^ val) >> 1) ^ val) >> 1) ^ val) >> 1) ^ val) & 1)
                 | ((((val & 1) << 31) | (val >> 1)) & 0xFFFFFFFE);
         }
         val
@@ -239,7 +233,7 @@ impl SilkroadSecurity {
                     blowfish.decrypt_block(block);
                 }
                 Ok(result.freeze())
-            }
+            },
             _ => Err(SilkroadSecurityError::SecurityUninitialized),
         }
     }
@@ -264,7 +258,7 @@ impl SilkroadSecurity {
                     blowfish.encrypt_block(block);
                 }
                 Ok(result.freeze())
-            }
+            },
             _ => Err(SilkroadSecurityError::SecurityUninitialized),
         }
     }
@@ -282,12 +276,11 @@ impl SilkroadSecurity {
     pub fn generate_count_byte(&mut self) -> Result<u8, SilkroadSecurityError> {
         match &self.state {
             SecurityState::Established { mut count_seed, .. } => {
-                let result =
-                    count_seed[2] as u32 * (!count_seed[0] as u32 + count_seed[1] as u32) as u32;
+                let result = count_seed[2] as u32 * (!count_seed[0] as u32 + count_seed[1] as u32) as u32;
                 let result = (result ^ (result >> 4)) as u8;
                 count_seed[0] = result;
                 Ok(result)
-            }
+            },
             _ => Err(SilkroadSecurityError::SecurityUninitialized),
         }
     }
@@ -346,30 +339,14 @@ fn g_pow_x_mod_p(p: i64, mut x: u32, g: u32) -> u32 {
 fn transform_key(val: u64, key: u32, key_byte: u8) -> u64 {
     let mut stream = val.to_le_bytes();
 
-    stream[0] ^= (stream[0]
-        .wrapping_add(LOBYTE(LOWORD(key)))
-        .wrapping_add(key_byte));
-    stream[1] ^= (stream[1]
-        .wrapping_add(HIBYTE(LOWORD(key)))
-        .wrapping_add(key_byte));
-    stream[2] ^= (stream[2]
-        .wrapping_add(LOBYTE(HIWORD(key)))
-        .wrapping_add(key_byte));
-    stream[3] ^= (stream[3]
-        .wrapping_add(HIBYTE(HIWORD(key)))
-        .wrapping_add(key_byte));
-    stream[4] ^= (stream[4]
-        .wrapping_add(LOBYTE(LOWORD(key)))
-        .wrapping_add(key_byte));
-    stream[5] ^= (stream[5]
-        .wrapping_add(HIBYTE(LOWORD(key)))
-        .wrapping_add(key_byte));
-    stream[6] ^= (stream[6]
-        .wrapping_add(LOBYTE(HIWORD(key)))
-        .wrapping_add(key_byte));
-    stream[7] ^= (stream[7]
-        .wrapping_add(HIBYTE(HIWORD(key)))
-        .wrapping_add(key_byte));
+    stream[0] ^= (stream[0].wrapping_add(LOBYTE(LOWORD(key))).wrapping_add(key_byte));
+    stream[1] ^= (stream[1].wrapping_add(HIBYTE(LOWORD(key))).wrapping_add(key_byte));
+    stream[2] ^= (stream[2].wrapping_add(LOBYTE(HIWORD(key))).wrapping_add(key_byte));
+    stream[3] ^= (stream[3].wrapping_add(HIBYTE(HIWORD(key))).wrapping_add(key_byte));
+    stream[4] ^= (stream[4].wrapping_add(LOBYTE(LOWORD(key))).wrapping_add(key_byte));
+    stream[5] ^= (stream[5].wrapping_add(HIBYTE(LOWORD(key))).wrapping_add(key_byte));
+    stream[6] ^= (stream[6].wrapping_add(LOBYTE(HIWORD(key))).wrapping_add(key_byte));
+    stream[7] ^= (stream[7].wrapping_add(HIBYTE(HIWORD(key))).wrapping_add(key_byte));
 
     LittleEndian::read_u64(&stream)
 }
@@ -390,8 +367,7 @@ mod tests {
 
     #[test]
     fn finishes_encoding() {
-        let handshake_seed =
-            LittleEndian::read_u64(&[0xbf, 0x89, 0x96, 0x76, 0xae, 0x97, 0x5e, 0x17]);
+        let handshake_seed = LittleEndian::read_u64(&[0xbf, 0x89, 0x96, 0x76, 0xae, 0x97, 0x5e, 0x17]);
         let _value_g = LittleEndian::read_u32(&[0x95, 0x0b, 0xf5, 0x20]);
         let value_p = LittleEndian::read_u32(&[0x0d, 0xf4, 0x13, 0x52]);
         let value_x = 189993144; // brute forced

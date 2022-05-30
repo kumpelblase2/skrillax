@@ -85,6 +85,5 @@ pub(crate) fn get_config() -> &'static GatewayServerConfig {
 }
 
 lazy_static! {
-    static ref CONFIG: GatewayServerConfig =
-        GatewayServerConfig::load().expect("Could not load config.");
+    static ref CONFIG: GatewayServerConfig = GatewayServerConfig::load().expect("Could not load config.");
 }

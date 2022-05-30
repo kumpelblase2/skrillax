@@ -11,10 +11,7 @@ pub(crate) struct Executor {
 
 impl Executor {
     pub(crate) fn new(game: Game, desired_ticks: u32) -> Self {
-        Executor {
-            game,
-            desired_ticks,
-        }
+        Executor { game, desired_ticks }
     }
 
     pub(crate) fn run(&mut self) {

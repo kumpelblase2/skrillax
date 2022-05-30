@@ -69,9 +69,9 @@ async fn main() {
     );
 
     match server.run().await {
-        Ok(_) => {}
+        Ok(_) => {},
         Err(e) => {
             error!(error = %e, "Could not start server")
-        }
+        },
     }
 }

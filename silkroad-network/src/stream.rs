@@ -60,13 +60,13 @@ impl StreamReader {
         loop {
             match reader.next().await {
                 Ok(packet) => match writer.send(packet) {
-                    Ok(_) => {}
+                    Ok(_) => {},
                     Err(_) => return,
                 },
                 Err(e) => {
                     tracing::warn!("Could not parse frame :( {:?}", e);
                     return;
-                }
+                },
             }
         }
     }
@@ -79,7 +79,7 @@ impl StreamReader {
                         let span = trace_span!("decoding", id = ?self.id);
                         let _enter = span.enter();
                         return Ok(ClientPacket::deserialize(opcode, data)?);
-                    }
+                    },
                     SilkroadFrame::MassiveHeader {
                         contained_count,
                         contained_opcode,
@@ -89,7 +89,7 @@ impl StreamReader {
                             return Err(StreamError::UnconsumedMassivePacket(*remaining));
                         }
                         self.massive_packet = Some((contained_opcode, contained_count));
-                    }
+                    },
                     SilkroadFrame::MassiveContainer { inner, .. } => {
                         return match &self.massive_packet {
                             Some((opcode, count)) => {
@@ -103,16 +103,14 @@ impl StreamReader {
                                     self.massive_packet = None;
                                 }
                                 Ok(result)
-                            }
-                            None => Err(StreamError::ProtocolError(
-                                ProtocolError::StrayMassivePacket,
-                            )),
+                            },
+                            None => Err(StreamError::ProtocolError(ProtocolError::StrayMassivePacket)),
                         };
-                    }
+                    },
                 },
                 Err(f) => {
                     return Err(f.into());
-                }
+                },
             }
         }
         Err(StreamError::StreamClosed)
@@ -129,7 +127,7 @@ impl StreamWriter {
         let mut receiver = receiver;
         while let Some(packet) = receiver.recv().await {
             match writer.send(packet).await {
-                Ok(_) => {}
+                Ok(_) => {},
                 Err(_) => break,
             }
         }
@@ -159,10 +157,7 @@ impl Stream {
         Self::accept_with_enc(conn, true).await
     }
 
-    pub async fn accept_with_enc(
-        conn: TcpStream,
-        enable_encryption: bool,
-    ) -> Result<Stream, HandshakeError> {
+    pub async fn accept_with_enc(conn: TcpStream, enable_encryption: bool) -> Result<Stream, HandshakeError> {
         let id = StreamId::new();
         let (writer, reader) = Self::init_stream(id, conn, enable_encryption).await?;
 
@@ -191,14 +186,8 @@ impl Stream {
             None
         };
 
-        let mut writer = StreamWriter::new(
-            id,
-            FramedWrite::new(write, SilkroadFrameEncoder::new(security.clone())),
-        );
-        let mut reader = StreamReader::new(
-            id,
-            FramedRead::new(read, SilkroadFrameDecoder::new(security.clone())),
-        );
+        let mut writer = StreamWriter::new(id, FramedWrite::new(write, SilkroadFrameEncoder::new(security.clone())));
+        let mut reader = StreamReader::new(id, FramedRead::new(read, SilkroadFrameDecoder::new(security.clone())));
 
         debug!(?id, "Starting handshake");
         if enable_encryption {

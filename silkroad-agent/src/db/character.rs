@@ -46,11 +46,7 @@ pub struct CharacterItem {
 #[derive(sqlx::FromRow)]
 pub struct CharacterMastery {}
 
-pub(crate) async fn fetch_characters(
-    pool: &PgPool,
-    user: i32,
-    shard: u16,
-) -> Result<Vec<CharacterData>, Error> {
+pub(crate) async fn fetch_characters(pool: &PgPool, user: i32, shard: u16) -> Result<Vec<CharacterData>, Error> {
     sqlx::query_as("SELECT * FROM characters WHERE user_id = $1 AND server_id = $2 ORDER BY id ASC")
         .bind(user)
         .bind(shard as i32)
@@ -58,10 +54,7 @@ pub(crate) async fn fetch_characters(
         .await
 }
 
-pub(crate) async fn fetch_character_items(
-    pool: &PgPool,
-    character_id: i32,
-) -> Result<Vec<CharacterItem>, Error> {
+pub(crate) async fn fetch_character_items(pool: &PgPool, character_id: i32) -> Result<Vec<CharacterItem>, Error> {
     sqlx::query_as("SELECT * FROM character_items WHERE character_id = $1")
         .bind(character_id)
         .fetch_all(pool)
@@ -72,15 +65,12 @@ pub(crate) async fn fetch_characters_items(
     pool: &PgPool,
     character_ids: Vec<i32>,
 ) -> Result<HashMap<i32, Vec<CharacterItem>>, Error> {
-    let all_items: Vec<CharacterItem> = sqlx::query_as(
-        "SELECT * FROM character_items WHERE character_id in (SELECT * FROM UNNEST($1))",
-    )
-    .bind(character_ids)
-    .fetch_all(pool)
-    .await?;
+    let all_items: Vec<CharacterItem> =
+        sqlx::query_as("SELECT * FROM character_items WHERE character_id in (SELECT * FROM UNNEST($1))")
+            .bind(character_ids)
+            .fetch_all(pool)
+            .await?;
 
-    let character_item_map = all_items
-        .into_iter()
-        .into_group_map_by(|item| item.character_id);
+    let character_item_map = all_items.into_iter().into_group_map_by(|item| item.character_id);
     Ok(character_item_map)
 }

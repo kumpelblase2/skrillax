@@ -24,11 +24,7 @@ pub fn generate_reader_for_struct<S: StructLike, T: CodeContainer, O: FnOnce(Str
     container.new_line(output(output_string));
 }
 
-fn generate_reader_for<T: CodeContainer>(
-    attribute: &PacketAttribute,
-    context: &Context,
-    container: &mut T,
-) {
+fn generate_reader_for<T: CodeContainer>(attribute: &PacketAttribute, context: &Context, container: &mut T) {
     match attribute.data_type.as_str() {
         "u8" => container.new_line(format!(
             "let {} = {}.read_u8()?;",
@@ -43,10 +39,7 @@ fn generate_reader_for<T: CodeContainer>(
             &attribute.name, &context.reader_name
         )),
         "raw" => {
-            let length = attribute
-                .length
-                .as_ref()
-                .expect("Missing length for raw attribute.");
+            let length = attribute.length.as_ref().expect("Missing length for raw attribute.");
             container
                 .new_line(format!(
                     "let mut {}_raw = BytesMut::with_capacity({});",
@@ -60,11 +53,8 @@ fn generate_reader_for<T: CodeContainer>(
                     ));
                     block
                 })
-                .new_line(format!(
-                    "let {} = {}_raw.freeze();",
-                    &attribute.name, &attribute.name
-                ))
-        }
+                .new_line(format!("let {} = {}_raw.freeze();", &attribute.name, &attribute.name))
+        },
         "String" => {
             container.new_line(format!(
                 "let {}_string_len = {}.read_u16::<byteorder::LittleEndian>()?;",
@@ -79,8 +69,7 @@ fn generate_reader_for<T: CodeContainer>(
                         &attribute.name, &attribute.name
                     ))
                     .attach_block(|| {
-                        let mut block =
-                            Block::new(&format!("for _ in 0..{}_string_len", &attribute.name));
+                        let mut block = Block::new(&format!("for _ in 0..{}_string_len", &attribute.name));
                         block.new_line(format!(
                             "\t{}_bytes.push({}.read_u8()?);",
                             &attribute.name, &context.reader_name
@@ -97,8 +86,7 @@ fn generate_reader_for<T: CodeContainer>(
                         &attribute.name, &attribute.name
                     ))
                     .attach_block(|| {
-                        let mut block =
-                            Block::new(&format!("for _ in 0..{}_string_len", &attribute.name));
+                        let mut block = Block::new(&format!("for _ in 0..{}_string_len", &attribute.name));
                         block.new_line(format!(
                             "\t{}_bytes.push({}.read_u16::<byteorder::LittleEndian>()?);",
                             &attribute.name, &context.reader_name
@@ -111,12 +99,9 @@ fn generate_reader_for<T: CodeContainer>(
                     )),
                 size => panic!("Unsupported string length: {}", size),
             }
-        }
+        },
         "Vec" => {
-            let inner = attribute
-                .inner
-                .as_ref()
-                .expect("Need inner type for vectors.");
+            let inner = attribute.inner.as_ref().expect("Need inner type for vectors.");
             let list_type = attribute
                 .length_type
                 .as_ref()
@@ -138,8 +123,7 @@ fn generate_reader_for<T: CodeContainer>(
                         &attribute.name, inner, &attribute.name
                     ))
                     .attach_block(|| {
-                        let mut block =
-                            codegen::Block::new(&format!("for _ in 0..{}_size", &attribute.name));
+                        let mut block = codegen::Block::new(&format!("for _ in 0..{}_size", &attribute.name));
 
                         generate_reader_for_struct(struct_def, context, &mut block, |st| {
                             format!("{}.push({})", &attribute.name, &st)
@@ -148,15 +132,9 @@ fn generate_reader_for<T: CodeContainer>(
                         block
                     }),
                 "has-more" => container
-                    .new_line(format!(
-                        "let {}:Vec<{}> = Vec::new();",
-                        &attribute.name, inner
-                    ))
+                    .new_line(format!("let {}:Vec<{}> = Vec::new();", &attribute.name, inner))
                     .attach_block(|| {
-                        let mut block = codegen::Block::new(&format!(
-                            "while {}.read_u8()? == 1",
-                            &attribute.name
-                        ));
+                        let mut block = codegen::Block::new(&format!("while {}.read_u8()? == 1", &attribute.name));
 
                         generate_reader_for_struct(struct_def, context, &mut block, |st| {
                             format!("{}.push({})", &attribute.name, &st)
@@ -165,15 +143,9 @@ fn generate_reader_for<T: CodeContainer>(
                         block
                     }),
                 "break" => container
-                    .new_line(format!(
-                        "let {}:Vec<{}> = Vec::new();",
-                        &attribute.name, inner
-                    ))
+                    .new_line(format!("let {}:Vec<{}> = Vec::new();", &attribute.name, inner))
                     .attach_block(|| {
-                        let mut block = codegen::Block::new(&format!(
-                            "while {}.read_u8()? != 2",
-                            &attribute.name
-                        ));
+                        let mut block = codegen::Block::new(&format!("while {}.read_u8()? != 2", &attribute.name));
 
                         generate_reader_for_struct(struct_def, context, &mut block, |st| {
                             format!("{}.push({})", &attribute.name, &st)
@@ -183,12 +155,9 @@ fn generate_reader_for<T: CodeContainer>(
                     }),
                 s => panic!("unknown list type {}", s),
             }
-        }
+        },
         "Option" => {
-            let inner = attribute
-                .inner
-                .as_ref()
-                .expect("Need inner type for options.");
+            let inner = attribute.inner.as_ref().expect("Need inner type for options.");
             let struct_def = context
                 .structs
                 .iter()
@@ -201,9 +170,7 @@ fn generate_reader_for<T: CodeContainer>(
                         &attribute.name, &context.reader_name
                     ));
 
-                    generate_reader_for_struct(struct_def, context, &mut block, |st| {
-                        format!("Some({})", &st)
-                    });
+                    generate_reader_for_struct(struct_def, context, &mut block, |st| format!("Some({})", &st));
 
                     block
                 })
@@ -212,7 +179,7 @@ fn generate_reader_for<T: CodeContainer>(
                     block.new_line("None");
                     block
                 })
-        }
+        },
         typ => {
             if let Some(struct_def) = context.structs.iter().find(|def| def.name == typ) {
                 container.new_line(format!("let {} = {{", &attribute.name));
@@ -233,7 +200,7 @@ fn generate_reader_for<T: CodeContainer>(
                     "u8" => "read_u8()?".to_string(),
                     "u16" | "u32" | "u64" => {
                         format!("read_{}::<byteorder::LittleEndian>()?", enum_type)
-                    }
+                    },
                     non_primitive => panic!("Unknown primitive enum type {}", non_primitive),
                 };
                 container.attach_block(|| {
@@ -244,21 +211,15 @@ fn generate_reader_for<T: CodeContainer>(
                     block.after(";");
 
                     for enum_variation in enum_def.values.iter() {
-                        let enum_variation_value = enum_variation
-                            .value
-                            .as_ref()
-                            .expect("Need variation value for reading");
+                        let enum_variation_value =
+                            enum_variation.value.as_ref().expect("Need variation value for reading");
                         if !enum_variation.attributes.is_empty() {
                             block.attach_block(|| {
-                                let mut inner =
-                                    codegen::Block::new(&format!("{} => ", enum_variation_value));
+                                let mut inner = codegen::Block::new(&format!("{} => ", enum_variation_value));
 
-                                generate_reader_for_struct(
-                                    enum_variation,
-                                    context,
-                                    &mut inner,
-                                    |st| format!("{}::{}", &enum_def.name, &st),
-                                );
+                                generate_reader_for_struct(enum_variation, context, &mut inner, |st| {
+                                    format!("{}::{}", &enum_def.name, &st)
+                                });
 
                                 inner
                             });
@@ -279,11 +240,8 @@ fn generate_reader_for<T: CodeContainer>(
                     block
                 })
             } else {
-                panic!(
-                    "Unknown unsupported attribute type: {}",
-                    &attribute.data_type
-                )
+                panic!("Unknown unsupported attribute type: {}", &attribute.data_type)
             }
-        }
+        },
     };
 }

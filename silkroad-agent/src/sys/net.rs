@@ -44,16 +44,16 @@ pub(crate) fn receive(
                     if !matches!(packet, ClientPacket::KeepAlive(_)) {
                         client.1.push_back(packet);
                     }
-                }
+                },
                 Ok(None) => break,
                 Err(StreamError::StreamClosed) => {
                     cmd.entity(entity).despawn();
                     events.send(ServerEvent::ClientDisconnected);
                     continue 'query;
-                }
+                },
                 Err(e) => {
                     warn!(id = ?client.0.id(), "Error when receiving. {:?}", e);
-                }
+                },
             }
         }
 

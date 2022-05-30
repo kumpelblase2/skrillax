@@ -8,8 +8,8 @@ use silkroad_network::stream::{Stream, StreamError, StreamReader, StreamWriter};
 use silkroad_protocol::general::{IdentityInformation, ServerInfoSeed, ServerStateSeed};
 use silkroad_protocol::login::{
     BlockReason, Farm, GatewayNotice, GatewayNoticeResponse, LoginResponse, PasscodeAccountStatus,
-    PasscodeRequiredCode, PasscodeRequiredResponse, PatchError, PatchResponse, PatchResult,
-    PingServer, PingServerResponse, SecurityCodeResponse, SecurityError, ShardListResponse,
+    PasscodeRequiredCode, PasscodeRequiredResponse, PatchError, PatchResponse, PatchResult, PingServer,
+    PingServerResponse, SecurityCodeResponse, SecurityError, ShardListResponse,
 };
 use silkroad_protocol::{ClientPacket, ServerPacket};
 use silkroad_rpc::ReserveResponse;
@@ -46,30 +46,20 @@ impl Client {
     ) {
         match Stream::init_stream(id, socket, true).await {
             Ok((writer, reader)) => {
-                match Self::handle_socket(
-                    id,
-                    reader,
-                    writer,
-                    news,
-                    patcher,
-                    login_provider,
-                    agent_servers,
-                )
-                .await
-                {
+                match Self::handle_socket(id, reader, writer, news, patcher, login_provider, agent_servers).await {
                     Err(StreamError::StreamClosed) => {
                         trace!(?id, "Client connection closed");
-                    }
+                    },
                     Err(e) => {
                         debug!(?id, "Client disconnected: {:?}", e);
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
-            }
-            Err(_) if cancel.is_cancelled() => {}
+            },
+            Err(_) if cancel.is_cancelled() => {},
             Err(err) => {
                 error!(?id, "Error in handshake: {:?}", err);
-            } // TODO
+            }, // TODO
         }
     }
 
@@ -87,36 +77,34 @@ impl Client {
         let mut last_credentials = None;
         while let Ok(packet) = timeout(Duration::from_secs(10), reader.next()).await {
             match packet? {
-                ClientPacket::KeepAlive(_) => {}
-                ClientPacket::PatchRequest(patch) => {
-                    match patcher.get_patch_information(patch.version) {
-                        PatchInformation::UpToDate => {
-                            writer
-                                .send(ServerPacket::PatchResponse(PatchResponse::new(
-                                    PatchResult::UpToDate { unknown: 0 },
-                                )))
-                                .await?;
-                        }
-                        PatchInformation::RequiredFiles(files) => {
-                            let response = PatchResponse::new(PatchResult::Problem {
-                                error: PatchError::Update {
-                                    server_ip: "localhost".to_string(),
-                                    server_port: 80,
-                                    current_version: patcher.current_version(),
-                                    patch_files: files,
-                                    http_server: patcher.patch_host(),
-                                },
-                            });
-                            writer.send(ServerPacket::PatchResponse(response)).await?;
-                        }
-                        PatchInformation::Outdated => {
-                            let response = PatchResponse::new(PatchResult::Problem {
-                                error: PatchError::InvalidVersion,
-                            });
-                            writer.send(ServerPacket::PatchResponse(response)).await?;
-                        }
-                    }
-                }
+                ClientPacket::KeepAlive(_) => {},
+                ClientPacket::PatchRequest(patch) => match patcher.get_patch_information(patch.version) {
+                    PatchInformation::UpToDate => {
+                        writer
+                            .send(ServerPacket::PatchResponse(PatchResponse::new(PatchResult::UpToDate {
+                                unknown: 0,
+                            })))
+                            .await?;
+                    },
+                    PatchInformation::RequiredFiles(files) => {
+                        let response = PatchResponse::new(PatchResult::Problem {
+                            error: PatchError::Update {
+                                server_ip: "localhost".to_string(),
+                                server_port: 80,
+                                current_version: patcher.current_version(),
+                                patch_files: files,
+                                http_server: patcher.patch_host(),
+                            },
+                        });
+                        writer.send(ServerPacket::PatchResponse(response)).await?;
+                    },
+                    PatchInformation::Outdated => {
+                        let response = PatchResponse::new(PatchResult::Problem {
+                            error: PatchError::InvalidVersion,
+                        });
+                        writer.send(ServerPacket::PatchResponse(response)).await?;
+                    },
+                },
                 ClientPacket::IdentityInformation(identity) => {
                     debug!(?id, module = ?identity.module_name, local = identity.locality, "Client application identity");
                     writer
@@ -131,7 +119,7 @@ impl Client {
                     writer
                         .send(ServerPacket::ServerStateSeed(ServerStateSeed::new()))
                         .await?;
-                }
+                },
                 ClientPacket::GatewayNoticeRequest(_) => {
                     let mut news = news.lock().await;
                     let news = news.get_news().await;
@@ -144,11 +132,9 @@ impl Client {
                         })
                         .collect();
                     let _ = writer
-                        .send(ServerPacket::GatewayNoticeResponse(
-                            GatewayNoticeResponse::new(news),
-                        ))
+                        .send(ServerPacket::GatewayNoticeResponse(GatewayNoticeResponse::new(news)))
                         .await?;
-                }
+                },
                 ClientPacket::LoginRequest(login) => {
                     last_credentials = Some(LastCredentials {
                         username: login.username.clone(),
@@ -156,28 +142,17 @@ impl Client {
                         shard: login.shard_id,
                     });
 
-                    match login_provider
-                        .try_login(&login.username, &login.password)
-                        .await
-                    {
+                    match login_provider.try_login(&login.username, &login.password).await {
                         LoginResult::Success(id) => {
-                            Self::try_reserve_spot(
-                                &mut writer,
-                                &agent_servers,
-                                id as u32,
-                                &last_credentials,
-                            )
-                            .await?
-                        }
+                            Self::try_reserve_spot(&mut writer, &agent_servers, id as u32, &last_credentials).await?
+                        },
                         LoginResult::MissingPasscode => {
                             let _ = writer
-                                .send(ServerPacket::PasscodeRequiredResponse(
-                                    PasscodeRequiredResponse::new(
-                                        PasscodeRequiredCode::PasscodeRequired,
-                                    ),
-                                ))
+                                .send(ServerPacket::PasscodeRequiredResponse(PasscodeRequiredResponse::new(
+                                    PasscodeRequiredCode::PasscodeRequired,
+                                )))
                                 .await?;
-                        }
+                        },
                         LoginResult::InvalidCredentials => {
                             let _ = writer
                                 .send(ServerPacket::LoginResponse(LoginResponse {
@@ -189,79 +164,61 @@ impl Client {
                                     },
                                 }))
                                 .await?;
-                        }
+                        },
                         LoginResult::Blocked => {
-                            let response =
-                                LoginResponse::new(silkroad_protocol::login::LoginResult::Error {
-                                    error: SecurityError::Blocked {
-                                        reason: BlockReason::Punishment {
-                                            reason: "You have been blocked.".to_string(),
-                                            end: Utc.ymd(2099, 12, 31).and_hms(23, 59, 59),
-                                        },
+                            let response = LoginResponse::new(silkroad_protocol::login::LoginResult::Error {
+                                error: SecurityError::Blocked {
+                                    reason: BlockReason::Punishment {
+                                        reason: "You have been blocked.".to_string(),
+                                        end: Utc.ymd(2099, 12, 31).and_hms(23, 59, 59),
                                     },
-                                });
+                                },
+                            });
                             let _ = writer.send(ServerPacket::LoginResponse(response)).await?;
-                        }
+                        },
                     }
-                }
+                },
                 ClientPacket::SecurityCodeInput(input) => {
                     let previous = last_credentials.as_ref();
                     if let Some(previous) = previous {
-                        let decoded_passcode = PASSCODE_DECODER
-                            .decode_passcode(input.inner_size, &input.data)
-                            .unwrap();
+                        let decoded_passcode = PASSCODE_DECODER.decode_passcode(input.inner_size, &input.data).unwrap();
 
                         let result = login_provider
-                            .try_login_passcode(
-                                &previous.username,
-                                &previous.password,
-                                &decoded_passcode,
-                            )
+                            .try_login_passcode(&previous.username, &previous.password, &decoded_passcode)
                             .await;
 
                         match result {
                             LoginResult::Success(id) => {
                                 writer
-                                    .send(ServerPacket::SecurityCodeResponse(
-                                        SecurityCodeResponse {
-                                            account_status: PasscodeAccountStatus::Ok,
-                                            result: 1,
-                                            invalid_attempts: 3,
-                                        },
-                                    ))
+                                    .send(ServerPacket::SecurityCodeResponse(SecurityCodeResponse {
+                                        account_status: PasscodeAccountStatus::Ok,
+                                        result: 1,
+                                        invalid_attempts: 3,
+                                    }))
                                     .await?;
-                                Self::try_reserve_spot(
-                                    &mut writer,
-                                    &agent_servers,
-                                    id as u32,
-                                    &last_credentials,
-                                )
-                                .await?
-                            }
+                                Self::try_reserve_spot(&mut writer, &agent_servers, id as u32, &last_credentials)
+                                    .await?
+                            },
                             LoginResult::MissingPasscode => {
                                 todo!("Should not happen")
-                            }
+                            },
                             LoginResult::InvalidCredentials => {
                                 writer
-                                    .send(ServerPacket::PasscodeRequiredResponse(
-                                        PasscodeRequiredResponse {
-                                            result: PasscodeRequiredCode::PasscodeInvalid,
-                                        },
-                                    ))
+                                    .send(ServerPacket::PasscodeRequiredResponse(PasscodeRequiredResponse {
+                                        result: PasscodeRequiredCode::PasscodeInvalid,
+                                    }))
                                     .await?;
-                            }
+                            },
                             LoginResult::Blocked => {
                                 writer
-                                    .send(ServerPacket::PasscodeRequiredResponse(
-                                        PasscodeRequiredResponse {
-                                            result: PasscodeRequiredCode::PasscodeBlocked,
-                                        },
-                                    ))
+                                    .send(ServerPacket::PasscodeRequiredResponse(PasscodeRequiredResponse {
+                                        result: PasscodeRequiredCode::PasscodeBlocked,
+                                    }))
                                     .await?;
-                            }
+                            },
                         }
                     }
-                }
+                },
                 ClientPacket::ShardListRequest(_) => {
                     let servers = agent_servers.servers().await;
                     let shards = servers.into_iter().map(|server| server.into()).collect();
@@ -274,7 +231,7 @@ impl Client {
                         shards,
                     });
                     let _ = writer.send(response).await?;
-                }
+                },
                 ClientPacket::PingServerRequest(_) => {
                     let ping_response = PingServerResponse {
                         servers: vec![PingServer {
@@ -284,11 +241,9 @@ impl Client {
                             unknown_2: 0xbd,
                         }],
                     };
-                    let _ = writer
-                        .send(ServerPacket::PingServerResponse(ping_response))
-                        .await?;
-                }
-                _ => {}
+                    let _ = writer.send(ServerPacket::PingServerResponse(ping_response)).await?;
+                },
+                _ => {},
             }
         }
 
@@ -315,12 +270,10 @@ impl Client {
                         },
                     }))
                     .await?;
-            }
+            },
             Some(result) => {
                 let _ = match result {
-                    ReserveResponse::Success {
-                        ip, port, token, ..
-                    } => {
+                    ReserveResponse::Success { ip, port, token, .. } => {
                         debug!("Got a spot at {}:{}: {}", ip, port, token);
                         writer
                             .send(ServerPacket::LoginResponse(LoginResponse {
@@ -332,7 +285,7 @@ impl Client {
                                 },
                             }))
                             .await?
-                    }
+                    },
                     _ => {
                         writer
                             .send(ServerPacket::LoginResponse(LoginResponse {
@@ -341,9 +294,9 @@ impl Client {
                                 },
                             }))
                             .await?
-                    }
+                    },
                 };
-            }
+            },
         }
         Ok(())
     }

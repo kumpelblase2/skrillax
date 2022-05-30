@@ -41,17 +41,11 @@ impl LoginQueue {
         }
     }
 
-    pub(crate) fn reserve_spot(
-        &self,
-        content: ServerUser,
-    ) -> Result<(u32, Duration), ReservationError> {
+    pub(crate) fn reserve_spot(&self, content: ServerUser) -> Result<(u32, Duration), ReservationError> {
         let mut reservations = self.reservations.lock().unwrap();
         Self::cleanup_registrations(&mut reservations);
 
-        if reservations
-            .iter()
-            .any(|reservation| reservation.content == content)
-        {
+        if reservations.iter().any(|reservation| reservation.content == content) {
             return Err(ReservationError::AlreadyHasReservation);
         }
 
@@ -65,10 +59,7 @@ impl LoginQueue {
         let timeout = curren_time.add(Duration::from_secs(self.reservation_valid_time));
         let mut id = thread_rng().gen_range(u16::MIN..u16::MAX) as u32;
         let mut tries = 0u8;
-        while reservations
-            .iter()
-            .any(|reservation| reservation.token == id)
-        {
+        while reservations.iter().any(|reservation| reservation.token == id) {
             if tries >= 10 {
                 // TODO make this never happen
                 return Err(ReservationError::AllTokensTaken);
@@ -88,22 +79,16 @@ impl LoginQueue {
         Ok((id, Duration::from_secs(self.reservation_valid_time - 1)))
     }
 
-    pub(crate) fn hand_in_reservation(
-        &self,
-        token: u32,
-    ) -> Result<(PlayingToken, ServerUser), ReservationError> {
+    pub(crate) fn hand_in_reservation(&self, token: u32) -> Result<(PlayingToken, ServerUser), ReservationError> {
         let mut reservations = self.reservations.lock().unwrap();
         Self::cleanup_registrations(&mut reservations);
 
-        return match reservations
-            .iter()
-            .position(|reservation| reservation.token == token)
-        {
+        return match reservations.iter().position(|reservation| reservation.token == token) {
             Some(index) => {
                 let play_token = self.capacity.add_playing();
                 let reservation = reservations.remove(index);
                 Ok((play_token, reservation.content))
-            }
+            },
             _ => Err(ReservationError::NoSuchToken),
         };
     }

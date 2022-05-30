@@ -135,11 +135,11 @@ impl AgentServerManager {
                                 healthy: false,
                                 population: ServerPopulation::Easy,
                             }
-                        }
+                        },
                         Err(e) => {
                             error!(error = %e, "Error when trying to check gameserver");
                             continue;
-                        }
+                        },
                     };
 
                     server.update(status);
@@ -157,10 +157,7 @@ impl AgentServerManager {
 
     pub(crate) async fn add_server(&self, server: AgentServer) {
         let mut servers = self.servers.write().await;
-        debug!(
-            "Added {} at {} to the server list.",
-            &server.name, &server.address
-        );
+        debug!("Added {} at {} to the server list.", &server.name, &server.address);
         servers.push(server);
     }
 
@@ -169,12 +166,7 @@ impl AgentServerManager {
         servers.clone()
     }
 
-    pub(crate) async fn reserve(
-        &self,
-        user_id: u32,
-        username: &str,
-        server_id: u16,
-    ) -> Option<ReserveResponse> {
+    pub(crate) async fn reserve(&self, user_id: u32, username: &str, server_id: u16) -> Option<ReserveResponse> {
         let servers = self.servers.read().await;
         let server = servers.iter().find(|server| server.id == server_id)?;
         let address = server.address.clone();

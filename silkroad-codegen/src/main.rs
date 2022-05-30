@@ -217,5 +217,5 @@ fn generate_packets_from<P: AsRef<Path>, S: AsRef<Path>>(
         }
     }
 
-    (collection.module.clone(), client_packets, server_packets)
+    (collection.module, client_packets, server_packets)
 }

@@ -110,9 +110,7 @@ impl SilkroadFrame {
             let span = trace_span!("decryption");
             let _enter = span.enter();
             let security = security.as_ref().ok_or(FrameError::MissingSecurity)?;
-            let security = security
-                .read()
-                .expect("Security RWLock should not get poisoned");
+            let security = security.read().expect("Security RWLock should not get poisoned");
             security.decrypt(data)?
         } else {
             Bytes::copy_from_slice(data)
@@ -169,26 +167,24 @@ impl SilkroadFrame {
                 // Massive headers have a fixed length because they're always:
                 // 1 Byte 'is header', 2 Bytes 'amount of packets', 2 Bytes 'opcode', 1 Byte finish
                 6
-            }
+            },
             SilkroadFrame::MassiveContainer { inner, .. } => {
                 // 1 at the start to denote that this is container packet
                 // 1 in each content to denote there's more
                 1 + inner.len()
-            }
+            },
         }
     }
 
     pub fn packet_size(&self) -> usize {
         6 + match &self {
-            SilkroadFrame::Packet {
-                data, encrypted, ..
-            } => {
+            SilkroadFrame::Packet { data, encrypted, .. } => {
                 if *encrypted {
                     Self::find_next_encrypted_length(data.len() + 4) - 4
                 } else {
                     self.content_size()
                 }
-            }
+            },
             _ => self.content_size(),
         }
     }
@@ -200,10 +196,7 @@ impl SilkroadFrame {
         }
     }
 
-    pub fn serialize(
-        &self,
-        security: &Option<Arc<RwLock<SilkroadSecurity>>>,
-    ) -> Result<Bytes, FrameError> {
+    pub fn serialize(&self, security: &Option<Arc<RwLock<SilkroadSecurity>>>) -> Result<Bytes, FrameError> {
         let mut output = BytesMut::with_capacity(self.packet_size());
 
         match &self {
@@ -224,9 +217,7 @@ impl SilkroadFrame {
                     to_encrypt.extend_from_slice(data);
                     let _enter = span.enter();
                     let security = security.as_ref().ok_or(FrameError::MissingSecurity)?;
-                    let security = security
-                        .read()
-                        .expect("Security RWLock should not get poisoned");
+                    let security = security.read().expect("Security RWLock should not get poisoned");
                     let encrypted = security.encrypt(&to_encrypt)?;
                     output.put_u16_le((self.content_size() | 0x8000) as u16);
                     output.put_slice(&encrypted);
@@ -237,7 +228,7 @@ impl SilkroadFrame {
                     output.put_u8(*crc);
                     output.put_slice(data);
                 }
-            }
+            },
             SilkroadFrame::MassiveHeader {
                 count,
                 crc,
@@ -252,7 +243,7 @@ impl SilkroadFrame {
                 output.put_u16_le(*contained_count);
                 output.put_u16_le(*contained_opcode);
                 output.put_u8(0);
-            }
+            },
             SilkroadFrame::MassiveContainer { count, crc, inner } => {
                 output.put_u16_le(self.content_size() as u16);
                 output.put_u16_le(MASSIVE_PACKET_OPCODE);
@@ -260,7 +251,7 @@ impl SilkroadFrame {
                 output.put_u8(*crc);
                 output.put_u8(0);
                 output.put_slice(inner);
-            }
+            },
         }
 
         Ok(output.freeze())

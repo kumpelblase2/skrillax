@@ -28,9 +28,7 @@ impl SecurityHandshake {
             let mut security = security
                 .write()
                 .expect("We should still hold the lock on security completely.");
-            security
-                .initialize()
-                .expect("We should not be initialized yet.")
+            security.initialize().expect("We should not be initialized yet.")
         };
 
         let handshake = HandshakeStage::Initialize {
@@ -49,13 +47,11 @@ impl SecurityHandshake {
         let response = reader.next().await?;
         let challenge = match response {
             ClientPacket::HandshakeChallenge(challenge) => {
-                let mut security = security
-                    .write()
-                    .expect("Should still hold lock on security");
+                let mut security = security.write().expect("Should still hold lock on security");
                 security
                     .start_challenge(challenge.b, challenge.key)
                     .expect("We initialized security just before, cannot still be uninitialized")
-            }
+            },
             _ => return Err(HandshakeError::NonHandshakePacketReceived),
         };
 
@@ -68,11 +64,9 @@ impl SecurityHandshake {
         let response = reader.next().await?;
         match response {
             ClientPacket::HandshakeAccepted(_) => {
-                let mut security = security
-                    .write()
-                    .expect("Should still hold lock on security");
+                let mut security = security.write().expect("Should still hold lock on security");
                 security.accept_challenge().unwrap();
-            }
+            },
             _ => return Err(HandshakeError::HandshakeNotAccepted),
         }
         Ok(())

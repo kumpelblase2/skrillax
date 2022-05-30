@@ -19,8 +19,8 @@ pub(crate) fn login(
         match handle_packets(entity, &mut client, &login_queue, &mut buffer) {
             Err(_) => {
                 buffer.entity(entity).despawn();
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 }

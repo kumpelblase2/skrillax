@@ -46,7 +46,7 @@ impl Decoder for SilkroadFrameDecoder {
                 debug!("Received packet for opcode {:#04X}", frame.opcode());
                 src.advance(bytes_read);
                 Ok(Some(frame))
-            }
+            },
             Err(FrameError::Incomplete) => Ok(None),
             Err(e) => Err(e),
         }

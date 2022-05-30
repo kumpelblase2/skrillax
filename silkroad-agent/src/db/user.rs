@@ -31,11 +31,7 @@ pub(crate) async fn fetch_user(pool: &PgPool, id: u32) -> Result<Option<User>, E
         .await
 }
 
-pub(crate) async fn fetch_server_user(
-    pool: &PgPool,
-    id: u32,
-    server: u16,
-) -> Result<Option<ServerUser>, Error> {
+pub(crate) async fn fetch_server_user(pool: &PgPool, id: u32, server: u16) -> Result<Option<ServerUser>, Error> {
     sqlx::query_as("SELECT users.id, users.username, user_servers.job, user_servers.premium_type, user_servers.premium_end FROM users LEFT JOIN user_servers on users.id = user_servers.user_id WHERE id = $1 and server_id = $2")
             .bind(id)
             .bind(server as i32)

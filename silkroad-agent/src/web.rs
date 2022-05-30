@@ -45,13 +45,10 @@ impl Handler for SpotReserveHandler {
                     port: self.external_address.port(),
                     alive: duration.as_secs(),
                 });
-            }
+            },
             Err(e) => {
-                res.render_json(&ReserveResponse::Error(format!(
-                    "No more spots available. {:?}",
-                    e
-                )));
-            }
+                res.render_json(&ReserveResponse::Error(format!("No more spots available. {:?}", e)));
+            },
         }
     }
 }

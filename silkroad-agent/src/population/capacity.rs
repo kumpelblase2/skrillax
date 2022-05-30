@@ -40,8 +40,7 @@ impl Capacity {
     }
 
     fn usage(&self) -> f32 {
-        let total_current =
-            (self.queued.load(Ordering::Acquire) + self.playing.load(Ordering::Acquire)) as f32;
+        let total_current = (self.queued.load(Ordering::Acquire) + self.playing.load(Ordering::Acquire)) as f32;
         let maximum = self.max as f32;
         total_current / maximum
     }
