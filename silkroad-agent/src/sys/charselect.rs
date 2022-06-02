@@ -1,10 +1,10 @@
 use crate::character_loader::Character;
-use crate::comp::monster::Monster;
 use crate::comp::player::{Agent, Buffed, Inventory, MovementState, Player};
 use crate::comp::pos::{Heading, LocalPosition, Position};
 use crate::comp::visibility::Visibility;
-use crate::comp::{CharacterSelect, Client, NetworkedEntity, Playing};
+use crate::comp::{CharacterSelect, Client, GameEntity, Playing};
 use crate::db::character::CharacterItem;
+use crate::id_allocator::IdAllocator;
 use crate::job_coordinator::JobCoordinator;
 use crate::time::AsSilkroadTime;
 use crate::{CharacterLoaderFacade, GameSettings};
@@ -17,8 +17,7 @@ use silkroad_protocol::character::{
     CharacterListRequestAction, CharacterListResponse, CharacterListResult,
 };
 use silkroad_protocol::world::{
-    ActionState, AliveState, BodyState, CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, EntityMovementState,
-    EntityRarity, EntityState, JobType, MovementType,
+    ActionState, AliveState, BodyState, CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, EntityState, JobType,
 };
 use silkroad_protocol::ClientPacket;
 
@@ -27,6 +26,7 @@ pub(crate) fn charselect(
     mut character_loader: ResMut<CharacterLoaderFacade>,
     settings: Res<GameSettings>,
     job_coordinator: Res<JobCoordinator>,
+    mut allocator: ResMut<IdAllocator>,
     mut query: Query<(Entity, &mut Client, &mut CharacterSelect, &Playing)>,
 ) {
     for (entity, mut client, mut character_list, playing) in query.iter_mut() {
@@ -74,18 +74,22 @@ pub(crate) fn charselect(
                             };
 
                             let agent = Agent {
-                                id: 1,
-                                ref_id: data.character_type as u32,
                                 movement_speed: 50.0,
                                 movement_state: MovementState::Standing,
                                 movement_target: None,
                             };
 
+                            let game_entity = GameEntity {
+                                ref_id: data.character_type as u32,
+                                unique_id: allocator.allocate(),
+                            };
+
                             client.send(CharacterJoinResponse::new(CharacterJoinResult::Success));
 
-                            send_spawn(&client, &player, &agent, &position, settings.max_level);
+                            send_spawn(&client, &game_entity, &player, &position, settings.max_level);
 
                             cmd.entity(entity)
+                                .insert(game_entity)
                                 .insert(player)
                                 .insert(agent)
                                 .insert(position.clone())
@@ -162,14 +166,14 @@ fn send_job_spread(client: &Client, hunters: u8, thieves: u8) {
     ));
 }
 
-fn send_spawn(client: &Client, player: &Player, agent: &Agent, position: &Position, max_level: u8) {
+fn send_spawn(client: &Client, entity: &GameEntity, player: &Player, position: &Position, max_level: u8) {
     client.send(CharacterSpawnStart);
 
     let character_data = &player.character;
 
     client.send(CharacterSpawn::new(
         Utc::now().as_silkroad_time(),
-        agent.ref_id,
+        entity.ref_id,
         character_data.scale,
         character_data.level,
         character_data.max_level,
@@ -198,7 +202,7 @@ fn send_spawn(client: &Client, player: &Player, agent: &Agent, position: &Positi
         Vec::new(),
         Vec::new(),
         Vec::new(),
-        agent.id, // TODO
+        entity.unique_id,
         position.as_protocol(),
         0,
         position.rotation.into(),

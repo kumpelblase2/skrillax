@@ -192,14 +192,44 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
+name = "bevy_app"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58fe3d3f4140fb11cd294f43be7cb66a5783d9277ba0270743e2860e32b25ab5"
+dependencies = [
+    "bevy_derive",
+    "bevy_ecs",
+    "bevy_reflect",
+    "bevy_utils",
+    "wasm-bindgen",
+    "web-sys",
+]
+
+[[package]]
+name = "bevy_core"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c156430a5312c04a1b25fa434eeeab6349a41c6bb96ea0385406d53b3c43658"
+dependencies = [
+    "bevy_app",
+    "bevy_derive",
+    "bevy_ecs",
+    "bevy_math",
+    "bevy_reflect",
+    "bevy_tasks",
+    "bevy_utils",
+    "bytemuck",
+]
+
+[[package]]
 name = "bevy_derive"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "918dc0dff01e8b4e8f989db89d74fd4042810ea80a70642d0459b3c265995e59"
 dependencies = [
- "bevy_macro_utils",
- "quote",
- "syn",
+    "bevy_macro_utils",
+    "quote",
+    "syn",
 ]
 
 [[package]]
@@ -238,9 +268,19 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57cf90b3b67606d0818cdac6c9134eb66fa174959977a4abba893364a571a7cd"
 dependencies = [
- "cargo-manifest",
- "quote",
- "syn",
+    "cargo-manifest",
+    "quote",
+    "syn",
+]
+
+[[package]]
+name = "bevy_math"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b0f9ebf2ef80a8fff3e5dca817594071004048cd089e72b9a1bf4e494b66112"
+dependencies = [
+    "bevy_reflect",
+    "glam",
 ]
 
 [[package]]
@@ -249,13 +289,15 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d84ce8cbd484a39d67171831eaf72c20d2684de71f1e9d79333c8dd6d6f3ebca"
 dependencies = [
- "bevy_reflect_derive",
- "bevy_utils",
- "downcast-rs",
- "erased-serde",
- "parking_lot",
- "serde 1.0.136",
- "thiserror",
+    "bevy_reflect_derive",
+    "bevy_utils",
+    "downcast-rs",
+    "erased-serde",
+    "glam",
+    "parking_lot",
+    "serde 1.0.136",
+    "smallvec",
+    "thiserror",
 ]
 
 [[package]]
@@ -374,6 +416,12 @@ name = "bumpalo"
 version = "3.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4a45a46ab1f2412e53d3a0ade76ffad2025804294569aae387231a0cd6e0899"
+
+[[package]]
+name = "bytemuck"
+version = "1.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cdead85bdec19c194affaeeb670c0e41fe23de31459efd1c174d049269cf02cc"
 
 [[package]]
 name = "byteorder"
@@ -921,11 +969,21 @@ version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9be70c98951c83b8d2f8f60d7065fa6d5146873094452a1008da8c2f1e4205ad"
 dependencies = [
- "cfg-if",
- "js-sys",
- "libc",
- "wasi 0.10.0+wasi-snapshot-preview1",
- "wasm-bindgen",
+    "cfg-if",
+    "js-sys",
+    "libc",
+    "wasi 0.10.0+wasi-snapshot-preview1",
+    "wasm-bindgen",
+]
+
+[[package]]
+name = "glam"
+version = "0.20.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f43e957e744be03f5801a55472f593d43fabdebf25a4585db250f04d86b1675f"
+dependencies = [
+    "bytemuck",
+    "serde 1.0.136",
 ]
 
 [[package]]
@@ -934,9 +992,9 @@ version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9f1f717ddc7b2ba36df7e871fd88db79326551d3d6f1fc406fbfd28b582ff8e"
 dependencies = [
- "bytes",
- "fnv",
- "futures-core",
+    "bytes",
+    "fnv",
+    "futures-core",
  "futures-sink",
  "futures-util",
  "http",
@@ -2273,16 +2331,17 @@ dependencies = [
 name = "silkroad-agent"
 version = "0.1.0"
 dependencies = [
- "bevy_ecs",
- "bevy_ecs_macros",
- "byteorder",
- "bytes",
- "cgmath 0.18.0",
- "chrono",
- "config",
- "crossbeam-channel",
- "itertools",
- "lazy_static",
+    "bevy_core",
+    "bevy_ecs",
+    "bevy_ecs_macros",
+    "byteorder",
+    "bytes",
+    "cgmath 0.18.0",
+    "chrono",
+    "config",
+    "crossbeam-channel",
+    "itertools",
+    "lazy_static",
  "log",
  "pk2",
  "rand 0.8.4",
@@ -2421,6 +2480,9 @@ name = "smallvec"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2dd574626839106c320a323308629dcb1acfc96e32a8cba364ddc61ac23ee83"
+dependencies = [
+    "serde 1.0.136",
+]
 
 [[package]]
 name = "socket2"

@@ -2,9 +2,10 @@ use crate::comp::monster::Monster;
 use crate::comp::player::{Agent, Character, MovementState, MovementTarget, Player, SpawningState};
 use crate::comp::pos::{Heading, LocalPosition, Position};
 use crate::comp::visibility::Visibility;
-use crate::comp::{Client, NetworkedEntity};
-use crate::resources::Delta;
+use crate::comp::{Client, GameEntity, Health};
+use crate::id_allocator::IdAllocator;
 use crate::GameSettings;
+use bevy_core::{Time, Timer};
 use bevy_ecs::prelude::*;
 use cgmath::{Deg, Quaternion, Rotation3, Vector3};
 use silkroad_protocol::auth::{LogoutFinished, LogoutRequest, LogoutResponse, LogoutResult};
@@ -13,52 +14,62 @@ use silkroad_protocol::chat::{
     ChatMessageResponse, ChatMessageResult, ChatSource, ChatUpdate, TextCharacterInitialization,
 };
 use silkroad_protocol::world::{
-    CelestialUpdate, EntityRarity, EntityUpdateState, MovementSource, MovementType, PlayerMovementRequest,
-    PlayerMovementResponse, Rotation, TargetEntity, TargetEntityResponse, TargetEntityResult,
+    CelestialUpdate, EntityRarity, EntityUpdateState, MovementSource, PlayerMovementRequest, PlayerMovementResponse,
+    Rotation, TargetEntity, TargetEntityResponse, TargetEntityResult,
 };
 use silkroad_protocol::{ClientPacket, ServerPacket};
-use std::panic::Location;
+use std::ops::Add;
+use std::time::Duration;
 use tracing::debug;
 
 pub(crate) fn in_game(
     settings: Res<GameSettings>,
-    delta: Res<Delta>,
+    delta: Res<Time>,
+    mut allocator: ResMut<IdAllocator>,
     mut cmd: Commands,
-    mut query: Query<(Entity, &mut Client, &mut Player, &mut Agent, &Position)>,
+    mut query: Query<(Entity, &mut Client, &GameEntity, &mut Player, &mut Agent, &Position)>,
 ) {
-    for (entity, mut client, mut player, mut agent, position) in query.iter_mut() {
+    for (entity, mut client, game_entity, mut player, mut agent, position) in query.iter_mut() {
         let mut agent: &mut Agent = &mut agent;
+        let game_entity: &GameEntity = game_entity;
 
         while let Some(packet) = client.1.pop_front() {
             match packet {
                 ClientPacket::FinishLoading(_) => {
                     debug!(id = ?client.0.id(), "Finished loading.");
                     player.character.state = SpawningState::Finished;
-                    send_celestial_status(&client, agent.id);
+                    send_celestial_status(&client, game_entity.unique_id);
                     send_character_stats(&client, &player.character);
                     send_text_initialization(&client);
-                    client.send(ServerPacket::EntityUpdateState(EntityUpdateState::new(agent.id, 0, 1)));
+                    client.send(ServerPacket::EntityUpdateState(EntityUpdateState::new(
+                        game_entity.unique_id,
+                        0,
+                        1,
+                    )));
                     if let Some(notice) = &settings.join_notice {
                         client.send(ChatUpdate::new(ChatSource::Notice, notice.clone()));
                     }
 
                     cmd.spawn()
+                        .insert(Agent::new(32.))
                         .insert(position.clone())
                         .insert(Monster {
-                            ref_id: 0x078d,
                             rarity: EntityRarity::Normal,
-                            max_health: 100,
-                            current_health: 100,
+                            target: None,
                         })
-                        .insert(Visibility::with_radius(10.))
-                        .insert(NetworkedEntity(1337u32));
+                        .insert(GameEntity {
+                            ref_id: 0x078d,
+                            unique_id: allocator.allocate(),
+                        })
+                        .insert(Health::new(100))
+                        .insert(Visibility::with_radius(10.));
                 },
                 ClientPacket::PlayerMovementRequest(PlayerMovementRequest { kind }) => match kind {
                     silkroad_protocol::world::MovementTarget::TargetLocation { region, x, y, z } => {
                         let local_position = position.location.to_local();
                         debug!(id = ?client.0.id(), "Movement: {}|{}|{} @ {} -> {}|{}|{} @ {}", local_position.1.x, local_position.1.y, local_position.1.z, local_position.0, x, y, z, region);
                         let response = ServerPacket::PlayerMovementResponse(PlayerMovementResponse::new(
-                            agent.id,
+                            game_entity.unique_id,
                             region,
                             x,
                             y,
@@ -96,8 +107,12 @@ pub(crate) fn in_game(
                     ));
                 },
                 ClientPacket::LogoutRequest(LogoutRequest { mode }) => {
-                    let logout_duration = settings.logout_duration as f64;
-                    player.logout = Some(logout_duration);
+                    player.logout = Some(
+                        delta
+                            .last_update()
+                            .unwrap()
+                            .add(Duration::from_secs(settings.logout_duration as u64)),
+                    );
                     client.send(LogoutResponse::new(LogoutResult::success(
                         settings.logout_duration as u32,
                         mode,
@@ -112,13 +127,10 @@ pub(crate) fn in_game(
             }
         }
 
-        if let Some(logout_time_remaining) = player.logout {
-            let remaining_time = logout_time_remaining - delta.0;
-            if remaining_time < 0.0 {
+        if let Some(logout_time) = player.logout {
+            if delta.last_update().unwrap() > logout_time {
                 client.send(LogoutFinished);
                 cmd.entity(entity).despawn();
-            } else {
-                player.logout = Some(remaining_time);
             }
         }
     }

@@ -1,24 +1,24 @@
 use crate::comp::player::{Agent, MovementState, MovementTarget};
 use crate::comp::pos::{GlobalLocation, Position};
-use crate::comp::Client;
+use crate::comp::{Client, GameEntity};
 use crate::ext::Vector3Ext;
-use crate::resources::Delta;
+use bevy_core::Time;
 use bevy_ecs::prelude::*;
-use cgmath::{Array, InnerSpace, MetricSpace};
+use cgmath::{InnerSpace, MetricSpace};
 use pk2::Pk2;
 use silkroad_navmesh::NavmeshLoader;
 use silkroad_protocol::world::PlayerMovementResponse;
 use silkroad_protocol::ServerPacket;
-use tracing::debug;
 
 pub(crate) fn movement(
-    mut query: Query<(&mut Agent, &mut Position, &Client)>,
+    mut query: Query<(&GameEntity, &mut Agent, &mut Position, &Client)>,
     mut navmesh: ResMut<NavmeshLoader<Pk2>>,
-    delta: Res<Delta>,
+    delta: Res<Time>,
 ) {
-    for (mut agent, mut position, client) in query.iter_mut() {
+    for (entity, mut agent, mut position, client) in query.iter_mut() {
         let mut agent: &mut Agent = &mut agent;
         let mut position: &mut Position = &mut position;
+        let entity: &GameEntity = entity;
         match &agent.movement_target {
             Some(MovementTarget::Direction(direction)) => {
                 todo!()
@@ -32,7 +32,7 @@ pub(crate) fn movement(
                 let current_location_2d = position.location.0.to_flat_vec2();
                 let to_target = location.0.to_flat_vec2() - current_location_2d;
                 let direction = to_target.normalize();
-                let movement = direction * (agent.movement_speed * delta.0 as f32);
+                let movement = direction * (agent.movement_speed * delta.delta_seconds_f64() as f32);
                 let next_step = current_location_2d + movement;
                 let (next_step, finished) = if current_location_2d.distance2(location.0.to_flat_vec2())
                     <= current_location_2d.distance2(next_step)
@@ -55,7 +55,7 @@ pub(crate) fn movement(
                 if finished {
                     let local = new_pos.to_local();
                     client.send(ServerPacket::PlayerMovementResponse(PlayerMovementResponse::new(
-                        agent.id,
+                        entity.unique_id,
                         local.0.id(),
                         local.1.x as u16,
                         local.1.y as u16,

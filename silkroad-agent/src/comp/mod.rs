@@ -2,15 +2,13 @@ pub(crate) mod monster;
 pub(crate) mod player;
 pub(crate) mod pos;
 pub(crate) mod stats;
+pub(crate) mod sync;
 pub(crate) mod visibility;
 
 use crate::character_loader::Character;
 use crate::db::user::ServerUser;
 use crate::population::capacity::PlayingToken;
 use bevy_ecs::prelude::*;
-use cgmath::Vector3;
-use pos::GlobalPosition;
-use silkroad_navmesh::region::Region;
 use silkroad_network::stream::Stream;
 use silkroad_protocol::{ClientPacket, ServerPacket};
 use std::collections::VecDeque;
@@ -38,15 +36,25 @@ impl Client {
 }
 
 #[derive(Component)]
+pub(crate) struct GameEntity {
+    pub unique_id: u32,
+    pub ref_id: u32,
+}
+
+#[derive(Component)]
 pub(crate) struct Playing(pub(crate) ServerUser, pub(crate) PlayingToken);
 
 #[derive(Component)]
-pub(crate) struct NetworkedEntity(pub u32);
+pub(crate) struct Health {
+    pub current_health: usize,
+    pub max_health: usize,
+}
 
-#[derive(Component)]
-pub(crate) struct Health(f32);
-
-#[derive(Component)]
-pub(crate) struct Monster {
-    pub target: Option<Entity>,
+impl Health {
+    pub fn new(max_health: usize) -> Self {
+        Self {
+            current_health: max_health,
+            max_health,
+        }
+    }
 }

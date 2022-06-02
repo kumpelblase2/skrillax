@@ -2,13 +2,13 @@ use crate::comp::monster::Monster;
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
-use crate::comp::{Client, NetworkedEntity};
+use crate::comp::{Client, GameEntity};
 use bevy_ecs::prelude::*;
 use cgmath::prelude::*;
 use silkroad_protocol::world::{
-    ActionState, ActiveScroll, AliveState, BodyState, EntityRarity, EntitySpawn, EntityState, EntityTypeSpawnData,
-    GroupEntitySpawnData, GroupEntitySpawnEnd, GroupEntitySpawnStart, GroupSpawnDataContent, GroupSpawnType,
-    InteractOptions, JobType, PlayerKillState, PvpCape,
+    ActionState, ActiveScroll, AliveState, BodyState, EntityState, EntityTypeSpawnData, GroupEntitySpawnData,
+    GroupEntitySpawnEnd, GroupEntitySpawnStart, GroupSpawnDataContent, GroupSpawnType, InteractOptions, JobType,
+    PlayerKillState, PvpCape,
 };
 use silkroad_protocol::ServerPacket;
 use tracing::debug;
@@ -63,22 +63,22 @@ pub(crate) fn visibility(
 
 pub(crate) fn player_visibility_update(
     mut query: Query<(&Client, &mut Visibility)>,
-    lookup: Query<(&Position, &NetworkedEntity, Option<&Player>, Option<&Monster>)>,
+    lookup: Query<(&Position, &GameEntity, Option<&Player>, Option<&Monster>)>,
 ) {
     for (client, mut visibility) in query.iter_mut() {
         let visibility: &mut Visibility = &mut visibility;
 
         let mut spawns = Vec::new();
         for added in visibility.added_entities.iter() {
-            if let Ok((pos, network_id, player_opt, monster_opt)) = lookup.get(*added) {
+            if let Ok((pos, entity, player_opt, monster_opt)) = lookup.get(*added) {
                 let pos: &Position = pos;
-                let network_id: &NetworkedEntity = network_id;
+                let entity: &GameEntity = entity;
                 let player_opt: Option<&Player> = player_opt;
                 let monster_opt: Option<&Monster> = monster_opt;
 
                 if let Some(player) = player_opt {
                     spawns.push(GroupSpawnDataContent::Spawn {
-                        object_id: 0, // TODO needs this from agent
+                        object_id: entity.ref_id,
                         data: EntityTypeSpawnData::Character {
                             scale: 0,
                             berserk_level: 0,
@@ -111,11 +111,11 @@ pub(crate) fn player_visibility_update(
                         },
                     });
                 } else if let Some(monster) = monster_opt {
-                    debug!("Spawning monster {}.", network_id.0);
+                    debug!("Spawning monster {}.", entity.unique_id);
                     spawns.push(GroupSpawnDataContent::spawn(
-                        monster.ref_id,
+                        entity.ref_id,
                         EntityTypeSpawnData::Monster {
-                            unique_id: network_id.0,
+                            unique_id: entity.unique_id,
                             position: pos.as_protocol(),
                             movement: pos.as_movement(),
                             entity_state: EntityState {
@@ -130,7 +130,7 @@ pub(crate) fn player_visibility_update(
                                 active_buffs: vec![],
                             },
                             interaction_options: InteractOptions::None,
-                            rarity: EntityRarity::Normal,
+                            rarity: monster.rarity,
                             unknown: 0,
                         },
                     ));
@@ -142,8 +142,8 @@ pub(crate) fn player_visibility_update(
 
         let mut despawns = Vec::new();
         for removed in visibility.removed_entities.iter() {
-            if let Ok((_, network_id, _, _)) = lookup.get(*removed) {
-                despawns.push(GroupSpawnDataContent::despawn(network_id.0));
+            if let Ok((_, entity, _, _)) = lookup.get(*removed) {
+                despawns.push(GroupSpawnDataContent::despawn(entity.unique_id));
             }
         }
 

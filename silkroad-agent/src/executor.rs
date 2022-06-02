@@ -21,8 +21,7 @@ impl Executor {
             let span = trace_span!("tick");
             let guard = span.enter();
             let start_time = Instant::now();
-            let delta = start_time.duration_since(last_tick);
-            self.game.tick(delta.as_secs_f64());
+            self.game.tick();
             let end_time = Instant::now();
             drop(guard);
             let work_duration = end_time.duration_since(start_time);

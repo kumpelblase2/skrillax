@@ -8,6 +8,7 @@ mod event;
 mod executor;
 pub(crate) mod ext;
 mod game;
+mod id_allocator;
 mod job_coordinator;
 mod player_loader;
 mod population;

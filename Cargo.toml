@@ -10,3 +10,6 @@ members = [
     "silkroad-navmesh",
     "silkroad-navmesh-viewer"
 ]
+
+[profile.dev]
+opt-level = 1

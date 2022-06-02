@@ -2,9 +2,11 @@ use crate::comp::pos::{GlobalPosition, Heading};
 use crate::comp::stats::Stats;
 use crate::db::character::CharacterItem;
 use crate::db::user::ServerUser;
+use bevy_core::Timer;
 use bevy_ecs::prelude::*;
-use cgmath::{Quaternion, Vector3};
+use cgmath::Quaternion;
 use std::collections::HashMap;
+use std::time::Instant;
 
 pub(crate) struct Item {
     ref_id: i32,
@@ -138,7 +140,7 @@ pub(crate) struct Player {
     pub user: ServerUser,
     pub character: Character,
     pub inventory: Inventory,
-    pub logout: Option<f64>, // pub friend_list: FriendList,
+    pub logout: Option<Instant>, // pub friend_list: FriendList,
 }
 
 pub(crate) enum MovementTarget {
@@ -149,11 +151,19 @@ pub(crate) enum MovementTarget {
 
 #[derive(Component)]
 pub(crate) struct Agent {
-    pub id: u32,
-    pub ref_id: u32,
     pub movement_speed: f32,
     pub movement_state: MovementState,
     pub movement_target: Option<MovementTarget>,
+}
+
+impl Agent {
+    pub fn new(movement_speed: f32) -> Self {
+        Self {
+            movement_speed,
+            movement_state: MovementState::Standing,
+            movement_target: None,
+        }
+    }
 }
 
 #[derive(Component)]
