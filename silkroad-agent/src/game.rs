@@ -56,7 +56,7 @@ impl Game {
         world.insert_resource(character_loader);
         world.insert_resource(job_coordinator);
         world.insert_resource(login_queue);
-        let silkroad_folder = Path::new("/home/tim/Games/silkroad-online-2/drive_c/Program Files (x86)/Silkroad");
+        let silkroad_folder = Path::new(&settings.data_location);
         let data_file = silkroad_folder.join("Data.pk2");
         world.insert_resource(NavmeshLoader::new(Pk2::open(data_file, BLOWFISH_KEY).unwrap()));
         world.insert_resource(settings);

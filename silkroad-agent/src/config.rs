@@ -44,6 +44,7 @@ pub(crate) struct GameConfig {
     pub(crate) client_timeout: Option<u8>,
     pub(crate) logout_duration: Option<u8>,
     pub(crate) join_notice: Option<String>,
+    pub(crate) data_location: String,
 }
 
 #[derive(Deserialize)]

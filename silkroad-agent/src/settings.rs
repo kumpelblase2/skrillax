@@ -5,6 +5,7 @@ pub(crate) struct GameSettings {
     pub(crate) client_timeout: u8,
     pub(crate) logout_duration: u8,
     pub(crate) join_notice: Option<String>,
+    pub(crate) data_location: String,
 }
 
 impl From<GameConfig> for GameSettings {
@@ -14,6 +15,7 @@ impl From<GameConfig> for GameSettings {
             client_timeout: config.client_timeout.unwrap_or(30),
             logout_duration: config.logout_duration.unwrap_or(2),
             join_notice: config.join_notice,
+            data_location: config.data_location,
         }
     }
 }
