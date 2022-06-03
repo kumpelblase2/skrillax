@@ -17,7 +17,7 @@ impl Patcher {
     }
 
     pub fn get_patch_information(&self, version: u32) -> PatchInformation {
-        if version == self.config.expected_client_version {
+        if version == self.config.expected_client_version || self.config.accept_all {
             return PatchInformation::UpToDate;
         } else if version < self.config.expected_client_version && version >= self.config.minimum_client_version {
             return PatchInformation::RequiredFiles(self.get_patches_for(version));

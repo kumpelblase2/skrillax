@@ -21,6 +21,7 @@ pub(crate) struct GameServerConfig {
 pub(crate) struct PatchConfig {
     pub(crate) remote_url: String,
     pub(crate) dir: String,
+    pub(crate) accept_all: bool,
     pub(crate) expected_client_version: u32,
     pub(crate) minimum_client_version: u32,
 }

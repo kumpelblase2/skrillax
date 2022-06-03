@@ -3,8 +3,9 @@ listen-port = 15779
 [patch]
 remote-url = "localhost/"
 dir = "./patch-files"
+accept-all = true
 expected-client-version = 594
-minimum-client-version = 590
+minimum-client-version = 592
 
 [database]
 host = "localhost"
