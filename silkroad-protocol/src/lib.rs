@@ -9,6 +9,8 @@ use bytes::Bytes;
 
 pub mod error;
 
+pub mod size;
+
 pub mod character;
 
 pub mod world;

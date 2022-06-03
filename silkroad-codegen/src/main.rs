@@ -63,6 +63,7 @@ fn generate_library_root(
     }
 
     scope.raw("pub mod error;");
+    scope.raw("pub mod size;");
     for module in modules.iter() {
         scope.raw(&format!("pub mod {};", &module));
     }

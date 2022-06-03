@@ -11,4 +11,5 @@ use byteorder::ReadBytesExt;
 use crate::ClientPacket;
 use crate::ServerPacket;
 use crate::error::ProtocolError;
+use crate::size::Size;
 
