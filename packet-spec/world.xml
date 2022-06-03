@@ -31,7 +31,7 @@
     </enum>
 
     <enum name="PlayerKillState" type="u8">
-        <variation name="None" value="0" />
+        <variation name="None" value="0xFF" />
         <variation name="Purple" value="1" />
         <variation name="Red" value="2" />
     </enum>
@@ -179,7 +179,7 @@
             <attribute name="ref_id" type="u16" />
         </variation>
     </enum>
-    
+
     <enum name="MovementType" type="u8">
         <variation name="Running" value="0" />
         <variation name="Walking" value="1" />
@@ -313,14 +313,14 @@
 
     <enum name="MovementDestination" type="u8">
         <variation name="Direction" value="0">
-            <attribute name="moving" type="bool"/>
-            <attribute name="heading" type="u16"/>
+            <attribute name="moving" type="bool" />
+            <attribute name="heading" type="u16" />
         </variation>
         <variation name="Location" value="1">
-            <attribute name="region" type="u16"/>
-            <attribute name="x" type="u16"/>
-            <attribute name="y" type="u16"/>
-            <attribute name="z" type="u16"/>
+            <attribute name="region" type="u16" />
+            <attribute name="x" type="u16" />
+            <attribute name="y" type="u16" />
+            <attribute name="z" type="u16" />
         </variation>
     </enum>
 
@@ -443,7 +443,7 @@
     <packet name="GroupEntitySpawnStart" source="server" opcode="0x3017">
         <attribute name="kind" type="GroupSpawnType" />
         <attribute name="amount" type="u16" />
-        <attribute name="unknown_1" type="u32" value="0"/>
+        <attribute name="unknown_1" type="u32" value="0" />
         <attribute name="unknown_2" type="u16" value="0" />
     </packet>
 
@@ -479,7 +479,7 @@
 
     <packet name="PlayerMovementResponse" source="server" opcode="0xB021">
         <attribute name="player_id" type="u32" />
-        <attribute name="destination" type="MovementDestination"/>
+        <attribute name="destination" type="MovementDestination" />
         <attribute name="source_position" type="Option" inner="MovementSource" />
     </packet>
 
@@ -496,40 +496,40 @@
     </packet>
 
     <packet name="Rotation" source="client" opcode="0x7024">
-        <attribute name="heading" type="u16"/>
+        <attribute name="heading" type="u16" />
     </packet>
 
     <packet name="EntityUpdateState" source="server" opcode="0x30BF">
-        <attribute name="unique_id" type="u32"/>
-        <attribute name="kind" type="u8"/><!-- TODO make to proper enum -->
-        <attribute name="value" type="u8"/>
+        <attribute name="unique_id" type="u32" />
+        <attribute name="kind" type="u8" /><!-- TODO make to proper enum -->
+        <attribute name="value" type="u8" />
     </packet>
 
     <enum name="TargetEntityResult" type="u8">
         <variation name="Failure" value="0">
-            <attribute name="error" type="u16"/>
+            <attribute name="error" type="u16" />
         </variation>
         <variation name="Success" value="1">
-            <attribute name="unique_id" type="u32"/>
-            <attribute name="unknown1" type="u8" value="1"/>
-            <attribute name="unknown2" type="u8" value="5"/>
-            <attribute name="unknown3" type="u8" value="4"/>
+            <attribute name="unique_id" type="u32" />
+            <attribute name="unknown1" type="u8" value="1" />
+            <attribute name="unknown2" type="u8" value="5" />
+            <attribute name="unknown3" type="u8" value="4" />
         </variation>
     </enum>
 
     <packet name="TargetEntity" source="client" opcode="0x7045">
-        <attribute name="unique_id" type="u32"/>
+        <attribute name="unique_id" type="u32" />
     </packet>
 
     <packet name="TargetEntityResponse" source="server" opcode="0xB045">
-        <attribute name="result" type="TargetEntityResult"/>
+        <attribute name="result" type="TargetEntityResult" />
     </packet>
 
     <packet name="UnTargetEntity" source="client" opcode="0x704B">
-        <attribute name="unique_id" type="u32"/>
+        <attribute name="unique_id" type="u32" />
     </packet>
 
     <packet name="UnTargetEntityResponse" source="server" opcode="0xB04B">
-        <attribute name="success" type="bool"/>
+        <attribute name="success" type="bool" />
     </packet>
 </packets>

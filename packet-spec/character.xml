@@ -87,8 +87,8 @@
     <struct name="CharacterListEntry">
         <attribute name="ref_id" type="u32" />
         <attribute name="name" type="String" />
-        <attribute name="unknown_1" type="u8" />
-        <attribute name="unknown_2" type="u8" />
+        <attribute name="unknown_1" type="u8" value="0" />
+        <attribute name="unknown_2" type="u8" value="0" />
         <attribute name="scale" type="u8" />
         <attribute name="level" type="u8" />
         <attribute name="exp" type="u64" />
