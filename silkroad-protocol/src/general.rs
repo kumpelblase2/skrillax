@@ -1,3 +1,4 @@
+// This is generated code. Do not modify manually.
 #![allow(
     unused_imports,
     unused_variables,
@@ -7,6 +8,7 @@
 )]
 
 use crate::error::ProtocolError;
+use crate::size::Size;
 use crate::ClientPacket;
 use crate::ServerPacket;
 use byteorder::ReadBytesExt;
@@ -55,6 +57,32 @@ impl HandshakeStage {
     }
 }
 
+impl Size for HandshakeStage {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                HandshakeStage::Initialize {
+                    blowfish_seed,
+                    seed_count,
+                    seed_crc,
+                    handshake_seed,
+                    a,
+                    b,
+                    c,
+                } => {
+                    blowfish_seed.calculate_size()
+                        + seed_count.calculate_size()
+                        + seed_crc.calculate_size()
+                        + handshake_seed.calculate_size()
+                        + a.calculate_size()
+                        + b.calculate_size()
+                        + c.calculate_size()
+                },
+                HandshakeStage::Finalize { challenge } => challenge.calculate_size(),
+            }
+    }
+}
+
 #[derive(Clone)]
 pub struct IdentityInformation {
     pub module_name: String,
@@ -85,7 +113,7 @@ impl From<IdentityInformation> for ClientPacket {
 
 impl From<IdentityInformation> for Bytes {
     fn from(op: IdentityInformation) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u16_le(op.module_name.len() as u16);
         data_writer.put_slice(op.module_name.as_bytes());
         data_writer.put_u8(op.locality);
@@ -102,6 +130,12 @@ impl From<IdentityInformation> for ServerPacket {
 impl IdentityInformation {
     pub fn new(module_name: String, locality: u8) -> Self {
         IdentityInformation { module_name, locality }
+    }
+}
+
+impl Size for IdentityInformation {
+    fn calculate_size(&self) -> usize {
+        self.module_name.calculate_size() + self.locality.calculate_size()
     }
 }
 
@@ -135,7 +169,7 @@ pub struct ServerInfoSeed {
 
 impl From<ServerInfoSeed> for Bytes {
     fn from(op: ServerInfoSeed) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u8(op.unknown_1);
         data_writer.put_u8(op.unknown_2);
         data_writer.put_u8(op.unknown_3);
@@ -165,6 +199,17 @@ impl ServerInfoSeed {
     }
 }
 
+impl Size for ServerInfoSeed {
+    fn calculate_size(&self) -> usize {
+        self.unknown_1.calculate_size()
+            + self.unknown_2.calculate_size()
+            + self.unknown_3.calculate_size()
+            + self.seed_value.calculate_size()
+            + self.unknown_4.calculate_size()
+            + self.unknown_5.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct ServerStateSeed {
     pub unknown_1: u8,
@@ -176,7 +221,7 @@ pub struct ServerStateSeed {
 
 impl From<ServerStateSeed> for Bytes {
     fn from(op: ServerStateSeed) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u8(op.unknown_1);
         data_writer.put_u8(op.unknown_2);
         data_writer.put_u8(op.unknown_3);
@@ -204,6 +249,16 @@ impl ServerStateSeed {
     }
 }
 
+impl Size for ServerStateSeed {
+    fn calculate_size(&self) -> usize {
+        self.unknown_1.calculate_size()
+            + self.unknown_2.calculate_size()
+            + self.unknown_3.calculate_size()
+            + self.unknown_4.calculate_size()
+            + self.unknown_5.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct SecuritySetup {
     pub stage: HandshakeStage,
@@ -211,7 +266,7 @@ pub struct SecuritySetup {
 
 impl From<SecuritySetup> for Bytes {
     fn from(op: SecuritySetup) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.stage {
             HandshakeStage::Initialize {
                 blowfish_seed,
@@ -249,6 +304,12 @@ impl From<SecuritySetup> for ServerPacket {
 impl SecuritySetup {
     pub fn new(stage: HandshakeStage) -> Self {
         SecuritySetup { stage }
+    }
+}
+
+impl Size for SecuritySetup {
+    fn calculate_size(&self) -> usize {
+        self.stage.calculate_size()
     }
 }
 

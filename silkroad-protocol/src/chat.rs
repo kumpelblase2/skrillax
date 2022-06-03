@@ -1,3 +1,4 @@
+// This is generated code. Do not modify manually.
 #![allow(
     unused_imports,
     unused_variables,
@@ -7,6 +8,7 @@
 )]
 
 use crate::error::ProtocolError;
+use crate::size::Size;
 use crate::ClientPacket;
 use crate::ServerPacket;
 use byteorder::ReadBytesExt;
@@ -34,6 +36,25 @@ impl ChatSource {
     }
 }
 
+impl Size for ChatSource {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                ChatSource::All => 0,
+                ChatSource::AllGm => 0,
+                ChatSource::NPC => 0,
+                ChatSource::PrivateMessage { receiver } => receiver.calculate_size(),
+                ChatSource::Party => 0,
+                ChatSource::Guild => 0,
+                ChatSource::Global => 0,
+                ChatSource::Stall => 0,
+                ChatSource::Union => 0,
+                ChatSource::Academy => 0,
+                ChatSource::Notice => 0,
+            }
+    }
+}
+
 #[derive(Clone)]
 pub enum ChatMessageResult {
     Success,
@@ -46,6 +67,16 @@ impl ChatMessageResult {
     }
 }
 
+impl Size for ChatMessageResult {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                ChatMessageResult::Success => 0,
+                ChatMessageResult::Error { code } => code.calculate_size(),
+            }
+    }
+}
+
 #[derive(Clone)]
 pub struct TextCharacterInitialization {
     pub characters: Vec<u64>,
@@ -53,7 +84,7 @@ pub struct TextCharacterInitialization {
 
 impl From<TextCharacterInitialization> for Bytes {
     fn from(op: TextCharacterInitialization) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u8(op.characters.len() as u8);
         for element in op.characters.iter() {
             data_writer.put_u64_le(*element);
@@ -74,6 +105,16 @@ impl TextCharacterInitialization {
     }
 }
 
+impl Size for TextCharacterInitialization {
+    fn calculate_size(&self) -> usize {
+        2 + self
+            .characters
+            .iter()
+            .map(|inner| inner.calculate_size())
+            .sum::<usize>()
+    }
+}
+
 #[derive(Clone)]
 pub struct ChatUpdate {
     pub source: ChatSource,
@@ -82,7 +123,7 @@ pub struct ChatUpdate {
 
 impl From<ChatUpdate> for Bytes {
     fn from(op: ChatUpdate) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.source {
             ChatSource::All => data_writer.put_u8(1),
             ChatSource::AllGm => data_writer.put_u8(3),
@@ -117,6 +158,12 @@ impl From<ChatUpdate> for ServerPacket {
 impl ChatUpdate {
     pub fn new(source: ChatSource, message: String) -> Self {
         ChatUpdate { source, message }
+    }
+}
+
+impl Size for ChatUpdate {
+    fn calculate_size(&self) -> usize {
+        self.source.calculate_size() + self.message.calculate_size()
     }
 }
 
@@ -187,7 +234,7 @@ pub struct ChatMessageResponse {
 
 impl From<ChatMessageResponse> for Bytes {
     fn from(op: ChatMessageResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.result {
             ChatMessageResult::Success => data_writer.put_u8(1),
             ChatMessageResult::Error { code } => {
@@ -226,5 +273,11 @@ impl From<ChatMessageResponse> for ServerPacket {
 impl ChatMessageResponse {
     pub fn new(result: ChatMessageResult, source: ChatSource, index: u8) -> Self {
         ChatMessageResponse { result, source, index }
+    }
+}
+
+impl Size for ChatMessageResponse {
+    fn calculate_size(&self) -> usize {
+        self.result.calculate_size() + self.source.calculate_size() + self.index.calculate_size()
     }
 }

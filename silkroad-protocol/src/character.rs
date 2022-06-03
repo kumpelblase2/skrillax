@@ -1,3 +1,4 @@
+// This is generated code. Do not modify manually.
 #![allow(
     unused_imports,
     unused_variables,
@@ -7,13 +8,14 @@
 )]
 
 use crate::error::ProtocolError;
+use crate::size::Size;
 use crate::ClientPacket;
 use crate::ServerPacket;
 use byteorder::ReadBytesExt;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use chrono::{DateTime, Datelike, Timelike, Utc};
 
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum CharacterListAction {
     Create,
     List,
@@ -24,7 +26,13 @@ pub enum CharacterListAction {
     AssignJob,
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for CharacterListAction {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum CharacterListError {
     CloudntCreateCharacter,
     WeaponRequired,
@@ -34,6 +42,12 @@ pub enum CharacterListError {
     NameAlreadyUsed,
     ConnectionOverlay,
     ReachedCapacity,
+}
+
+impl Size for CharacterListError {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u16>()
+    }
 }
 
 #[derive(Clone)]
@@ -59,6 +73,18 @@ impl CharacterListContent {
     }
 }
 
+impl Size for CharacterListContent {
+    fn calculate_size(&self) -> usize {
+        0 + match &self {
+            CharacterListContent::Characters { characters, job } => {
+                2 + characters.iter().map(|inner| inner.calculate_size()).sum::<usize>() + job.calculate_size()
+            },
+            CharacterListContent::Empty => 0,
+            CharacterListContent::JobSpread { hunters, thieves } => hunters.calculate_size() + thieves.calculate_size(),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub enum CharacterListResult {
     Ok { content: CharacterListContent },
@@ -72,6 +98,16 @@ impl CharacterListResult {
 
     pub fn error(error: CharacterListError) -> Self {
         CharacterListResult::Error { error }
+    }
+}
+
+impl Size for CharacterListResult {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                CharacterListResult::Ok { content } => content.calculate_size(),
+                CharacterListResult::Error { error } => error.calculate_size(),
+            }
     }
 }
 
@@ -140,6 +176,37 @@ impl CharacterListRequestAction {
     }
 }
 
+impl Size for CharacterListRequestAction {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                CharacterListRequestAction::Create {
+                    character_name,
+                    ref_id,
+                    scale,
+                    chest,
+                    pants,
+                    boots,
+                    weapon,
+                } => {
+                    character_name.calculate_size()
+                        + ref_id.calculate_size()
+                        + scale.calculate_size()
+                        + chest.calculate_size()
+                        + pants.calculate_size()
+                        + boots.calculate_size()
+                        + weapon.calculate_size()
+                },
+                CharacterListRequestAction::List => 0,
+                CharacterListRequestAction::Delete { character_name } => character_name.calculate_size(),
+                CharacterListRequestAction::CheckName { character_name } => character_name.calculate_size(),
+                CharacterListRequestAction::Restore { character_name } => character_name.calculate_size(),
+                CharacterListRequestAction::ShowJobSpread => 0,
+                CharacterListRequestAction::AssignJob { job } => job.calculate_size(),
+            }
+    }
+}
+
 #[derive(Clone)]
 pub enum CharacterJoinResult {
     Success,
@@ -149,6 +216,16 @@ pub enum CharacterJoinResult {
 impl CharacterJoinResult {
     pub fn error(error: CharacterListError) -> Self {
         CharacterJoinResult::Error { error }
+    }
+}
+
+impl Size for CharacterJoinResult {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                CharacterJoinResult::Success => 0,
+                CharacterJoinResult::Error { error } => error.calculate_size(),
+            }
     }
 }
 
@@ -164,6 +241,12 @@ impl CharacterListEquippedItem {
     }
 }
 
+impl Size for CharacterListEquippedItem {
+    fn calculate_size(&self) -> usize {
+        self.id.calculate_size() + self.upgrade_level.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct CharacterListAvatarItem {
     pub id: u32,
@@ -172,6 +255,12 @@ pub struct CharacterListAvatarItem {
 impl CharacterListAvatarItem {
     pub fn new(id: u32) -> Self {
         CharacterListAvatarItem { id }
+    }
+}
+
+impl Size for CharacterListAvatarItem {
+    fn calculate_size(&self) -> usize {
+        self.id.calculate_size()
     }
 }
 
@@ -204,8 +293,6 @@ impl CharacterListEntry {
     pub fn new(
         ref_id: u32,
         name: String,
-        unknown_1: u8,
-        unknown_2: u8,
         scale: u8,
         level: u8,
         exp: u64,
@@ -227,8 +314,8 @@ impl CharacterListEntry {
         CharacterListEntry {
             ref_id,
             name,
-            unknown_1,
-            unknown_2,
+            unknown_1: 0,
+            unknown_2: 0,
             scale,
             level,
             exp,
@@ -250,6 +337,42 @@ impl CharacterListEntry {
     }
 }
 
+impl Size for CharacterListEntry {
+    fn calculate_size(&self) -> usize {
+        self.ref_id.calculate_size()
+            + self.name.calculate_size()
+            + self.unknown_1.calculate_size()
+            + self.unknown_2.calculate_size()
+            + self.scale.calculate_size()
+            + self.level.calculate_size()
+            + self.exp.calculate_size()
+            + self.strength.calculate_size()
+            + self.intelligence.calculate_size()
+            + self.stat_points.calculate_size()
+            + self.sp.calculate_size()
+            + self.hp.calculate_size()
+            + self.mp.calculate_size()
+            + self.region.calculate_size()
+            + self.remaining_deletion_time.calculate_size()
+            + self.last_logout.calculate_size()
+            + self.guild_member_class.calculate_size()
+            + self.guild_rename_required.calculate_size()
+            + self.academy_member_class.calculate_size()
+            + 2
+            + self
+                .equipped_items
+                .iter()
+                .map(|inner| inner.calculate_size())
+                .sum::<usize>()
+            + 2
+            + self
+                .avatar_items
+                .iter()
+                .map(|inner| inner.calculate_size())
+                .sum::<usize>()
+    }
+}
+
 #[derive(Clone)]
 pub struct CharacterListResponse {
     pub action: CharacterListAction,
@@ -258,7 +381,7 @@ pub struct CharacterListResponse {
 
 impl From<CharacterListResponse> for Bytes {
     fn from(op: CharacterListResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.action {
             CharacterListAction::Create => data_writer.put_u8(1),
             CharacterListAction::List => data_writer.put_u8(2),
@@ -352,6 +475,12 @@ impl From<CharacterListResponse> for ServerPacket {
 impl CharacterListResponse {
     pub fn new(action: CharacterListAction, result: CharacterListResult) -> Self {
         CharacterListResponse { action, result }
+    }
+}
+
+impl Size for CharacterListResponse {
+    fn calculate_size(&self) -> usize {
+        self.action.calculate_size() + self.result.calculate_size()
     }
 }
 
@@ -467,7 +596,7 @@ pub struct CharacterJoinResponse {
 
 impl From<CharacterJoinResponse> for Bytes {
     fn from(op: CharacterJoinResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.result {
             CharacterJoinResult::Success => data_writer.put_u8(1),
             CharacterJoinResult::Error { error } => {
@@ -500,6 +629,12 @@ impl CharacterJoinResponse {
     }
 }
 
+impl Size for CharacterJoinResponse {
+    fn calculate_size(&self) -> usize {
+        self.result.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct CharacterStatsMessage {
     pub phys_attack_min: u32,
@@ -518,7 +653,7 @@ pub struct CharacterStatsMessage {
 
 impl From<CharacterStatsMessage> for Bytes {
     fn from(op: CharacterStatsMessage) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u32_le(op.phys_attack_min);
         data_writer.put_u32_le(op.phys_attack_max);
         data_writer.put_u32_le(op.mag_attack_min);
@@ -573,6 +708,23 @@ impl CharacterStatsMessage {
     }
 }
 
+impl Size for CharacterStatsMessage {
+    fn calculate_size(&self) -> usize {
+        self.phys_attack_min.calculate_size()
+            + self.phys_attack_max.calculate_size()
+            + self.mag_attack_min.calculate_size()
+            + self.mag_attack_max.calculate_size()
+            + self.phys_defense.calculate_size()
+            + self.mag_defense.calculate_size()
+            + self.hit_rate.calculate_size()
+            + self.parry_rate.calculate_size()
+            + self.max_hp.calculate_size()
+            + self.max_mp.calculate_size()
+            + self.strength.calculate_size()
+            + self.intelligence.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct UnknownPacket {
     pub unknown_2: u32,
@@ -581,7 +733,7 @@ pub struct UnknownPacket {
 
 impl From<UnknownPacket> for Bytes {
     fn from(op: UnknownPacket) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u32_le(op.unknown_2);
         data_writer.put_u8(op.unknown_1);
         data_writer.freeze()
@@ -603,6 +755,12 @@ impl UnknownPacket {
     }
 }
 
+impl Size for UnknownPacket {
+    fn calculate_size(&self) -> usize {
+        self.unknown_2.calculate_size() + self.unknown_1.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct UnknownPacket2 {
     pub unknown_1: u8,
@@ -612,7 +770,7 @@ pub struct UnknownPacket2 {
 
 impl From<UnknownPacket2> for Bytes {
     fn from(op: UnknownPacket2) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u8(op.unknown_1);
         data_writer.put_u32_le(op.id);
         data_writer.put_u32_le(op.unknown_2);
@@ -633,6 +791,12 @@ impl UnknownPacket2 {
             id,
             unknown_2: 0,
         }
+    }
+}
+
+impl Size for UnknownPacket2 {
+    fn calculate_size(&self) -> usize {
+        self.unknown_1.calculate_size() + self.id.calculate_size() + self.unknown_2.calculate_size()
     }
 }
 

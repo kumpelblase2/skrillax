@@ -1,3 +1,4 @@
+// This is generated code. Do not modify manually.
 #![allow(
     unused_imports,
     unused_variables,
@@ -7,13 +8,14 @@
 )]
 
 use crate::error::ProtocolError;
+use crate::size::Size;
 use crate::ClientPacket;
 use crate::ServerPacket;
 use byteorder::ReadBytesExt;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use chrono::{DateTime, Datelike, Timelike, Utc};
 
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum PvpCape {
     None,
     Red,
@@ -23,14 +25,26 @@ pub enum PvpCape {
     Yellow,
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for PvpCape {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum AliveState {
     Spawning,
     Alive,
     Dead,
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for AliveState {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum JobType {
     None,
     Trader,
@@ -38,18 +52,36 @@ pub enum JobType {
     Hunter,
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for JobType {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum PlayerKillState {
     None,
     Purple,
     Red,
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for PlayerKillState {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum ActiveScroll {
     None,
     ReturnScroll,
     JobScroll,
+}
+
+impl Size for ActiveScroll {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
 }
 
 #[derive(Clone)]
@@ -97,6 +129,34 @@ impl InventoryItemContentData {
     }
 }
 
+impl Size for InventoryItemContentData {
+    fn calculate_size(&self) -> usize {
+        0 + match &self {
+            InventoryItemContentData::Equipment {
+                plus_level,
+                variance,
+                durability,
+                magic,
+                bindings_1,
+                bindings_2,
+                bindings_3,
+                bindings_4,
+            } => {
+                plus_level.calculate_size()
+                    + variance.calculate_size()
+                    + durability.calculate_size()
+                    + 2
+                    + magic.iter().map(|inner| inner.calculate_size()).sum::<usize>()
+                    + bindings_1.calculate_size()
+                    + bindings_2.calculate_size()
+                    + bindings_3.calculate_size()
+                    + bindings_4.calculate_size()
+            },
+            InventoryItemContentData::Expendable { stack_size } => stack_size.calculate_size(),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub enum InteractOptions {
     None,
@@ -109,7 +169,19 @@ impl InteractOptions {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for InteractOptions {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                InteractOptions::None => 0,
+                InteractOptions::Talk { options } => {
+                    2 + options.iter().map(|inner| inner.calculate_size()).sum::<usize>()
+                },
+            }
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum BodyState {
     None,
     Berserk,
@@ -121,13 +193,25 @@ pub enum BodyState {
     Invisible,
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for BodyState {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum GroupSpawnType {
     Spawn,
     Despawn,
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for GroupSpawnType {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum EntityRarity {
     Normal,
     Champion,
@@ -146,6 +230,12 @@ pub enum EntityRarity {
     Unique2Party,
 }
 
+impl Size for EntityRarity {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
+}
+
 #[derive(Clone)]
 pub enum GroupSpawnDataContent {
     Despawn { id: u32 },
@@ -159,6 +249,15 @@ impl GroupSpawnDataContent {
 
     pub fn spawn(object_id: u32, data: EntityTypeSpawnData) -> Self {
         GroupSpawnDataContent::Spawn { object_id, data }
+    }
+}
+
+impl Size for GroupSpawnDataContent {
+    fn calculate_size(&self) -> usize {
+        0 + match &self {
+            GroupSpawnDataContent::Despawn { id } => id.calculate_size(),
+            GroupSpawnDataContent::Spawn { object_id, data } => object_id.calculate_size() + data.calculate_size(),
+        }
     }
 }
 
@@ -178,19 +277,26 @@ pub enum EntityTypeSpawnData {
         pvp_cape: PvpCape,
         beginner: bool,
         title: u8,
+        inventory_size: u8,
         equipment: Vec<u32>,
+        avatar_inventory_size: u8,
         avatar_items: Vec<u32>,
         mask: Option<u32>,
+        unique_id: u32,
+        position: Position,
         movement: EntityMovementState,
         entity_state: EntityState,
         name: String,
         job_type: JobType,
-        job_level: u8,
-        pk_state: PlayerKillState,
         mounted: bool,
         in_combat: bool,
         active_scroll: ActiveScroll,
         unknown2: u8,
+        guild: GuildInformation,
+        unknown3: Bytes,
+        equipment_cooldown: bool,
+        pk_state: PlayerKillState,
+        unknown4: u8,
     },
     Monster {
         unique_id: u32,
@@ -220,18 +326,24 @@ impl EntityTypeSpawnData {
         pvp_cape: PvpCape,
         beginner: bool,
         title: u8,
+        inventory_size: u8,
         equipment: Vec<u32>,
+        avatar_inventory_size: u8,
         avatar_items: Vec<u32>,
         mask: Option<u32>,
+        unique_id: u32,
+        position: Position,
         movement: EntityMovementState,
         entity_state: EntityState,
         name: String,
         job_type: JobType,
-        job_level: u8,
-        pk_state: PlayerKillState,
         mounted: bool,
         in_combat: bool,
         active_scroll: ActiveScroll,
+        guild: GuildInformation,
+        unknown3: Bytes,
+        equipment_cooldown: bool,
+        pk_state: PlayerKillState,
     ) -> Self {
         EntityTypeSpawnData::Character {
             scale,
@@ -239,19 +351,26 @@ impl EntityTypeSpawnData {
             pvp_cape,
             beginner,
             title,
+            inventory_size,
             equipment,
+            avatar_inventory_size,
             avatar_items,
             mask,
+            unique_id,
+            position,
             movement,
             entity_state,
             name,
             job_type,
-            job_level,
-            pk_state,
             mounted,
             in_combat,
             active_scroll,
             unknown2: 0,
+            guild,
+            unknown3,
+            equipment_cooldown,
+            pk_state,
+            unknown4: 0xFF,
         }
     }
 
@@ -276,16 +395,121 @@ impl EntityTypeSpawnData {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for EntityTypeSpawnData {
+    fn calculate_size(&self) -> usize {
+        0 + match &self {
+            EntityTypeSpawnData::Item => 0,
+            EntityTypeSpawnData::Gold {
+                amount,
+                unique_id,
+                position,
+                owner,
+                rarity,
+            } => {
+                amount.calculate_size()
+                    + unique_id.calculate_size()
+                    + position.calculate_size()
+                    + owner.calculate_size()
+                    + rarity.calculate_size()
+            },
+            EntityTypeSpawnData::Character {
+                scale,
+                berserk_level,
+                pvp_cape,
+                beginner,
+                title,
+                inventory_size,
+                equipment,
+                avatar_inventory_size,
+                avatar_items,
+                mask,
+                unique_id,
+                position,
+                movement,
+                entity_state,
+                name,
+                job_type,
+                mounted,
+                in_combat,
+                active_scroll,
+                unknown2,
+                guild,
+                unknown3,
+                equipment_cooldown,
+                pk_state,
+                unknown4,
+            } => {
+                scale.calculate_size()
+                    + berserk_level.calculate_size()
+                    + pvp_cape.calculate_size()
+                    + beginner.calculate_size()
+                    + title.calculate_size()
+                    + inventory_size.calculate_size()
+                    + 2
+                    + equipment.iter().map(|inner| inner.calculate_size()).sum::<usize>()
+                    + avatar_inventory_size.calculate_size()
+                    + 2
+                    + avatar_items.iter().map(|inner| inner.calculate_size()).sum::<usize>()
+                    + mask.calculate_size()
+                    + unique_id.calculate_size()
+                    + position.calculate_size()
+                    + movement.calculate_size()
+                    + entity_state.calculate_size()
+                    + name.calculate_size()
+                    + job_type.calculate_size()
+                    + mounted.calculate_size()
+                    + in_combat.calculate_size()
+                    + active_scroll.calculate_size()
+                    + unknown2.calculate_size()
+                    + guild.calculate_size()
+                    + unknown3.calculate_size()
+                    + equipment_cooldown.calculate_size()
+                    + pk_state.calculate_size()
+                    + unknown4.calculate_size()
+            },
+            EntityTypeSpawnData::Monster {
+                unique_id,
+                position,
+                movement,
+                entity_state,
+                interaction_options,
+                rarity,
+                unknown,
+            } => {
+                unique_id.calculate_size()
+                    + position.calculate_size()
+                    + movement.calculate_size()
+                    + entity_state.calculate_size()
+                    + interaction_options.calculate_size()
+                    + rarity.calculate_size()
+                    + unknown.calculate_size()
+            },
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum WeatherType {
     Clear,
     Rain,
     Snow,
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for WeatherType {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum ConsignmentErrorCode {
     NotEnoughGold,
+}
+
+impl Size for ConsignmentErrorCode {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u16>()
+    }
 }
 
 #[derive(Clone)]
@@ -301,6 +525,18 @@ impl ConsignmentResult {
 
     pub fn error(code: ConsignmentErrorCode) -> Self {
         ConsignmentResult::Error { code }
+    }
+}
+
+impl Size for ConsignmentResult {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                ConsignmentResult::Success { items } => {
+                    2 + items.iter().map(|inner| inner.calculate_size()).sum::<usize>()
+                },
+                ConsignmentResult::Error { code } => code.calculate_size(),
+            }
     }
 }
 
@@ -320,18 +556,42 @@ impl GameNotificationContent {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for GameNotificationContent {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                GameNotificationContent::UniqueSpawned { unknown, ref_id } => {
+                    unknown.calculate_size() + ref_id.calculate_size()
+                },
+                GameNotificationContent::UniqueKilled { ref_id } => ref_id.calculate_size(),
+            }
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum MovementType {
     Running,
     Walking,
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for MovementType {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum ActionState {
     None,
     Walking,
     Running,
     Sitting,
+}
+
+impl Size for ActionState {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
 }
 
 #[derive(Clone)]
@@ -347,6 +607,18 @@ impl MovementTarget {
 
     pub fn direction(unknown: u8, angle: u16) -> Self {
         MovementTarget::Direction { unknown, angle }
+    }
+}
+
+impl Size for MovementTarget {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                MovementTarget::TargetLocation { region, x, y, z } => {
+                    region.calculate_size() + x.calculate_size() + y.calculate_size() + z.calculate_size()
+                },
+                MovementTarget::Direction { unknown, angle } => unknown.calculate_size() + angle.calculate_size(),
+            }
     }
 }
 
@@ -386,6 +658,62 @@ impl EntityMovementState {
     }
 }
 
+impl Size for EntityMovementState {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                EntityMovementState::Moving {
+                    movement_type,
+                    region,
+                    x,
+                    y,
+                    z,
+                } => {
+                    movement_type.calculate_size()
+                        + region.calculate_size()
+                        + x.calculate_size()
+                        + y.calculate_size()
+                        + z.calculate_size()
+                },
+                EntityMovementState::Standing {
+                    movement_type,
+                    unknown,
+                    angle,
+                } => movement_type.calculate_size() + unknown.calculate_size() + angle.calculate_size(),
+            }
+    }
+}
+
+#[derive(Clone)]
+pub enum MovementDestination {
+    Direction { moving: bool, heading: u16 },
+    Location { region: u16, x: u16, y: u16, z: u16 },
+}
+
+impl MovementDestination {
+    pub fn direction(moving: bool, heading: u16) -> Self {
+        MovementDestination::Direction { moving, heading }
+    }
+
+    pub fn location(region: u16, x: u16, y: u16, z: u16) -> Self {
+        MovementDestination::Location { region, x, y, z }
+    }
+}
+
+impl Size for MovementDestination {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                MovementDestination::Direction { moving, heading } => {
+                    moving.calculate_size() + heading.calculate_size()
+                },
+                MovementDestination::Location { region, x, y, z } => {
+                    region.calculate_size() + x.calculate_size() + y.calculate_size() + z.calculate_size()
+                },
+            }
+    }
+}
+
 #[derive(Clone)]
 pub enum TargetEntityResult {
     Failure {
@@ -414,6 +742,26 @@ impl TargetEntityResult {
     }
 }
 
+impl Size for TargetEntityResult {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                TargetEntityResult::Failure { error } => error.calculate_size(),
+                TargetEntityResult::Success {
+                    unique_id,
+                    unknown1,
+                    unknown2,
+                    unknown3,
+                } => {
+                    unique_id.calculate_size()
+                        + unknown1.calculate_size()
+                        + unknown2.calculate_size()
+                        + unknown3.calculate_size()
+                },
+            }
+    }
+}
+
 #[derive(Clone)]
 pub struct Position {
     pub region: u16,
@@ -432,6 +780,64 @@ impl Position {
             pos_z,
             heading,
         }
+    }
+}
+
+impl Size for Position {
+    fn calculate_size(&self) -> usize {
+        self.region.calculate_size()
+            + self.pos_x.calculate_size()
+            + self.pos_y.calculate_size()
+            + self.pos_z.calculate_size()
+            + self.heading.calculate_size()
+    }
+}
+
+#[derive(Clone)]
+pub struct GuildInformation {
+    pub name: String,
+    pub id: u32,
+    pub member: String,
+    pub last_icon_rev: u32,
+    pub union_id: u32,
+    pub last_union_icon_rev: u32,
+    pub is_friendly: u8,
+    pub siege_unkown: u8,
+}
+
+impl GuildInformation {
+    pub fn new(
+        name: String,
+        id: u32,
+        member: String,
+        last_icon_rev: u32,
+        union_id: u32,
+        last_union_icon_rev: u32,
+        is_friendly: u8,
+    ) -> Self {
+        GuildInformation {
+            name,
+            id,
+            member,
+            last_icon_rev,
+            union_id,
+            last_union_icon_rev,
+            is_friendly,
+            siege_unkown: 0,
+        }
+    }
+}
+
+impl Size for GuildInformation {
+    fn calculate_size(&self) -> usize {
+        self.name.calculate_size()
+            + self.id.calculate_size()
+            + self.member.calculate_size()
+            + self.last_icon_rev.calculate_size()
+            + self.union_id.calculate_size()
+            + self.last_union_icon_rev.calculate_size()
+            + self.is_friendly.calculate_size()
+            + self.siege_unkown.calculate_size()
     }
 }
 
@@ -472,12 +878,37 @@ impl EntityState {
     }
 }
 
+impl Size for EntityState {
+    fn calculate_size(&self) -> usize {
+        self.alive.calculate_size()
+            + self.unknown1.calculate_size()
+            + self.action_state.calculate_size()
+            + self.body_state.calculate_size()
+            + self.unknown2.calculate_size()
+            + self.walk_speed.calculate_size()
+            + self.run_speed.calculate_size()
+            + self.berserk_speed.calculate_size()
+            + 2
+            + self
+                .active_buffs
+                .iter()
+                .map(|inner| inner.calculate_size())
+                .sum::<usize>()
+    }
+}
+
 #[derive(Clone)]
 pub struct InventoryItemMagicData;
 
 impl InventoryItemMagicData {
     pub fn new() -> Self {
         InventoryItemMagicData {}
+    }
+}
+
+impl Size for InventoryItemMagicData {
+    fn calculate_size(&self) -> usize {
+        0
     }
 }
 
@@ -493,6 +924,12 @@ impl InventoryItemBindingData {
     }
 }
 
+impl Size for InventoryItemBindingData {
+    fn calculate_size(&self) -> usize {
+        self.kind.calculate_size() + self.value.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct MasteryData {
     pub id: u32,
@@ -502,6 +939,12 @@ pub struct MasteryData {
 impl MasteryData {
     pub fn new(id: u32, level: u8) -> Self {
         MasteryData { id, level }
+    }
+}
+
+impl Size for MasteryData {
+    fn calculate_size(&self) -> usize {
+        self.id.calculate_size() + self.level.calculate_size()
     }
 }
 
@@ -530,6 +973,23 @@ impl ActiveQuestData {
     }
 }
 
+impl Size for ActiveQuestData {
+    fn calculate_size(&self) -> usize {
+        self.id.calculate_size()
+            + self.repeat_count.calculate_size()
+            + self.unknown_1.calculate_size()
+            + self.unknown_2.calculate_size()
+            + self.kind.calculate_size()
+            + self.status.calculate_size()
+            + 2
+            + self
+                .objectives
+                .iter()
+                .map(|inner| inner.calculate_size())
+                .sum::<usize>()
+    }
+}
+
 #[derive(Clone)]
 pub struct ActiveQuestObjectData {
     pub index: u8,
@@ -548,6 +1008,18 @@ impl ActiveQuestObjectData {
             tasks,
             task_ids,
         }
+    }
+}
+
+impl Size for ActiveQuestObjectData {
+    fn calculate_size(&self) -> usize {
+        self.index.calculate_size()
+            + self.incomplete.calculate_size()
+            + self.name.calculate_size()
+            + 2
+            + self.tasks.iter().map(|inner| inner.calculate_size()).sum::<usize>()
+            + 2
+            + self.task_ids.iter().map(|inner| inner.calculate_size()).sum::<usize>()
     }
 }
 
@@ -570,12 +1042,27 @@ impl InventoryItemData {
     }
 }
 
+impl Size for InventoryItemData {
+    fn calculate_size(&self) -> usize {
+        self.slot.calculate_size()
+            + self.rent_data.calculate_size()
+            + self.item_id.calculate_size()
+            + self.content_data.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct InventoryAvatarItemData;
 
 impl InventoryAvatarItemData {
     pub fn new() -> Self {
         InventoryAvatarItemData {}
+    }
+}
+
+impl Size for InventoryAvatarItemData {
+    fn calculate_size(&self) -> usize {
+        0
     }
 }
 
@@ -588,6 +1075,12 @@ pub struct ActiveBuffData {
 impl ActiveBuffData {
     pub fn new(id: u32, token: u32) -> Self {
         ActiveBuffData { id, token }
+    }
+}
+
+impl Size for ActiveBuffData {
+    fn calculate_size(&self) -> usize {
+        self.id.calculate_size() + self.token.calculate_size()
     }
 }
 
@@ -604,6 +1097,12 @@ impl HotkeyData {
     }
 }
 
+impl Size for HotkeyData {
+    fn calculate_size(&self) -> usize {
+        self.slot.calculate_size() + self.kind.calculate_size() + self.data.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct FriendListGroup {
     pub id: u16,
@@ -613,6 +1112,12 @@ pub struct FriendListGroup {
 impl FriendListGroup {
     pub fn new(id: u16, name: String) -> Self {
         FriendListGroup { id, name }
+    }
+}
+
+impl Size for FriendListGroup {
+    fn calculate_size(&self) -> usize {
+        self.id.calculate_size() + self.name.calculate_size()
     }
 }
 
@@ -634,6 +1139,16 @@ impl FriendListEntry {
             group_id,
             offline,
         }
+    }
+}
+
+impl Size for FriendListEntry {
+    fn calculate_size(&self) -> usize {
+        self.char_id.calculate_size()
+            + self.name.calculate_size()
+            + self.char_model.calculate_size()
+            + self.group_id.calculate_size()
+            + self.offline.calculate_size()
     }
 }
 
@@ -673,6 +1188,19 @@ impl ConsignmentItem {
     }
 }
 
+impl Size for ConsignmentItem {
+    fn calculate_size(&self) -> usize {
+        self.personal_id.calculate_size()
+            + self.status.calculate_size()
+            + self.ref_item_id.calculate_size()
+            + self.sell_count.calculate_size()
+            + self.price.calculate_size()
+            + self.deposit.calculate_size()
+            + self.fee.calculate_size()
+            + self.end_date.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct MovementSource {
     pub region: u16,
@@ -687,6 +1215,12 @@ impl MovementSource {
     }
 }
 
+impl Size for MovementSource {
+    fn calculate_size(&self) -> usize {
+        self.region.calculate_size() + self.x.calculate_size() + self.y.calculate_size() + self.z.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct CelestialUpdate {
     pub unique_id: u32,
@@ -697,7 +1231,7 @@ pub struct CelestialUpdate {
 
 impl From<CelestialUpdate> for Bytes {
     fn from(op: CelestialUpdate) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u32_le(op.unique_id);
         data_writer.put_u16_le(op.moon_position);
         data_writer.put_u8(op.hour);
@@ -723,6 +1257,15 @@ impl CelestialUpdate {
     }
 }
 
+impl Size for CelestialUpdate {
+    fn calculate_size(&self) -> usize {
+        self.unique_id.calculate_size()
+            + self.moon_position.calculate_size()
+            + self.hour.calculate_size()
+            + self.minute.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct LunarEventInfo {
     pub unknown_1: u8,
@@ -735,7 +1278,7 @@ pub struct LunarEventInfo {
 
 impl From<LunarEventInfo> for Bytes {
     fn from(op: LunarEventInfo) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u8(op.unknown_1);
         data_writer.put_u8(op.unknown_2);
         data_writer.put_u32_le(op.unknown_3);
@@ -765,12 +1308,23 @@ impl LunarEventInfo {
     }
 }
 
+impl Size for LunarEventInfo {
+    fn calculate_size(&self) -> usize {
+        self.unknown_1.calculate_size()
+            + self.unknown_2.calculate_size()
+            + self.unknown_3.calculate_size()
+            + self.unknown_4.calculate_size()
+            + self.current_achieved.calculate_size()
+            + self.total.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct CharacterSpawnStart;
 
 impl From<CharacterSpawnStart> for Bytes {
     fn from(op: CharacterSpawnStart) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.freeze()
     }
 }
@@ -784,6 +1338,12 @@ impl From<CharacterSpawnStart> for ServerPacket {
 impl CharacterSpawnStart {
     pub fn new() -> Self {
         CharacterSpawnStart {}
+    }
+}
+
+impl Size for CharacterSpawnStart {
+    fn calculate_size(&self) -> usize {
+        0
     }
 }
 
@@ -866,7 +1426,7 @@ pub struct CharacterSpawn {
 
 impl From<CharacterSpawn> for Bytes {
     fn from(op: CharacterSpawn) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u32_le(op.time);
         data_writer.put_u32_le(op.ref_id);
         data_writer.put_u8(op.scale);
@@ -1207,12 +1767,120 @@ impl CharacterSpawn {
     }
 }
 
+impl Size for CharacterSpawn {
+    fn calculate_size(&self) -> usize {
+        self.time.calculate_size()
+            + self.ref_id.calculate_size()
+            + self.scale.calculate_size()
+            + self.level.calculate_size()
+            + self.max_level.calculate_size()
+            + self.exp.calculate_size()
+            + self.sp_exp.calculate_size()
+            + self.gold.calculate_size()
+            + self.sp.calculate_size()
+            + self.stat_points.calculate_size()
+            + self.berserk_points.calculate_size()
+            + self.unknown_1.calculate_size()
+            + self.hp.calculate_size()
+            + self.mp.calculate_size()
+            + self.beginner.calculate_size()
+            + self.player_kills_today.calculate_size()
+            + self.player_kills_total.calculate_size()
+            + self.player_kills_penalty.calculate_size()
+            + self.berserk_level.calculate_size()
+            + self.free_pvp.calculate_size()
+            + self.fortress_war_mark.calculate_size()
+            + 14
+            + self.user_type.calculate_size()
+            + self.server_max_level.calculate_size()
+            + self.unknown_2.calculate_size()
+            + self.inventory_size.calculate_size()
+            + 2
+            + self
+                .inventory_items
+                .iter()
+                .map(|inner| inner.calculate_size())
+                .sum::<usize>()
+            + self.avatar_item_size.calculate_size()
+            + 2
+            + self
+                .avatar_items
+                .iter()
+                .map(|inner| inner.calculate_size())
+                .sum::<usize>()
+            + self.unknown_3.calculate_size()
+            + self.unknown_4.calculate_size()
+            + self.unknown_5.calculate_size()
+            + self
+                .masteries
+                .iter()
+                .map(|inner| inner.calculate_size() + 1)
+                .sum::<usize>()
+            + self.unknown_6.calculate_size()
+            + self.unknown_7.calculate_size()
+            + 2
+            + self
+                .completed_quests
+                .iter()
+                .map(|inner| inner.calculate_size())
+                .sum::<usize>()
+            + 2
+            + self
+                .active_quests
+                .iter()
+                .map(|inner| inner.calculate_size())
+                .sum::<usize>()
+            + self.unknown_8.calculate_size()
+            + self.unknown_9.calculate_size()
+            + self.unique_id.calculate_size()
+            + self.position.calculate_size()
+            + self.destination_flag.calculate_size()
+            + self.unknown_10.calculate_size()
+            + self.unknown_11.calculate_size()
+            + self.angle.calculate_size()
+            + self.entity_state.calculate_size()
+            + self.character_name.calculate_size()
+            + self.unknown_14.calculate_size()
+            + self.job_name.calculate_size()
+            + self.job_type.calculate_size()
+            + self.job_level.calculate_size()
+            + self.job_exp.calculate_size()
+            + self.job_contribution.calculate_size()
+            + self.job_reward.calculate_size()
+            + self.pvp_state.calculate_size()
+            + self.transport_flag.calculate_size()
+            + self.in_combat.calculate_size()
+            + self.unknown_15.calculate_size()
+            + self.unknown_16.calculate_size()
+            + self.pvp_flag.calculate_size()
+            + self.unknown_17.calculate_size()
+            + self.unknown_18.calculate_size()
+            + self.jid.calculate_size()
+            + self.gm.calculate_size()
+            + self.unknown_19.calculate_size()
+            + 2
+            + self.hotkeys.iter().map(|inner| inner.calculate_size()).sum::<usize>()
+            + self.unknown_20.calculate_size()
+            + self.auto_hp.calculate_size()
+            + self.auto_mp.calculate_size()
+            + self.auto_pill.calculate_size()
+            + self.potion_delay.calculate_size()
+            + 2
+            + self
+                .blocked_players
+                .iter()
+                .map(|inner| inner.calculate_size())
+                .sum::<usize>()
+            + self.unknown_21.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct CharacterSpawnEnd;
 
 impl From<CharacterSpawnEnd> for Bytes {
     fn from(op: CharacterSpawnEnd) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.freeze()
     }
 }
@@ -1229,6 +1897,12 @@ impl CharacterSpawnEnd {
     }
 }
 
+impl Size for CharacterSpawnEnd {
+    fn calculate_size(&self) -> usize {
+        0
+    }
+}
+
 #[derive(Clone)]
 pub struct CharacterFinished {
     pub unknown: u16,
@@ -1236,7 +1910,7 @@ pub struct CharacterFinished {
 
 impl From<CharacterFinished> for Bytes {
     fn from(op: CharacterFinished) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u16_le(op.unknown);
         data_writer.freeze()
     }
@@ -1254,6 +1928,12 @@ impl CharacterFinished {
     }
 }
 
+impl Size for CharacterFinished {
+    fn calculate_size(&self) -> usize {
+        self.unknown.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct EntityDespawn {
     pub entity_id: u32,
@@ -1261,7 +1941,7 @@ pub struct EntityDespawn {
 
 impl From<EntityDespawn> for Bytes {
     fn from(op: EntityDespawn) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u32_le(op.entity_id);
         data_writer.freeze()
     }
@@ -1279,6 +1959,12 @@ impl EntityDespawn {
     }
 }
 
+impl Size for EntityDespawn {
+    fn calculate_size(&self) -> usize {
+        self.entity_id.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct EntitySpawn {
     pub spawn_data: EntityTypeSpawnData,
@@ -1289,7 +1975,7 @@ pub struct EntitySpawn {
 
 impl From<EntitySpawn> for Bytes {
     fn from(op: EntitySpawn) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.spawn_data {
             EntityTypeSpawnData::Item => {},
             EntityTypeSpawnData::Gold {
@@ -1320,19 +2006,26 @@ impl From<EntitySpawn> for Bytes {
                 pvp_cape,
                 beginner,
                 title,
+                inventory_size,
                 equipment,
+                avatar_inventory_size,
                 avatar_items,
                 mask,
+                unique_id,
+                position,
                 movement,
                 entity_state,
                 name,
                 job_type,
-                job_level,
-                pk_state,
                 mounted,
                 in_combat,
                 active_scroll,
                 unknown2,
+                guild,
+                unknown3,
+                equipment_cooldown,
+                pk_state,
+                unknown4,
             } => {
                 data_writer.put_u8(*scale);
                 data_writer.put_u8(*berserk_level);
@@ -1346,10 +2039,12 @@ impl From<EntitySpawn> for Bytes {
                 }
                 data_writer.put_u8(*beginner as u8);
                 data_writer.put_u8(*title);
+                data_writer.put_u8(*inventory_size);
                 data_writer.put_u8(equipment.len() as u8);
                 for element in equipment.iter() {
                     data_writer.put_u32_le(*element);
                 }
+                data_writer.put_u8(*avatar_inventory_size);
                 data_writer.put_u8(avatar_items.len() as u8);
                 for element in avatar_items.iter() {
                     data_writer.put_u32_le(*element);
@@ -1360,6 +2055,12 @@ impl From<EntitySpawn> for Bytes {
                 } else {
                     data_writer.put_u8(0);
                 }
+                data_writer.put_u32_le(*unique_id);
+                data_writer.put_u16_le(position.region);
+                data_writer.put_f32_le(position.pos_x);
+                data_writer.put_f32_le(position.pos_y);
+                data_writer.put_f32_le(position.pos_z);
+                data_writer.put_u16_le(position.heading);
                 match &movement {
                     EntityMovementState::Moving {
                         movement_type,
@@ -1431,12 +2132,6 @@ impl From<EntitySpawn> for Bytes {
                     JobType::Thief => data_writer.put_u8(2),
                     JobType::Hunter => data_writer.put_u8(3),
                 }
-                data_writer.put_u8(*job_level);
-                match &pk_state {
-                    PlayerKillState::None => data_writer.put_u8(0),
-                    PlayerKillState::Purple => data_writer.put_u8(1),
-                    PlayerKillState::Red => data_writer.put_u8(2),
-                }
                 data_writer.put_u8(*mounted as u8);
                 data_writer.put_u8(*in_combat as u8);
                 match &active_scroll {
@@ -1445,6 +2140,24 @@ impl From<EntitySpawn> for Bytes {
                     ActiveScroll::JobScroll => data_writer.put_u8(2),
                 }
                 data_writer.put_u8(*unknown2);
+                data_writer.put_u16_le(guild.name.len() as u16);
+                data_writer.put_slice(guild.name.as_bytes());
+                data_writer.put_u32_le(guild.id);
+                data_writer.put_u16_le(guild.member.len() as u16);
+                data_writer.put_slice(guild.member.as_bytes());
+                data_writer.put_u32_le(guild.last_icon_rev);
+                data_writer.put_u32_le(guild.union_id);
+                data_writer.put_u32_le(guild.last_union_icon_rev);
+                data_writer.put_u8(guild.is_friendly);
+                data_writer.put_u8(guild.siege_unkown);
+                data_writer.put_slice(&unknown3);
+                data_writer.put_u8(*equipment_cooldown as u8);
+                match &pk_state {
+                    PlayerKillState::None => data_writer.put_u8(0xFF),
+                    PlayerKillState::Purple => data_writer.put_u8(1),
+                    PlayerKillState::Red => data_writer.put_u8(2),
+                }
+                data_writer.put_u8(*unknown4);
             },
             EntityTypeSpawnData::Monster {
                 unique_id,
@@ -1578,6 +2291,15 @@ impl EntitySpawn {
     }
 }
 
+impl Size for EntitySpawn {
+    fn calculate_size(&self) -> usize {
+        self.spawn_data.calculate_size()
+            + self.unknown_3.calculate_size()
+            + self.unknown_4.calculate_size()
+            + self.unknown_5.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct GroupEntitySpawnStart {
     pub kind: GroupSpawnType,
@@ -1588,7 +2310,7 @@ pub struct GroupEntitySpawnStart {
 
 impl From<GroupEntitySpawnStart> for Bytes {
     fn from(op: GroupEntitySpawnStart) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.kind {
             GroupSpawnType::Spawn => data_writer.put_u8(1),
             GroupSpawnType::Despawn => data_writer.put_u8(2),
@@ -1617,6 +2339,15 @@ impl GroupEntitySpawnStart {
     }
 }
 
+impl Size for GroupEntitySpawnStart {
+    fn calculate_size(&self) -> usize {
+        self.kind.calculate_size()
+            + self.amount.calculate_size()
+            + self.unknown_1.calculate_size()
+            + self.unknown_2.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct GroupEntitySpawnData {
     pub content: Vec<GroupSpawnDataContent>,
@@ -1624,7 +2355,7 @@ pub struct GroupEntitySpawnData {
 
 impl From<GroupEntitySpawnData> for Bytes {
     fn from(op: GroupEntitySpawnData) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         for element in op.content.iter() {
             match &element {
                 GroupSpawnDataContent::Despawn { id } => {
@@ -1662,19 +2393,26 @@ impl From<GroupEntitySpawnData> for Bytes {
                             pvp_cape,
                             beginner,
                             title,
+                            inventory_size,
                             equipment,
+                            avatar_inventory_size,
                             avatar_items,
                             mask,
+                            unique_id,
+                            position,
                             movement,
                             entity_state,
                             name,
                             job_type,
-                            job_level,
-                            pk_state,
                             mounted,
                             in_combat,
                             active_scroll,
                             unknown2,
+                            guild,
+                            unknown3,
+                            equipment_cooldown,
+                            pk_state,
+                            unknown4,
                         } => {
                             data_writer.put_u8(*scale);
                             data_writer.put_u8(*berserk_level);
@@ -1688,10 +2426,12 @@ impl From<GroupEntitySpawnData> for Bytes {
                             }
                             data_writer.put_u8(*beginner as u8);
                             data_writer.put_u8(*title);
+                            data_writer.put_u8(*inventory_size);
                             data_writer.put_u8(equipment.len() as u8);
                             for element in equipment.iter() {
                                 data_writer.put_u32_le(*element);
                             }
+                            data_writer.put_u8(*avatar_inventory_size);
                             data_writer.put_u8(avatar_items.len() as u8);
                             for element in avatar_items.iter() {
                                 data_writer.put_u32_le(*element);
@@ -1702,6 +2442,12 @@ impl From<GroupEntitySpawnData> for Bytes {
                             } else {
                                 data_writer.put_u8(0);
                             }
+                            data_writer.put_u32_le(*unique_id);
+                            data_writer.put_u16_le(position.region);
+                            data_writer.put_f32_le(position.pos_x);
+                            data_writer.put_f32_le(position.pos_y);
+                            data_writer.put_f32_le(position.pos_z);
+                            data_writer.put_u16_le(position.heading);
                             match &movement {
                                 EntityMovementState::Moving {
                                     movement_type,
@@ -1773,12 +2519,6 @@ impl From<GroupEntitySpawnData> for Bytes {
                                 JobType::Thief => data_writer.put_u8(2),
                                 JobType::Hunter => data_writer.put_u8(3),
                             }
-                            data_writer.put_u8(*job_level);
-                            match &pk_state {
-                                PlayerKillState::None => data_writer.put_u8(0),
-                                PlayerKillState::Purple => data_writer.put_u8(1),
-                                PlayerKillState::Red => data_writer.put_u8(2),
-                            }
                             data_writer.put_u8(*mounted as u8);
                             data_writer.put_u8(*in_combat as u8);
                             match &active_scroll {
@@ -1787,6 +2527,24 @@ impl From<GroupEntitySpawnData> for Bytes {
                                 ActiveScroll::JobScroll => data_writer.put_u8(2),
                             }
                             data_writer.put_u8(*unknown2);
+                            data_writer.put_u16_le(guild.name.len() as u16);
+                            data_writer.put_slice(guild.name.as_bytes());
+                            data_writer.put_u32_le(guild.id);
+                            data_writer.put_u16_le(guild.member.len() as u16);
+                            data_writer.put_slice(guild.member.as_bytes());
+                            data_writer.put_u32_le(guild.last_icon_rev);
+                            data_writer.put_u32_le(guild.union_id);
+                            data_writer.put_u32_le(guild.last_union_icon_rev);
+                            data_writer.put_u8(guild.is_friendly);
+                            data_writer.put_u8(guild.siege_unkown);
+                            data_writer.put_slice(&unknown3);
+                            data_writer.put_u8(*equipment_cooldown as u8);
+                            match &pk_state {
+                                PlayerKillState::None => data_writer.put_u8(0xFF),
+                                PlayerKillState::Purple => data_writer.put_u8(1),
+                                PlayerKillState::Red => data_writer.put_u8(2),
+                            }
+                            data_writer.put_u8(*unknown4);
                         },
                         EntityTypeSpawnData::Monster {
                             unique_id,
@@ -1915,12 +2673,18 @@ impl GroupEntitySpawnData {
     }
 }
 
+impl Size for GroupEntitySpawnData {
+    fn calculate_size(&self) -> usize {
+        self.content.iter().map(|inner| inner.calculate_size()).sum::<usize>()
+    }
+}
+
 #[derive(Clone)]
 pub struct GroupEntitySpawnEnd;
 
 impl From<GroupEntitySpawnEnd> for Bytes {
     fn from(op: GroupEntitySpawnEnd) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.freeze()
     }
 }
@@ -1934,6 +2698,12 @@ impl From<GroupEntitySpawnEnd> for ServerPacket {
 impl GroupEntitySpawnEnd {
     pub fn new() -> Self {
         GroupEntitySpawnEnd {}
+    }
+}
+
+impl Size for GroupEntitySpawnEnd {
+    fn calculate_size(&self) -> usize {
+        0
     }
 }
 
@@ -1962,7 +2732,7 @@ pub struct ConsignmentResponse {
 
 impl From<ConsignmentResponse> for Bytes {
     fn from(op: ConsignmentResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.result {
             ConsignmentResult::Success { items } => {
                 data_writer.put_u8(1);
@@ -2001,6 +2771,12 @@ impl ConsignmentResponse {
     }
 }
 
+impl Size for ConsignmentResponse {
+    fn calculate_size(&self) -> usize {
+        self.result.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct WeatherUpdate {
     pub kind: WeatherType,
@@ -2009,7 +2785,7 @@ pub struct WeatherUpdate {
 
 impl From<WeatherUpdate> for Bytes {
     fn from(op: WeatherUpdate) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.kind {
             WeatherType::Clear => data_writer.put_u8(1),
             WeatherType::Rain => data_writer.put_u8(2),
@@ -2032,6 +2808,12 @@ impl WeatherUpdate {
     }
 }
 
+impl Size for WeatherUpdate {
+    fn calculate_size(&self) -> usize {
+        self.kind.calculate_size() + self.speed.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct FriendListInfo {
     pub groups: Vec<FriendListGroup>,
@@ -2040,7 +2822,7 @@ pub struct FriendListInfo {
 
 impl From<FriendListInfo> for Bytes {
     fn from(op: FriendListInfo) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u8(op.groups.len() as u8);
         for element in op.groups.iter() {
             data_writer.put_u16_le(element.id);
@@ -2072,6 +2854,14 @@ impl FriendListInfo {
     }
 }
 
+impl Size for FriendListInfo {
+    fn calculate_size(&self) -> usize {
+        2 + self.groups.iter().map(|inner| inner.calculate_size()).sum::<usize>()
+            + 2
+            + self.friends.iter().map(|inner| inner.calculate_size()).sum::<usize>()
+    }
+}
+
 #[derive(Clone)]
 pub struct GameNotification {
     pub result: GameNotificationContent,
@@ -2079,7 +2869,7 @@ pub struct GameNotification {
 
 impl From<GameNotification> for Bytes {
     fn from(op: GameNotification) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.result {
             GameNotificationContent::UniqueSpawned { unknown, ref_id } => {
                 data_writer.put_u8(0x05);
@@ -2104,6 +2894,12 @@ impl From<GameNotification> for ServerPacket {
 impl GameNotification {
     pub fn new(result: GameNotificationContent) -> Self {
         GameNotification { result }
+    }
+}
+
+impl Size for GameNotification {
+    fn calculate_size(&self) -> usize {
+        self.result.calculate_size()
     }
 }
 
@@ -2145,23 +2941,28 @@ impl From<PlayerMovementRequest> for ClientPacket {
 #[derive(Clone)]
 pub struct PlayerMovementResponse {
     pub player_id: u32,
-    pub unknown: u8,
-    pub region: u16,
-    pub x: u16,
-    pub y: u16,
-    pub z: u16,
+    pub destination: MovementDestination,
     pub source_position: Option<MovementSource>,
 }
 
 impl From<PlayerMovementResponse> for Bytes {
     fn from(op: PlayerMovementResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u32_le(op.player_id);
-        data_writer.put_u8(op.unknown);
-        data_writer.put_u16_le(op.region);
-        data_writer.put_u16_le(op.x);
-        data_writer.put_u16_le(op.y);
-        data_writer.put_u16_le(op.z);
+        match &op.destination {
+            MovementDestination::Direction { moving, heading } => {
+                data_writer.put_u8(0);
+                data_writer.put_u8(*moving as u8);
+                data_writer.put_u16_le(*heading);
+            },
+            MovementDestination::Location { region, x, y, z } => {
+                data_writer.put_u8(1);
+                data_writer.put_u16_le(*region);
+                data_writer.put_u16_le(*x);
+                data_writer.put_u16_le(*y);
+                data_writer.put_u16_le(*z);
+            },
+        }
         if let Some(source_position) = &op.source_position {
             data_writer.put_u8(1);
             data_writer.put_u16_le(source_position.region);
@@ -2182,16 +2983,18 @@ impl From<PlayerMovementResponse> for ServerPacket {
 }
 
 impl PlayerMovementResponse {
-    pub fn new(player_id: u32, region: u16, x: u16, y: u16, z: u16, source_position: Option<MovementSource>) -> Self {
+    pub fn new(player_id: u32, destination: MovementDestination, source_position: Option<MovementSource>) -> Self {
         PlayerMovementResponse {
             player_id,
-            unknown: 1,
-            region,
-            x,
-            y,
-            z,
+            destination,
             source_position,
         }
+    }
+}
+
+impl Size for PlayerMovementResponse {
+    fn calculate_size(&self) -> usize {
+        self.player_id.calculate_size() + self.destination.calculate_size() + self.source_position.calculate_size()
     }
 }
 
@@ -2298,7 +3101,7 @@ pub struct EntityUpdateState {
 
 impl From<EntityUpdateState> for Bytes {
     fn from(op: EntityUpdateState) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u32_le(op.unique_id);
         data_writer.put_u8(op.kind);
         data_writer.put_u8(op.value);
@@ -2315,6 +3118,12 @@ impl From<EntityUpdateState> for ServerPacket {
 impl EntityUpdateState {
     pub fn new(unique_id: u32, kind: u8, value: u8) -> Self {
         EntityUpdateState { unique_id, kind, value }
+    }
+}
+
+impl Size for EntityUpdateState {
+    fn calculate_size(&self) -> usize {
+        self.unique_id.calculate_size() + self.kind.calculate_size() + self.value.calculate_size()
     }
 }
 
@@ -2346,7 +3155,7 @@ pub struct TargetEntityResponse {
 
 impl From<TargetEntityResponse> for Bytes {
     fn from(op: TargetEntityResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.result {
             TargetEntityResult::Failure { error } => {
                 data_writer.put_u8(0);
@@ -2381,6 +3190,12 @@ impl TargetEntityResponse {
     }
 }
 
+impl Size for TargetEntityResponse {
+    fn calculate_size(&self) -> usize {
+        self.result.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct UnTargetEntity {
     pub unique_id: u32,
@@ -2409,7 +3224,7 @@ pub struct UnTargetEntityResponse {
 
 impl From<UnTargetEntityResponse> for Bytes {
     fn from(op: UnTargetEntityResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u8(op.success as u8);
         data_writer.freeze()
     }
@@ -2424,5 +3239,11 @@ impl From<UnTargetEntityResponse> for ServerPacket {
 impl UnTargetEntityResponse {
     pub fn new(success: bool) -> Self {
         UnTargetEntityResponse { success }
+    }
+}
+
+impl Size for UnTargetEntityResponse {
+    fn calculate_size(&self) -> usize {
+        self.success.calculate_size()
     }
 }

@@ -1,3 +1,4 @@
+// This is generated code. Do not modify manually.
 #![allow(
     unused_imports,
     unused_variables,
@@ -7,16 +8,23 @@
 )]
 
 use crate::error::ProtocolError;
+use crate::size::Size;
 use crate::ClientPacket;
 use crate::ServerPacket;
 use byteorder::ReadBytesExt;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use chrono::{DateTime, Datelike, Timelike, Utc};
 
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum LogoutMode {
     Logout,
     Restart,
+}
+
+impl Size for LogoutMode {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
 }
 
 #[derive(Clone)]
@@ -38,12 +46,31 @@ impl LogoutResult {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for LogoutResult {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                LogoutResult::Success {
+                    seconds_to_logout,
+                    mode,
+                } => seconds_to_logout.calculate_size() + mode.calculate_size(),
+                LogoutResult::Error { error } => error.calculate_size(),
+            }
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum AuthResultError {
     InvalidData,
     NotInService,
     ServerFull,
     IpLimit,
+}
+
+impl Size for AuthResultError {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
 }
 
 #[derive(Clone)]
@@ -62,6 +89,16 @@ impl AuthResult {
 
     pub fn error(code: AuthResultError) -> Self {
         AuthResult::Error { code }
+    }
+}
+
+impl Size for AuthResult {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                AuthResult::Success { unknown_1, unknown_2 } => unknown_1.calculate_size() + unknown_2.calculate_size(),
+                AuthResult::Error { code } => code.calculate_size(),
+            }
     }
 }
 
@@ -121,7 +158,7 @@ pub struct AuthResponse {
 
 impl From<AuthResponse> for Bytes {
     fn from(op: AuthResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.result {
             AuthResult::Success { unknown_1, unknown_2 } => {
                 data_writer.put_u8(1);
@@ -151,6 +188,12 @@ impl From<AuthResponse> for ServerPacket {
 impl AuthResponse {
     pub fn new(result: AuthResult) -> Self {
         AuthResponse { result }
+    }
+}
+
+impl Size for AuthResponse {
+    fn calculate_size(&self) -> usize {
+        self.result.calculate_size()
     }
 }
 
@@ -186,7 +229,7 @@ pub struct LogoutResponse {
 
 impl From<LogoutResponse> for Bytes {
     fn from(op: LogoutResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.result {
             LogoutResult::Success {
                 seconds_to_logout,
@@ -220,12 +263,18 @@ impl LogoutResponse {
     }
 }
 
+impl Size for LogoutResponse {
+    fn calculate_size(&self) -> usize {
+        self.result.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct LogoutFinished;
 
 impl From<LogoutFinished> for Bytes {
     fn from(op: LogoutFinished) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.freeze()
     }
 }
@@ -242,6 +291,12 @@ impl LogoutFinished {
     }
 }
 
+impl Size for LogoutFinished {
+    fn calculate_size(&self) -> usize {
+        0
+    }
+}
+
 #[derive(Clone)]
 pub struct Disconnect {
     pub unknown: u8,
@@ -249,7 +304,7 @@ pub struct Disconnect {
 
 impl From<Disconnect> for Bytes {
     fn from(op: Disconnect) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u8(op.unknown);
         data_writer.freeze()
     }
@@ -264,5 +319,11 @@ impl From<Disconnect> for ServerPacket {
 impl Disconnect {
     pub fn new() -> Self {
         Disconnect { unknown: 0xFF }
+    }
+}
+
+impl Size for Disconnect {
+    fn calculate_size(&self) -> usize {
+        self.unknown.calculate_size()
     }
 }

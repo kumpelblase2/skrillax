@@ -1,3 +1,4 @@
+// This is generated code. Do not modify manually.
 #![allow(
     unused_imports,
     unused_variables,
@@ -7,25 +8,38 @@
 )]
 
 use crate::error::ProtocolError;
+use crate::size::Size;
 use crate::ClientPacket;
 use crate::ServerPacket;
 use byteorder::ReadBytesExt;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use chrono::{DateTime, Datelike, Timelike, Utc};
 
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum SecurityCodeAction {
     Define,
     Enter,
     Unknown,
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for SecurityCodeAction {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum PasscodeRequiredCode {
     DefinePasscode,
     PasscodeRequired,
     PasscodeBlocked,
     PasscodeInvalid,
+}
+
+impl Size for PasscodeRequiredCode {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
 }
 
 #[derive(Clone)]
@@ -61,6 +75,34 @@ impl PatchError {
     }
 }
 
+impl Size for PatchError {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                PatchError::InvalidVersion => 0,
+                PatchError::Update {
+                    server_ip,
+                    server_port,
+                    current_version,
+                    patch_files,
+                    http_server,
+                } => {
+                    server_ip.calculate_size()
+                        + server_port.calculate_size()
+                        + current_version.calculate_size()
+                        + patch_files
+                            .iter()
+                            .map(|inner| inner.calculate_size() + 1)
+                            .sum::<usize>()
+                        + http_server.calculate_size()
+                },
+                PatchError::Offline => 0,
+                PatchError::InvalidClient => 0,
+                PatchError::PatchDisabled => 0,
+            }
+    }
+}
+
 #[derive(Clone)]
 pub enum PatchResult {
     UpToDate { unknown: u8 },
@@ -77,10 +119,26 @@ impl PatchResult {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+impl Size for PatchResult {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                PatchResult::UpToDate { unknown } => unknown.calculate_size(),
+                PatchResult::Problem { error } => error.calculate_size(),
+            }
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
 pub enum PasscodeAccountStatus {
     Ok,
     EmailUnverified,
+}
+
+impl Size for PasscodeAccountStatus {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
 }
 
 #[derive(Clone)]
@@ -92,6 +150,16 @@ pub enum BlockReason {
 impl BlockReason {
     pub fn punishment(reason: String, end: DateTime<Utc>) -> Self {
         BlockReason::Punishment { reason, end }
+    }
+}
+
+impl Size for BlockReason {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                BlockReason::AccountInspection => 0,
+                BlockReason::Punishment { reason, end } => reason.calculate_size() + 14,
+            }
     }
 }
 
@@ -135,6 +203,28 @@ impl SecurityError {
     }
 }
 
+impl Size for SecurityError {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                SecurityError::InvalidCredentials {
+                    max_attempts,
+                    current_attempts,
+                } => max_attempts.calculate_size() + current_attempts.calculate_size(),
+                SecurityError::Blocked { reason } => reason.calculate_size(),
+                SecurityError::AlreadyConnected => 0,
+                SecurityError::Inspection => 0,
+                SecurityError::ServerFull => 0,
+                SecurityError::LoginQueue {
+                    total_in_queue,
+                    expected_wait_time,
+                } => total_in_queue.calculate_size() + expected_wait_time.calculate_size(),
+                SecurityError::PasswordExpired => 0,
+                SecurityError::IpLimit => 0,
+            }
+    }
+}
+
 #[derive(Clone)]
 pub enum LoginResult {
     Success {
@@ -164,6 +254,27 @@ impl LoginResult {
     }
 }
 
+impl Size for LoginResult {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                LoginResult::Success {
+                    session_id,
+                    agent_ip,
+                    agent_port,
+                    unknown,
+                } => {
+                    session_id.calculate_size()
+                        + agent_ip.calculate_size()
+                        + agent_port.calculate_size()
+                        + unknown.calculate_size()
+                },
+                LoginResult::Error { error } => error.calculate_size(),
+                LoginResult::Unknown => 0,
+            }
+    }
+}
+
 #[derive(Clone)]
 pub struct QueueUpdateStatus {
     pub total_in_queue: u16,
@@ -178,6 +289,14 @@ impl QueueUpdateStatus {
             expected_wait_time,
             current_position,
         }
+    }
+}
+
+impl Size for QueueUpdateStatus {
+    fn calculate_size(&self) -> usize {
+        self.total_in_queue.calculate_size()
+            + self.expected_wait_time.calculate_size()
+            + self.current_position.calculate_size()
     }
 }
 
@@ -202,6 +321,16 @@ impl PatchFile {
     }
 }
 
+impl Size for PatchFile {
+    fn calculate_size(&self) -> usize {
+        self.file_id.calculate_size()
+            + self.filename.calculate_size()
+            + self.file_path.calculate_size()
+            + self.size.calculate_size()
+            + self.in_pk2.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct GatewayNotice {
     pub subject: String,
@@ -216,6 +345,12 @@ impl GatewayNotice {
             article,
             published,
         }
+    }
+}
+
+impl Size for GatewayNotice {
+    fn calculate_size(&self) -> usize {
+        self.subject.calculate_size() + self.article.calculate_size() + 14
     }
 }
 
@@ -238,6 +373,15 @@ impl PingServer {
     }
 }
 
+impl Size for PingServer {
+    fn calculate_size(&self) -> usize {
+        self.index.calculate_size()
+            + self.domain.calculate_size()
+            + self.unknown_1.calculate_size()
+            + self.unknown_2.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct Shard {
     pub id: u16,
@@ -257,6 +401,15 @@ impl Shard {
     }
 }
 
+impl Size for Shard {
+    fn calculate_size(&self) -> usize {
+        self.id.calculate_size()
+            + self.name.calculate_size()
+            + self.status.calculate_size()
+            + self.is_online.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct Farm {
     pub id: u8,
@@ -266,6 +419,12 @@ pub struct Farm {
 impl Farm {
     pub fn new(id: u8, name: String) -> Self {
         Farm { id, name }
+    }
+}
+
+impl Size for Farm {
+    fn calculate_size(&self) -> usize {
+        self.id.calculate_size() + self.name.calculate_size()
     }
 }
 
@@ -310,7 +469,7 @@ pub struct PatchResponse {
 
 impl From<PatchResponse> for Bytes {
     fn from(op: PatchResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.result {
             PatchResult::UpToDate { unknown } => {
                 data_writer.put_u8(1);
@@ -368,6 +527,12 @@ impl PatchResponse {
     }
 }
 
+impl Size for PatchResponse {
+    fn calculate_size(&self) -> usize {
+        self.result.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct LoginRequest {
     pub unknown_1: u8,
@@ -420,7 +585,7 @@ pub struct LoginResponse {
 
 impl From<LoginResponse> for Bytes {
     fn from(op: LoginResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.result {
             LoginResult::Success {
                 session_id,
@@ -497,6 +662,12 @@ impl LoginResponse {
     }
 }
 
+impl Size for LoginResponse {
+    fn calculate_size(&self) -> usize {
+        self.result.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct SecurityCodeInput {
     pub action: SecurityCodeAction,
@@ -544,7 +715,7 @@ pub struct SecurityCodeResponse {
 
 impl From<SecurityCodeResponse> for Bytes {
     fn from(op: SecurityCodeResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.account_status {
             PasscodeAccountStatus::Ok => data_writer.put_u8(4),
             PasscodeAccountStatus::EmailUnverified => data_writer.put_u8(2),
@@ -568,6 +739,12 @@ impl SecurityCodeResponse {
             result,
             invalid_attempts,
         }
+    }
+}
+
+impl Size for SecurityCodeResponse {
+    fn calculate_size(&self) -> usize {
+        self.account_status.calculate_size() + self.result.calculate_size() + self.invalid_attempts.calculate_size()
     }
 }
 
@@ -599,7 +776,7 @@ pub struct GatewayNoticeResponse {
 
 impl From<GatewayNoticeResponse> for Bytes {
     fn from(op: GatewayNoticeResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u8(op.notices.len() as u8);
         for element in op.notices.iter() {
             data_writer.put_u16_le(element.subject.len() as u16);
@@ -630,6 +807,12 @@ impl GatewayNoticeResponse {
     }
 }
 
+impl Size for GatewayNoticeResponse {
+    fn calculate_size(&self) -> usize {
+        2 + self.notices.iter().map(|inner| inner.calculate_size()).sum::<usize>()
+    }
+}
+
 #[derive(Clone)]
 pub struct PingServerRequest;
 
@@ -655,7 +838,7 @@ pub struct PingServerResponse {
 
 impl From<PingServerResponse> for Bytes {
     fn from(op: PingServerResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u8(op.servers.len() as u8);
         for element in op.servers.iter() {
             data_writer.put_u8(element.index);
@@ -677,6 +860,12 @@ impl From<PingServerResponse> for ServerPacket {
 impl PingServerResponse {
     pub fn new(servers: Vec<PingServer>) -> Self {
         PingServerResponse { servers }
+    }
+}
+
+impl Size for PingServerResponse {
+    fn calculate_size(&self) -> usize {
+        2 + self.servers.iter().map(|inner| inner.calculate_size()).sum::<usize>()
     }
 }
 
@@ -706,7 +895,7 @@ pub struct ShardListResponse {
 
 impl From<ShardListResponse> for Bytes {
     fn from(op: ShardListResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         for element in op.farms.iter() {
             data_writer.put_u8(1);
             data_writer.put_u8(element.id);
@@ -739,6 +928,17 @@ impl ShardListResponse {
     }
 }
 
+impl Size for ShardListResponse {
+    fn calculate_size(&self) -> usize {
+        self.farms.iter().map(|inner| inner.calculate_size() + 1).sum::<usize>()
+            + self
+                .shards
+                .iter()
+                .map(|inner| inner.calculate_size() + 1)
+                .sum::<usize>()
+    }
+}
+
 #[derive(Clone)]
 pub struct PasscodeRequiredResponse {
     pub result: PasscodeRequiredCode,
@@ -746,7 +946,7 @@ pub struct PasscodeRequiredResponse {
 
 impl From<PasscodeRequiredResponse> for Bytes {
     fn from(op: PasscodeRequiredResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.result {
             PasscodeRequiredCode::DefinePasscode => data_writer.put_u8(0),
             PasscodeRequiredCode::PasscodeRequired => data_writer.put_u8(1),
@@ -769,6 +969,12 @@ impl PasscodeRequiredResponse {
     }
 }
 
+impl Size for PasscodeRequiredResponse {
+    fn calculate_size(&self) -> usize {
+        self.result.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct PasscodeResponse {
     pub unknown_1: u8,
@@ -778,7 +984,7 @@ pub struct PasscodeResponse {
 
 impl From<PasscodeResponse> for Bytes {
     fn from(op: PasscodeResponse) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u8(op.unknown_1);
         data_writer.put_u8(op.status);
         data_writer.put_u8(op.invalid_attempts);
@@ -802,6 +1008,12 @@ impl PasscodeResponse {
     }
 }
 
+impl Size for PasscodeResponse {
+    fn calculate_size(&self) -> usize {
+        self.unknown_1.calculate_size() + self.status.calculate_size() + self.invalid_attempts.calculate_size()
+    }
+}
+
 #[derive(Clone)]
 pub struct QueueUpdate {
     pub still_in_queue: bool,
@@ -810,7 +1022,7 @@ pub struct QueueUpdate {
 
 impl From<QueueUpdate> for Bytes {
     fn from(op: QueueUpdate) -> Bytes {
-        let mut data_writer = BytesMut::new();
+        let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         data_writer.put_u8(op.still_in_queue as u8);
         data_writer.put_u16_le(op.status.total_in_queue);
         data_writer.put_u32_le(op.status.expected_wait_time);
@@ -828,5 +1040,11 @@ impl From<QueueUpdate> for ServerPacket {
 impl QueueUpdate {
     pub fn new(still_in_queue: bool, status: QueueUpdateStatus) -> Self {
         QueueUpdate { still_in_queue, status }
+    }
+}
+
+impl Size for QueueUpdate {
+    fn calculate_size(&self) -> usize {
+        self.still_in_queue.calculate_size() + self.status.calculate_size()
     }
 }
