@@ -109,6 +109,17 @@
         </variation>
     </enum>
 
+    <struct name="GuildInformation">
+        <attribute name="name" type="String" />
+        <attribute name="id" type="u32" />
+        <attribute name="member" type="String" />
+        <attribute name="last_icon_rev" type="u32" />
+        <attribute name="union_id" type="u32" />
+        <attribute name="last_union_icon_rev" type="u32" />
+        <attribute name="is_friendly" type="u8" />
+        <attribute name="siege_unkown" type="u8" value="0" />
+    </struct>
+
     <enum name="EntityTypeSpawnData">
         <variation name="Item">
 
@@ -126,19 +137,29 @@
             <attribute name="pvp_cape" type="PvpCape" />
             <attribute name="beginner" type="bool" />
             <attribute name="title" type="u8" />
-            <attribute name="equipment" type="Vec" inner="u32" list-type="length" /><!-- TODO, should have another u8 for upgrade level -->
-            <attribute name="avatar_items" type="Vec" inner="u32" list-type="length" /><!-- TODO, should have another u8 for upgrade level -->
+            <attribute name="inventory_size" type="u8" />
+            <attribute name="equipment" type="Vec" inner="u32"
+                       list-type="length" /><!-- TODO, should have another u8 for upgrade level -->
+            <attribute name="avatar_inventory_size" type="u8" />
+            <attribute name="avatar_items" type="Vec" inner="u32"
+                       list-type="length" /><!-- TODO, should have another u8 for upgrade level -->
             <attribute name="mask" type="Option" inner="u32" /><!-- TODO, has more data -->
+            <attribute name="unique_id" type="u32" />
+            <attribute name="position" type="Position" />
             <attribute name="movement" type="EntityMovementState" />
             <attribute name="entity_state" type="EntityState" />
             <attribute name="name" type="String" />
             <attribute name="job_type" type="JobType" />
-            <attribute name="job_level" type="u8" />
-            <attribute name="pk_state" type="PlayerKillState" />
+            <!--            <attribute name="job_level" type="u8" />-->
             <attribute name="mounted" type="bool" /><!-- TODO if true, has u32 after in_combat -->
             <attribute name="in_combat" type="bool" />
             <attribute name="active_scroll" type="ActiveScroll" />
             <attribute name="unknown2" type="u8" value="0" />
+            <attribute name="guild" type="GuildInformation" />
+            <attribute name="unknown3" type="raw" length="9" />
+            <attribute name="equipment_cooldown" type="bool" />
+            <attribute name="pk_state" type="PlayerKillState" />
+            <attribute name="unknown4" type="u8" value="0xFF" />
         </variation>
         <variation name="Monster">
             <attribute name="unique_id" type="u32" />
