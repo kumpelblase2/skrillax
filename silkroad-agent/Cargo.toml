@@ -11,6 +11,7 @@ silkroad-network = { path = "../silkroad-network" }
 silkroad-protocol = { path = "../silkroad-protocol" }
 silkroad-rpc = { path = "../silkroad-rpc" }
 silkroad-navmesh = { path = "../silkroad-navmesh", features = ["pk2"] }
+silkroad-data = { path = "../silkroad-data" }
 tokio = { version = "1.16.1", features = ["full"] }
 bytes = "1.1.0"
 lazy_static = "1.4.0"
@@ -30,5 +31,6 @@ itertools = "*"
 bevy_ecs = "0.6.1"
 bevy_ecs_macros = "0.6.0"
 bevy_core = "0.6.0"
+bevy_app = "0.6.0"
 cgmath = "0.18.0"
 pk2 = "0.1.0"

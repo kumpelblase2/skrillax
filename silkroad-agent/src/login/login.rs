@@ -1,9 +1,8 @@
 use crate::comp::{CharacterSelect, Client, Login, Playing};
 use crate::population::queue::LoginQueue;
 use crate::population::queue::ReservationError;
-use bevy_ecs::entity::Entity;
-use bevy_ecs::query::With;
-use bevy_ecs::system::{Commands, Query, Res};
+use crate::ServerEvent;
+use bevy_ecs::prelude::*;
 use silkroad_network::stream::{SendResult, Stream};
 use silkroad_protocol::auth::{AuthResponse, AuthResult, AuthResultError};
 use silkroad_protocol::general::IdentityInformation;
@@ -13,12 +12,14 @@ use tracing::debug;
 pub(crate) fn login(
     mut buffer: Commands,
     login_queue: Res<LoginQueue>,
+    mut events: EventWriter<ServerEvent>,
     mut query: Query<(Entity, &mut Client), With<Login>>,
 ) {
     for (entity, mut client) in query.iter_mut() {
         match handle_packets(entity, &mut client, &login_queue, &mut buffer) {
             Err(_) => {
                 buffer.entity(entity).despawn();
+                events.send(ServerEvent::ClientConnected);
             },
             _ => {},
         }
@@ -29,7 +30,7 @@ fn handle_packets(
     entity: Entity,
     client: &mut Client,
     login_queue: &Res<LoginQueue>,
-    buffer: &mut Commands,
+    cmd: &mut Commands,
 ) -> SendResult {
     while let Some(packet) = client.1.pop_front() {
         match packet {
@@ -39,11 +40,10 @@ fn handle_packets(
             ClientPacket::AuthRequest(request) => match login_queue.hand_in_reservation(request.token) {
                 Ok((token, user)) => {
                     debug!(id = ?client.0.id(), token = request.token, "Accepted token");
-                    buffer
-                        .entity(entity)
+                    cmd.entity(entity)
                         .remove::<Login>()
                         .insert(Playing(user, token))
-                        .insert(CharacterSelect(None));
+                        .insert(CharacterSelect::default());
                     send_login_result(&client.0, AuthResult::success())?;
                     break;
                 },

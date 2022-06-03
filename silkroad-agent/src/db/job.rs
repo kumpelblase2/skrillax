@@ -1,10 +1,10 @@
 use sqlx::PgPool;
 
-pub(crate) async fn fetch_job_spread(pool: &PgPool, shard: u16) -> (u32, u32) {
+pub(crate) async fn fetch_job_spread(pool: PgPool, shard: u16) -> (u32, u32) {
     let result: Vec<(i32, i16)> =
         sqlx::query_as("SELECT COUNT(job), job FROM user_servers WHERE job <> 0 AND server_id = $1 GROUP BY job")
             .bind(shard as i32)
-            .fetch_all(pool)
+            .fetch_all(&pool)
             .await
             .unwrap();
 

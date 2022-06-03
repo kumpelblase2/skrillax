@@ -1,37 +1,39 @@
-extern crate core;
-
-mod character_loader;
 mod comp;
 mod config;
 mod db;
 mod event;
-mod executor;
-pub(crate) mod ext;
+mod ext;
 mod game;
-mod id_allocator;
-mod job_coordinator;
-mod player_loader;
+mod login;
+mod network;
 mod population;
-mod resources;
+mod server_plugin;
 mod settings;
 mod sys;
 mod time;
-mod web;
+mod world;
 
-use crate::character_loader::{CharacterLoader, CharacterLoaderFacade};
 use crate::config::get_config;
-use crate::executor::Executor;
-use crate::game::Game;
-use crate::job_coordinator::JobCoordinator;
+use crate::event::ServerEvent;
+use crate::game::GamePlugin;
+use crate::login::LoginPlugin;
+use crate::network::NetworkPlugin;
 use crate::population::capacity::CapacityController;
 use crate::population::queue::LoginQueue;
+use crate::server_plugin::ServerPlugin;
 use crate::settings::GameSettings;
-use crate::web::WebServer;
+use crate::world::WorldPlugin;
+use bevy_app::App;
+use bevy_core::CorePlugin;
+use login::web::WebServer;
 use silkroad_network::server::SilkroadServer;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::info;
+
+const DEFAULT_RPC_PORT: u16 = 1337;
+const DEFAULT_LISTEN_ADDRESS: &str = "0.0.0.0";
 
 fn main() {
     tracing_subscriber::fmt::init();
@@ -51,7 +53,7 @@ fn main() {
         .unwrap();
     let runtime = Arc::new(runtime);
 
-    let capacity_manager = Arc::new(CapacityController::new(5));
+    let capacity_manager = Arc::new(CapacityController::new(configuration.max_player_count));
     let queue = LoginQueue::new(capacity_manager.clone(), 30);
 
     let db_pool = runtime.block_on(configuration.database.create_pool()).unwrap();
@@ -63,27 +65,30 @@ fn main() {
             queue.clone(),
             capacity_manager.clone(),
             external_addr,
-            configuration.rpc_port.unwrap_or(1337),
+            configuration.rpc_port.unwrap_or(DEFAULT_RPC_PORT),
         )
         .run(),
     );
 
-    let mut coordinator = JobCoordinator::new(db_pool.clone(), configuration.server_id);
-    runtime.block_on(coordinator.load());
-    let character_loader =
-        CharacterLoaderFacade::new(runtime.clone(), CharacterLoader::new(db_pool, configuration.server_id));
+    let listen_address = configuration
+        .listen_address
+        .as_ref()
+        .map(|addr| addr.as_ref())
+        .unwrap_or(DEFAULT_LISTEN_ADDRESS);
+    let listen_addr = format!("{}:{}", listen_address, configuration.listen_port)
+        .parse()
+        .unwrap();
+    let network = SilkroadServer::new(runtime.clone(), listen_addr).unwrap();
 
-    let listen_addr = SocketAddr::from_str(&format!("0.0.0.0:{}", configuration.listen_port)).unwrap();
-    let network = runtime.block_on(SilkroadServer::new(listen_addr)).unwrap();
-
-    let game = Game::new(
-        network,
-        configuration.game.clone().unwrap_or_default().into(),
-        queue,
-        character_loader,
-        coordinator,
-    );
-    let mut executor = Executor::new(game, 128);
     info!("Listening for clients");
-    executor.run();
+    App::new()
+        .add_plugin(CorePlugin)
+        .insert_resource(db_pool)
+        .insert_resource(runtime)
+        .add_plugin(ServerPlugin::new(configuration.game.clone(), configuration.server_id))
+        .add_plugin(WorldPlugin)
+        .add_plugin(NetworkPlugin::new(network))
+        .add_plugin(LoginPlugin::new(queue))
+        .add_plugin(GamePlugin)
+        .run();
 }

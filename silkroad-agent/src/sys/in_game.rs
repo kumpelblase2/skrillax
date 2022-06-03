@@ -1,11 +1,12 @@
 use crate::comp::monster::Monster;
 use crate::comp::player::{Agent, Character, MovementState, MovementTarget, Player, SpawningState};
 use crate::comp::pos::{Heading, LocalPosition, Position};
+use crate::comp::sync::{MovementUpdate, Synchronize};
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, GameEntity, Health};
-use crate::id_allocator::IdAllocator;
+use crate::world::id_allocator::IdAllocator;
 use crate::GameSettings;
-use bevy_core::{Time, Timer};
+use bevy_core::Time;
 use bevy_ecs::prelude::*;
 use cgmath::{Deg, Quaternion, Rotation3, Vector3};
 use silkroad_protocol::auth::{LogoutFinished, LogoutRequest, LogoutResponse, LogoutResult};
@@ -14,8 +15,8 @@ use silkroad_protocol::chat::{
     ChatMessageResponse, ChatMessageResult, ChatSource, ChatUpdate, TextCharacterInitialization,
 };
 use silkroad_protocol::world::{
-    CelestialUpdate, EntityRarity, EntityUpdateState, MovementSource, PlayerMovementRequest, PlayerMovementResponse,
-    Rotation, TargetEntity, TargetEntityResponse, TargetEntityResult,
+    CelestialUpdate, EntityRarity, EntityUpdateState, MovementDestination, MovementSource, PlayerMovementRequest,
+    PlayerMovementResponse, Rotation, TargetEntity, TargetEntityResponse, TargetEntityResult,
 };
 use silkroad_protocol::{ClientPacket, ServerPacket};
 use std::ops::Add;
@@ -27,11 +28,20 @@ pub(crate) fn in_game(
     delta: Res<Time>,
     mut allocator: ResMut<IdAllocator>,
     mut cmd: Commands,
-    mut query: Query<(Entity, &mut Client, &GameEntity, &mut Player, &mut Agent, &Position)>,
+    mut query: Query<(
+        Entity,
+        &mut Client,
+        &GameEntity,
+        &mut Player,
+        &mut Agent,
+        &Position,
+        &mut Synchronize,
+    )>,
 ) {
-    for (entity, mut client, game_entity, mut player, mut agent, position) in query.iter_mut() {
+    for (entity, mut client, game_entity, mut player, mut agent, position, mut sync) in query.iter_mut() {
         let mut agent: &mut Agent = &mut agent;
         let game_entity: &GameEntity = game_entity;
+        let mut sync: &mut Synchronize = &mut sync;
 
         while let Some(packet) = client.1.pop_front() {
             match packet {
@@ -51,7 +61,8 @@ pub(crate) fn in_game(
                     }
 
                     cmd.spawn()
-                        .insert(Agent::new(32.))
+                        .insert(Synchronize::default())
+                        .insert(Agent::new(16.))
                         .insert(position.clone())
                         .insert(Monster {
                             rarity: EntityRarity::Normal,
@@ -67,13 +78,11 @@ pub(crate) fn in_game(
                 ClientPacket::PlayerMovementRequest(PlayerMovementRequest { kind }) => match kind {
                     silkroad_protocol::world::MovementTarget::TargetLocation { region, x, y, z } => {
                         let local_position = position.location.to_local();
-                        debug!(id = ?client.0.id(), "Movement: {}|{}|{} @ {} -> {}|{}|{} @ {}", local_position.1.x, local_position.1.y, local_position.1.z, local_position.0, x, y, z, region);
+                        let target_pos = LocalPosition(region.into(), Vector3::new(x as f32, y as f32, z as f32));
+                        debug!(id = ?client.0.id(), "Movement: {} -> {}", local_position, target_pos);
                         let response = ServerPacket::PlayerMovementResponse(PlayerMovementResponse::new(
                             game_entity.unique_id,
-                            region,
-                            x,
-                            y,
-                            z,
+                            MovementDestination::location(region, x, y, z),
                             Some(MovementSource::new(
                                 local_position.0.id(),
                                 (local_position.1.x * 10.) as u16,
@@ -81,8 +90,8 @@ pub(crate) fn in_game(
                                 (local_position.1.z * 10.) as u16,
                             )),
                         ));
+                        sync.movement = Some(MovementUpdate::StartMove(local_position, target_pos.clone()));
                         client.send(response);
-                        let target_pos = LocalPosition(region.into(), Vector3::new(x as f32, y as f32, z as f32));
                         agent.movement_target = Some(MovementTarget::Location(target_pos.to_global()));
                         agent.movement_state = MovementState::Moving;
                     },

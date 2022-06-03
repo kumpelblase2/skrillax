@@ -45,18 +45,20 @@ pub(crate) struct GameConfig {
     pub(crate) logout_duration: Option<u8>,
     pub(crate) join_notice: Option<String>,
     pub(crate) data_location: String,
+    pub(crate) desired_ticks: Option<u32>,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct GameServerConfig {
     pub(crate) listen_port: u16,
+    pub(crate) listen_address: Option<String>,
     pub(crate) external_address: Option<String>,
     pub(crate) server_id: u16,
     pub(crate) rpc_port: Option<u16>,
     pub(crate) max_player_count: u16,
     pub(crate) database: DbOptions,
-    pub(crate) game: Option<GameConfig>,
+    pub(crate) game: GameConfig,
 }
 
 impl GameServerConfig {

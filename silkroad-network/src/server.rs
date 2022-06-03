@@ -1,21 +1,29 @@
 use crate::stream::Stream;
 use crossbeam_channel::Receiver;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tokio::net::TcpListener;
+use tokio::runtime::Runtime;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error};
 
+#[derive(Clone)]
 pub struct SilkroadServer {
     stream_receiver: Receiver<Stream>,
     shutdown_token: CancellationToken,
 }
 
 impl SilkroadServer {
-    async fn listen(socket: SocketAddr, cancel: CancellationToken) -> std::io::Result<Receiver<Stream>> {
+    async fn listen(
+        runtime: Arc<Runtime>,
+        socket: SocketAddr,
+        cancel: CancellationToken,
+    ) -> std::io::Result<Receiver<Stream>> {
         let listener = TcpListener::bind(socket).await?;
         let (stream_sender, stream_receiver) = crossbeam_channel::unbounded();
         let listen_cancel = cancel.clone();
-        tokio::spawn(async move {
+        let inner_runtime = runtime.clone();
+        runtime.spawn(async move {
             while let Some(connection) = tokio::select! {
                 connected = listener.accept() => Some(connected),
                 _ = listen_cancel.cancelled() => None
@@ -24,7 +32,7 @@ impl SilkroadServer {
                     debug!(?addr, "Accepted client");
                     let stream_sender = stream_sender.clone();
                     let socket_cancel = cancel.clone();
-                    tokio::spawn(async move {
+                    inner_runtime.spawn(async move {
                         // TODO include cancel token
                         match Stream::accept(socket).await {
                             Ok(stream) => {
@@ -49,9 +57,12 @@ impl SilkroadServer {
         Ok(stream_receiver)
     }
 
-    pub async fn new(listen: SocketAddr) -> Result<SilkroadServer, std::io::Error> {
+    pub fn new(runtime: Arc<Runtime>, listen: SocketAddr) -> Result<SilkroadServer, std::io::Error> {
         let shutdown_token = CancellationToken::new();
-        let stream_receiver = Self::listen(listen, shutdown_token.clone()).await?;
+        let inner_runtime = runtime.clone();
+        let inner_token = shutdown_token.clone();
+        let stream_receiver =
+            runtime.block_on(async move { Self::listen(inner_runtime, listen, inner_token).await })?;
 
         Ok(SilkroadServer {
             stream_receiver,

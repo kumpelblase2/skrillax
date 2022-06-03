@@ -2,17 +2,17 @@ use crate::comp::pos::{GlobalPosition, Heading};
 use crate::comp::stats::Stats;
 use crate::db::character::CharacterItem;
 use crate::db::user::ServerUser;
-use bevy_core::Timer;
 use bevy_ecs::prelude::*;
 use cgmath::Quaternion;
+use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::time::Instant;
 
 pub(crate) struct Item {
-    ref_id: i32,
-    variance: Option<u64>,
-    upgrade_level: u8,
-    type_data: ItemTypeData,
+    pub ref_id: i32,
+    pub variance: Option<u64>,
+    pub upgrade_level: u8,
+    pub type_data: ItemTypeData,
 }
 
 pub(crate) enum ItemTypeData {
@@ -48,6 +48,10 @@ impl Inventory {
         }
 
         Inventory { items: my_items, size }
+    }
+
+    pub fn items(&self) -> Iter<u8, Item> {
+        self.items.iter()
     }
 }
 

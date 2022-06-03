@@ -5,14 +5,15 @@ pub(crate) mod stats;
 pub(crate) mod sync;
 pub(crate) mod visibility;
 
-use crate::character_loader::Character;
 use crate::db::user::ServerUser;
+use crate::login::character_loader::Character;
 use crate::population::capacity::PlayingToken;
 use bevy_ecs::prelude::*;
 use silkroad_network::stream::Stream;
 use silkroad_protocol::{ClientPacket, ServerPacket};
 use std::collections::VecDeque;
 use std::time::Instant;
+use tokio::sync::oneshot::Receiver;
 
 #[derive(Component)]
 pub(crate) struct Login;
@@ -20,8 +21,13 @@ pub(crate) struct Login;
 #[derive(Component)]
 pub(crate) struct LastAction(pub(crate) Instant);
 
-#[derive(Component)]
-pub(crate) struct CharacterSelect(pub(crate) Option<Vec<Character>>);
+#[derive(Component, Default)]
+pub(crate) struct CharacterSelect {
+    pub(crate) characters: Option<Vec<Character>>,
+    pub(crate) character_receiver: Option<Receiver<Vec<Character>>>,
+    pub(crate) character_name_check: Option<Receiver<bool>>,
+    pub(crate) character_create: Option<Receiver<()>>,
+}
 
 #[derive(Component)]
 pub(crate) struct Client(pub(crate) Stream, pub(crate) VecDeque<ClientPacket>);

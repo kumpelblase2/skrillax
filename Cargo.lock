@@ -197,12 +197,12 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "58fe3d3f4140fb11cd294f43be7cb66a5783d9277ba0270743e2860e32b25ab5"
 dependencies = [
-    "bevy_derive",
-    "bevy_ecs",
-    "bevy_reflect",
-    "bevy_utils",
-    "wasm-bindgen",
-    "web-sys",
+ "bevy_derive",
+ "bevy_ecs",
+ "bevy_reflect",
+ "bevy_utils",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -211,14 +211,14 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c156430a5312c04a1b25fa434eeeab6349a41c6bb96ea0385406d53b3c43658"
 dependencies = [
-    "bevy_app",
-    "bevy_derive",
-    "bevy_ecs",
-    "bevy_math",
-    "bevy_reflect",
-    "bevy_tasks",
-    "bevy_utils",
-    "bytemuck",
+ "bevy_app",
+ "bevy_derive",
+ "bevy_ecs",
+ "bevy_math",
+ "bevy_reflect",
+ "bevy_tasks",
+ "bevy_utils",
+ "bytemuck",
 ]
 
 [[package]]
@@ -227,9 +227,9 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "918dc0dff01e8b4e8f989db89d74fd4042810ea80a70642d0459b3c265995e59"
 dependencies = [
-    "bevy_macro_utils",
-    "quote",
-    "syn",
+ "bevy_macro_utils",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -268,9 +268,9 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57cf90b3b67606d0818cdac6c9134eb66fa174959977a4abba893364a571a7cd"
 dependencies = [
-    "cargo-manifest",
-    "quote",
-    "syn",
+ "cargo-manifest",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -279,8 +279,8 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b0f9ebf2ef80a8fff3e5dca817594071004048cd089e72b9a1bf4e494b66112"
 dependencies = [
-    "bevy_reflect",
-    "glam",
+ "bevy_reflect",
+ "glam",
 ]
 
 [[package]]
@@ -289,15 +289,15 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d84ce8cbd484a39d67171831eaf72c20d2684de71f1e9d79333c8dd6d6f3ebca"
 dependencies = [
-    "bevy_reflect_derive",
-    "bevy_utils",
-    "downcast-rs",
-    "erased-serde",
-    "glam",
-    "parking_lot",
-    "serde 1.0.136",
-    "smallvec",
-    "thiserror",
+ "bevy_reflect_derive",
+ "bevy_utils",
+ "downcast-rs",
+ "erased-serde",
+ "glam",
+ "parking_lot",
+ "serde 1.0.136",
+ "smallvec",
+ "thiserror",
 ]
 
 [[package]]
@@ -969,11 +969,11 @@ version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9be70c98951c83b8d2f8f60d7065fa6d5146873094452a1008da8c2f1e4205ad"
 dependencies = [
-    "cfg-if",
-    "js-sys",
-    "libc",
-    "wasi 0.10.0+wasi-snapshot-preview1",
-    "wasm-bindgen",
+ "cfg-if",
+ "js-sys",
+ "libc",
+ "wasi 0.10.0+wasi-snapshot-preview1",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -982,8 +982,8 @@ version = "0.20.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f43e957e744be03f5801a55472f593d43fabdebf25a4585db250f04d86b1675f"
 dependencies = [
-    "bytemuck",
-    "serde 1.0.136",
+ "bytemuck",
+ "serde 1.0.136",
 ]
 
 [[package]]
@@ -992,9 +992,9 @@ version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9f1f717ddc7b2ba36df7e871fd88db79326551d3d6f1fc406fbfd28b582ff8e"
 dependencies = [
-    "bytes",
-    "fnv",
-    "futures-core",
+ "bytes",
+ "fnv",
+ "futures-core",
  "futures-sink",
  "futures-util",
  "http",
@@ -2331,23 +2331,25 @@ dependencies = [
 name = "silkroad-agent"
 version = "0.1.0"
 dependencies = [
-    "bevy_core",
-    "bevy_ecs",
-    "bevy_ecs_macros",
-    "byteorder",
-    "bytes",
-    "cgmath 0.18.0",
-    "chrono",
-    "config",
-    "crossbeam-channel",
-    "itertools",
-    "lazy_static",
+ "bevy_app",
+ "bevy_core",
+ "bevy_ecs",
+ "bevy_ecs_macros",
+ "byteorder",
+ "bytes",
+ "cgmath 0.18.0",
+ "chrono",
+ "config",
+ "crossbeam-channel",
+ "itertools",
+ "lazy_static",
  "log",
  "pk2",
  "rand 0.8.4",
  "salvo",
  "serde 1.0.136",
  "serde_derive",
+ "silkroad-data",
  "silkroad-navmesh",
  "silkroad-network",
  "silkroad-protocol",
@@ -2366,6 +2368,14 @@ dependencies = [
  "codegen",
  "quick-xml",
  "serde 1.0.136",
+]
+
+[[package]]
+name = "silkroad-data"
+version = "0.1.0"
+dependencies = [
+ "pk2",
+ "thiserror",
 ]
 
 [[package]]
@@ -2481,7 +2491,7 @@ version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2dd574626839106c320a323308629dcb1acfc96e32a8cba364ddc61ac23ee83"
 dependencies = [
-    "serde 1.0.136",
+ "serde 1.0.136",
 ]
 
 [[package]]
@@ -2696,18 +2706,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.30"
+version = "1.0.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "854babe52e4df1653706b98fcfc05843010039b406875930a70e4d9644e5c417"
+checksum = "bd829fe32373d27f76265620b5309d0340cb8550f523c1dda251d6298069069a"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.30"
+version = "1.0.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa32fd3f627f367fe16f893e2597ae3c05020f8bba2666a4e6ea73d377e5714b"
+checksum = "0396bc89e626244658bef819e22d0cc459e795a5ebe878e6ec336d1674a8d79a"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -2,6 +2,7 @@ use bevy_ecs_macros::Component;
 use cgmath::{Vector2, Vector3};
 use silkroad_navmesh::region::Region;
 use silkroad_protocol::world::{EntityMovementState, MovementType};
+use std::fmt::{Display, Formatter};
 
 #[derive(Copy, Clone)]
 pub struct LocalLocation(pub Region, pub Vector2<f32>);
@@ -35,8 +36,20 @@ impl GlobalLocation {
 #[derive(Copy, Clone)]
 pub struct LocalPosition(pub Region, pub Vector3<f32>);
 
+impl Display for LocalPosition {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}|{}|{} @ {}", self.1.x, self.1.y, self.1.z, self.0)
+    }
+}
+
 #[derive(Copy, Clone)]
 pub struct GlobalPosition(pub Vector3<f32>);
+
+impl Display for GlobalPosition {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}|{}|{}", self.0.x, self.0.y, self.0.z)
+    }
+}
 
 impl LocalPosition {
     pub fn to_global(&self) -> GlobalPosition {

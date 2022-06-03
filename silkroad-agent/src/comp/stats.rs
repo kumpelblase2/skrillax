@@ -6,8 +6,8 @@ pub(crate) struct Stats {
 }
 
 impl Stats {
-    pub fn new() -> Self {
-        Stats { str: 20, int: 20 }
+    pub fn new(str: u16, int: u16) -> Self {
+        Stats { str, int }
     }
 
     pub fn strength(&self) -> u16 {
@@ -30,5 +30,11 @@ impl Stats {
     pub fn max_mana(&self, level: u8) -> u32 {
         let result = (SCALING.powi((level - 1) as i32)) * (self.int * 10) as f32;
         result as u32
+    }
+}
+
+impl Default for Stats {
+    fn default() -> Self {
+        Self::new(20, 20)
     }
 }

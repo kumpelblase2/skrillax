@@ -1,11 +1,11 @@
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::Arc;
 use tracing::trace;
 
 struct Capacity {
-    max: u32,
-    queued: AtomicU32,
-    playing: AtomicU32,
+    max: u16,
+    queued: AtomicU16,
+    playing: AtomicU16,
 }
 
 pub struct QueueToken {
@@ -31,11 +31,11 @@ impl Drop for PlayingToken {
 }
 
 impl Capacity {
-    fn new(capacity: u32) -> Self {
+    fn new(capacity: u16) -> Self {
         Capacity {
             max: capacity,
-            queued: AtomicU32::default(),
-            playing: AtomicU32::default(),
+            queued: AtomicU16::default(),
+            playing: AtomicU16::default(),
         }
     }
 
@@ -56,7 +56,7 @@ pub struct CapacityController {
 }
 
 impl CapacityController {
-    pub fn new(capacity: u32) -> Self {
+    pub fn new(capacity: u16) -> Self {
         let capacity = Capacity::new(capacity);
         CapacityController {
             inner: Arc::new(capacity),

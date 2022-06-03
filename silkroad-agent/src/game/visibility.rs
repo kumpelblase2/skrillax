@@ -4,16 +4,19 @@ use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, GameEntity};
 use bevy_ecs::prelude::*;
+use bytes::{Bytes, BytesMut};
 use cgmath::prelude::*;
 use silkroad_protocol::world::{
-    ActionState, ActiveScroll, AliveState, BodyState, EntityState, EntityTypeSpawnData, GroupEntitySpawnData,
-    GroupEntitySpawnEnd, GroupEntitySpawnStart, GroupSpawnDataContent, GroupSpawnType, InteractOptions, JobType,
-    PlayerKillState, PvpCape,
+    ActionState, ActiveScroll, AliveState, BodyState, EntityMovementState, EntityState, EntityTypeSpawnData,
+    GroupEntitySpawnData, GroupEntitySpawnEnd, GroupEntitySpawnStart, GroupSpawnDataContent, GroupSpawnType,
+    GuildInformation, InteractOptions, JobType, MovementType, PlayerKillState, PvpCape,
 };
 use silkroad_protocol::ServerPacket;
 use tracing::debug;
 
-pub(crate) fn visibility(
+static EMPTY_BYTES: [u8; 9] = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+pub(crate) fn visibility_update(
     mut query: Query<(Entity, &mut Visibility, &Position)>,
     lookup: Query<(Entity, &Position), With<Visibility>>,
 ) {
@@ -80,15 +83,19 @@ pub(crate) fn player_visibility_update(
                     spawns.push(GroupSpawnDataContent::Spawn {
                         object_id: entity.ref_id,
                         data: EntityTypeSpawnData::Character {
+                            unique_id: entity.unique_id,
                             scale: 0,
                             berserk_level: 0,
                             pvp_cape: PvpCape::None,
-                            beginner: false,
+                            beginner: true,
                             title: 0,
+                            inventory_size: 45,
                             equipment: vec![],
+                            avatar_inventory_size: 5,
                             avatar_items: vec![],
                             mask: None,
-                            movement: pos.as_movement(),
+                            position: pos.as_protocol(),
+                            movement: EntityMovementState::standing(MovementType::Walking, 0, pos.rotation.into()),
                             entity_state: EntityState {
                                 alive: AliveState::Alive,
                                 unknown1: 0,
@@ -102,12 +109,24 @@ pub(crate) fn player_visibility_update(
                             },
                             name: player.character.name.clone(),
                             job_type: JobType::None,
-                            job_level: 0,
                             pk_state: PlayerKillState::None,
                             mounted: false,
                             in_combat: false,
                             active_scroll: ActiveScroll::None,
                             unknown2: 0,
+                            guild: GuildInformation {
+                                name: "".to_string(),
+                                id: 0,
+                                member: "".to_string(),
+                                last_icon_rev: 0,
+                                union_id: 0,
+                                last_union_icon_rev: 0,
+                                is_friendly: 0,
+                                siege_unkown: 0,
+                            },
+                            unknown3: Bytes::from(&EMPTY_BYTES[..]),
+                            equipment_cooldown: false,
+                            unknown4: 0,
                         },
                     });
                 } else if let Some(monster) = monster_opt {
@@ -124,7 +143,7 @@ pub(crate) fn player_visibility_update(
                                 action_state: ActionState::None,
                                 body_state: BodyState::None,
                                 unknown2: 0,
-                                walk_speed: 20.0,
+                                walk_speed: 16.0,
                                 run_speed: 40.0,
                                 berserk_speed: 80.0,
                                 active_buffs: vec![],
