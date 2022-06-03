@@ -311,6 +311,19 @@
         <attribute name="end_date" type="u32" />
     </struct>
 
+    <enum name="MovementDestination" type="u8">
+        <variation name="Direction" value="0">
+            <attribute name="moving" type="bool"/>
+            <attribute name="heading" type="u16"/>
+        </variation>
+        <variation name="Location" value="1">
+            <attribute name="region" type="u16"/>
+            <attribute name="x" type="u16"/>
+            <attribute name="y" type="u16"/>
+            <attribute name="z" type="u16"/>
+        </variation>
+    </enum>
+
     <struct name="MovementSource">
         <attribute name="region" type="u16" />
         <attribute name="x" type="u16" />
@@ -466,11 +479,7 @@
 
     <packet name="PlayerMovementResponse" source="server" opcode="0xB021">
         <attribute name="player_id" type="u32" />
-        <attribute name="unknown" type="u8" value="1" />
-        <attribute name="region" type="u16" />
-        <attribute name="x" type="u16" />
-        <attribute name="y" type="u16" />
-        <attribute name="z" type="u16" />
+        <attribute name="destination" type="MovementDestination"/>
         <attribute name="source_position" type="Option" inner="MovementSource" />
     </packet>
 
