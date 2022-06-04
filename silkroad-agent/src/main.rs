@@ -14,7 +14,6 @@ mod time;
 mod world;
 
 use crate::config::get_config;
-use crate::event::ServerEvent;
 use crate::game::GamePlugin;
 use crate::login::LoginPlugin;
 use crate::network::NetworkPlugin;

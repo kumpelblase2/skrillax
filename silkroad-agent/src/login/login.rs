@@ -1,7 +1,7 @@
 use crate::comp::{CharacterSelect, Client, Login, Playing};
+use crate::event::ClientDisconnectedEvent;
 use crate::population::queue::LoginQueue;
 use crate::population::queue::ReservationError;
-use crate::ServerEvent;
 use bevy_ecs::prelude::*;
 use silkroad_network::stream::{SendResult, Stream};
 use silkroad_protocol::auth::{AuthResponse, AuthResult, AuthResultError};
@@ -12,13 +12,13 @@ use tracing::debug;
 pub(crate) fn login(
     mut buffer: Commands,
     login_queue: Res<LoginQueue>,
-    mut events: EventWriter<ServerEvent>,
+    mut events: EventWriter<ClientDisconnectedEvent>,
     mut query: Query<(Entity, &mut Client), With<Login>>,
 ) {
     for (entity, mut client) in query.iter_mut() {
         match handle_packets(entity, &mut client, &login_queue, &mut buffer) {
             Err(_) => {
-                events.send(ServerEvent::ClientDisconnected(entity));
+                events.send(ClientDisconnectedEvent(entity));
             },
             _ => {},
         }

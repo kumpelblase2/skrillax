@@ -4,8 +4,9 @@ use crate::comp::pos::{Heading, LocalPosition, Position};
 use crate::comp::sync::{MovementUpdate, Synchronize};
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, GameEntity, Health};
+use crate::event::ClientDisconnectedEvent;
 use crate::world::id_allocator::IdAllocator;
-use crate::{GameSettings, ServerEvent};
+use crate::GameSettings;
 use bevy_core::Time;
 use bevy_ecs::prelude::*;
 use cgmath::{Deg, Quaternion, Rotation3, Vector3};
@@ -24,7 +25,7 @@ use std::time::Duration;
 use tracing::debug;
 
 pub(crate) fn in_game(
-    mut events: EventWriter<ServerEvent>,
+    mut events: EventWriter<ClientDisconnectedEvent>,
     settings: Res<GameSettings>,
     delta: Res<Time>,
     mut allocator: ResMut<IdAllocator>,
@@ -129,7 +130,7 @@ pub(crate) fn in_game(
         if let Some(logout_time) = player.logout {
             if delta.last_update().unwrap() > logout_time {
                 client.send(LogoutFinished);
-                events.send(ServerEvent::ClientDisconnected(entity));
+                events.send(ClientDisconnectedEvent(entity));
             }
         }
     }

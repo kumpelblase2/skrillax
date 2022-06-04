@@ -1,5 +1,5 @@
 use crate::sys::in_game::in_game;
-use crate::sys::net::{accept, disconnected, receive};
+use crate::sys::net::{accept, connected, disconnected, receive};
 use bevy_app::{App, CoreStage, Plugin};
 use silkroad_network::server::SilkroadServer;
 
@@ -13,6 +13,7 @@ impl Plugin for NetworkPlugin {
             .add_system_to_stage(CoreStage::PreUpdate, accept)
             .add_system_to_stage(CoreStage::PreUpdate, receive)
             .add_system_to_stage(CoreStage::PreUpdate, disconnected)
+            .add_system_to_stage(CoreStage::PreUpdate, connected)
             .add_system(in_game);
     }
 }

@@ -1,5 +1,6 @@
 use crate::config::GameConfig;
-use crate::{GameSettings, ServerEvent};
+use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent};
+use crate::GameSettings;
 use bevy_app::{App, Plugin, ScheduleRunnerPlugin, ScheduleRunnerSettings};
 use bevy_ecs::event::Events;
 use std::ops::Div;
@@ -34,6 +35,7 @@ impl Plugin for ServerPlugin {
 
         app.insert_resource(settings)
             .insert_resource(ServerId(self.server_id))
-            .insert_resource(Events::<ServerEvent>::default());
+            .insert_resource(Events::<ClientDisconnectedEvent>::default())
+            .insert_resource(Events::<ClientConnectedEvent>::default());
     }
 }
