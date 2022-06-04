@@ -1,6 +1,5 @@
 use crate::db::character::{fetch_characters, fetch_characters_items, CharacterData, CharacterItem};
 use sqlx::{PgPool, Row};
-use std::panic::resume_unwind;
 use tracing::trace_span;
 
 #[derive(Clone)]

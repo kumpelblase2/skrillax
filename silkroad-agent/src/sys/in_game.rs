@@ -5,7 +5,7 @@ use crate::comp::sync::{MovementUpdate, Synchronize};
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, GameEntity, Health};
 use crate::world::id_allocator::IdAllocator;
-use crate::GameSettings;
+use crate::{GameSettings, ServerEvent};
 use bevy_core::Time;
 use bevy_ecs::prelude::*;
 use cgmath::{Deg, Quaternion, Rotation3, Vector3};
@@ -15,8 +15,8 @@ use silkroad_protocol::chat::{
     ChatMessageResponse, ChatMessageResult, ChatSource, ChatUpdate, TextCharacterInitialization,
 };
 use silkroad_protocol::world::{
-    CelestialUpdate, EntityRarity, EntityUpdateState, MovementDestination, MovementSource, PlayerMovementRequest,
-    PlayerMovementResponse, Rotation, TargetEntity, TargetEntityResponse, TargetEntityResult,
+    CelestialUpdate, EntityRarity, EntityUpdateState, PlayerMovementRequest, Rotation, TargetEntity,
+    TargetEntityResponse, TargetEntityResult,
 };
 use silkroad_protocol::{ClientPacket, ServerPacket};
 use std::ops::Add;
@@ -24,6 +24,7 @@ use std::time::Duration;
 use tracing::debug;
 
 pub(crate) fn in_game(
+    mut events: EventWriter<ServerEvent>,
     settings: Res<GameSettings>,
     delta: Res<Time>,
     mut allocator: ResMut<IdAllocator>,
@@ -80,18 +81,7 @@ pub(crate) fn in_game(
                         let local_position = position.location.to_local();
                         let target_pos = LocalPosition(region.into(), Vector3::new(x as f32, y as f32, z as f32));
                         debug!(id = ?client.0.id(), "Movement: {} -> {}", local_position, target_pos);
-                        let response = ServerPacket::PlayerMovementResponse(PlayerMovementResponse::new(
-                            game_entity.unique_id,
-                            MovementDestination::location(region, x, y, z),
-                            Some(MovementSource::new(
-                                local_position.0.id(),
-                                (local_position.1.x * 10.) as u16,
-                                local_position.1.y,
-                                (local_position.1.z * 10.) as u16,
-                            )),
-                        ));
                         sync.movement = Some(MovementUpdate::StartMove(local_position, target_pos.clone()));
-                        client.send(response);
                         agent.movement_target = Some(MovementTarget::Location(target_pos.to_global()));
                         agent.movement_state = MovementState::Moving;
                     },
@@ -139,7 +129,7 @@ pub(crate) fn in_game(
         if let Some(logout_time) = player.logout {
             if delta.last_update().unwrap() > logout_time {
                 client.send(LogoutFinished);
-                cmd.entity(entity).despawn();
+                events.send(ServerEvent::ClientDisconnected(entity));
             }
         }
     }

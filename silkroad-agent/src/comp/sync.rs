@@ -5,6 +5,7 @@ use bevy_ecs_macros::Component;
 pub struct Synchronize {
     pub movement: Option<MovementUpdate>,
     pub damage: Vec<DamageReceived>,
+    pub despawned: Vec<u32>,
 }
 
 pub enum MovementUpdate {
@@ -16,6 +17,8 @@ pub enum MovementUpdate {
 impl Synchronize {
     pub fn clear(&mut self) {
         self.movement = None;
+        self.damage.clear();
+        self.despawned.clear();
     }
 }
 

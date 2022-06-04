@@ -3,11 +3,13 @@ use crate::comp::sync::{MovementUpdate, Synchronize};
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, GameEntity};
 use bevy_ecs::prelude::*;
-use silkroad_protocol::world::{MovementDestination, MovementSource, PlayerMovementResponse};
+use silkroad_protocol::world::{
+    EntityDespawn, GroupEntitySpawnData, GroupEntitySpawnEnd, GroupEntitySpawnStart, GroupSpawnDataContent,
+    GroupSpawnType, MovementDestination, MovementSource, PlayerMovementResponse,
+};
 use silkroad_protocol::ServerPacket;
-use tracing::debug;
 
-pub(crate) fn sync_changes(
+pub(crate) fn sync_changes_others(
     query: Query<(&Client, &Visibility), With<Player>>,
     others: Query<(&GameEntity, &Synchronize)>,
 ) {
@@ -33,7 +35,6 @@ pub(crate) fn sync_changes(
 fn update_movement_for(client: &Client, entity: &GameEntity, movement: &MovementUpdate) {
     match movement {
         MovementUpdate::StartMove(current, target) => {
-            debug!("Sending start movement to client for entity: {}", entity.unique_id);
             client.send(ServerPacket::PlayerMovementResponse(PlayerMovementResponse::new(
                 entity.unique_id,
                 MovementDestination::location(target.0.id(), target.1.x as u16, target.1.y as u16, target.1.z as u16),
@@ -46,7 +47,6 @@ fn update_movement_for(client: &Client, entity: &GameEntity, movement: &Movement
             )));
         },
         MovementUpdate::StopMove(current) => {
-            debug!("Sending stop movement to client for entity: {}", entity.unique_id);
             client.send(ServerPacket::PlayerMovementResponse(PlayerMovementResponse::new(
                 entity.unique_id,
                 MovementDestination::location(
@@ -76,6 +76,36 @@ pub(crate) fn update_client(query: Query<(&Client, &GameEntity, &Synchronize)>) 
         if let Some(movement) = &sync.movement {
             update_movement_for(client, entity, movement);
         }
+
+        if !sync.damage.is_empty() {
+            // ...
+        }
+
+        if !sync.despawned.is_empty() {
+            send_despawns(client, sync);
+        }
+    }
+}
+
+fn send_despawns(client: &Client, sync: &Synchronize) {
+    if sync.despawned.len() > 1 {
+        client.send(ServerPacket::GroupEntitySpawnStart(GroupEntitySpawnStart::new(
+            GroupSpawnType::Despawn,
+            sync.despawned.len() as u16,
+        )));
+
+        let data = sync
+            .despawned
+            .iter()
+            .map(|id| GroupSpawnDataContent::despawn(*id))
+            .collect();
+
+        client.send(ServerPacket::GroupEntitySpawnData(GroupEntitySpawnData::new(data)));
+
+        client.send(ServerPacket::GroupEntitySpawnEnd(GroupEntitySpawnEnd));
+    } else {
+        let despawned_id = *sync.despawned.get(0).unwrap();
+        client.send(ServerPacket::EntityDespawn(EntityDespawn::new(despawned_id)));
     }
 }
 

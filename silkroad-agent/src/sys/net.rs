@@ -1,4 +1,6 @@
-use crate::comp::{Client, LastAction, Login};
+use crate::comp::sync::Synchronize;
+use crate::comp::visibility::Visibility;
+use crate::comp::{Client, GameEntity, LastAction, Login};
 use crate::event::ServerEvent;
 use crate::GameSettings;
 use bevy_core::Time;
@@ -31,7 +33,6 @@ pub(crate) fn receive(
     mut events: EventWriter<ServerEvent>,
     settings: Res<GameSettings>,
     time: Res<Time>,
-    mut cmd: Commands,
     mut query: Query<(Entity, &mut Client, &mut LastAction)>,
 ) {
     'query: for (entity, mut client, mut last_action) in query.iter_mut() {
@@ -47,8 +48,7 @@ pub(crate) fn receive(
                 },
                 Ok(None) => break,
                 Err(StreamError::StreamClosed) => {
-                    cmd.entity(entity).despawn();
-                    events.send(ServerEvent::ClientDisconnected);
+                    events.send(ServerEvent::ClientDisconnected(entity));
                     continue 'query;
                 },
                 Err(e) => {
@@ -63,17 +63,34 @@ pub(crate) fn receive(
         }
 
         if last_tick_time.duration_since(last_action.0).as_secs() > settings.client_timeout as u64 {
-            cmd.entity(entity).despawn();
-            events.send(ServerEvent::ClientDisconnected);
+            events.send(ServerEvent::ClientDisconnected(entity));
         }
     }
 }
 
-pub(crate) fn disconnected(mut events: EventWriter<ServerEvent>, mut cmd: Commands, query: Query<(Entity, &Client)>) {
-    for (entity, client) in query.iter() {
-        if client.0.is_disconnected() {
-            events.send(ServerEvent::ClientDisconnected);
-            cmd.entity(entity).despawn();
+pub(crate) fn disconnected(
+    mut events: EventReader<ServerEvent>,
+    mut cmd: Commands,
+    query: Query<(&Visibility, &GameEntity)>,
+    mut others: Query<&mut Synchronize>,
+) {
+    for event in events.iter() {
+        match event {
+            ServerEvent::ClientConnected => {},
+            ServerEvent::ClientDisconnected(entity) => {
+                if let Ok((visibility, game_entity)) = query.get(*entity) {
+                    debug!("Handling client disconnect.");
+                    let visibility: &Visibility = visibility;
+                    let game_entity: &GameEntity = game_entity;
+                    for to_notify in visibility.entities_in_radius.iter() {
+                        if let Ok(mut synchronize) = others.get_mut(*to_notify) {
+                            debug!("Sending despawned!.");
+                            synchronize.despawned.push(game_entity.unique_id);
+                        }
+                    }
+                    cmd.entity(*entity).despawn();
+                }
+            },
         }
     }
 }

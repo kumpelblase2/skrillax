@@ -4,7 +4,7 @@ use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, GameEntity};
 use bevy_ecs::prelude::*;
-use bytes::{Bytes, BytesMut};
+use bytes::Bytes;
 use cgmath::prelude::*;
 use silkroad_protocol::world::{
     ActionState, ActiveScroll, AliveState, BodyState, EntityMovementState, EntityState, EntityTypeSpawnData,
