@@ -104,6 +104,8 @@ pub struct PacketAttribute {
     pub length: Option<usize>,
     pub inner: Option<String>,
     pub size: Option<usize>,
+    #[serde(rename = "if")]
+    pub if_condition: Option<String>,
     #[serde(rename = "list-type")]
     pub length_type: Option<String>,
 }

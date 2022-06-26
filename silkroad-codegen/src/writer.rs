@@ -251,23 +251,27 @@ pub fn generate_writer_for<T: CodeContainer>(
         },
         "Option" => {
             let inner = attribute.inner.as_ref().expect("Option needs inner type to work.");
+            let length = attribute.length.as_ref().map(|a| *a).unwrap_or(1);
 
-            function
-                .attach_block(|| {
-                    let mut block = codegen::Block::new(&format!("if let Some({}) = &{}", &attribute.name, accessor));
+            let func = function.attach_block(|| {
+                let mut block = codegen::Block::new(&format!("if let Some({}) = &{}", &attribute.name, accessor));
 
+                if length >= 1 {
                     block.line(format!("{}.put_u8(1);", &context.buffer_name));
-                    generate_writer_for_any(inner, context, &mut block, &attribute.name, true);
+                }
+                generate_writer_for_any(inner, context, &mut block, &attribute.name, true);
 
-                    block
-                })
-                .attach_block(|| {
+                block
+            });
+            if length >= 1 {
+                func.attach_block(|| {
                     let mut block = codegen::Block::new("else");
 
                     block.new_line(format!("{}.put_u8(0);", &context.buffer_name));
 
                     block
                 });
+            }
         },
         typ => {
             generate_writer_for_any(typ, context, function, accessor, with_deref);
