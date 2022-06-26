@@ -3,7 +3,6 @@ use crate::comp::stats::Stats;
 use crate::db::character::CharacterItem;
 use crate::db::user::ServerUser;
 use bevy_ecs::prelude::*;
-use cgmath::Quaternion;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -149,7 +148,7 @@ pub(crate) struct Player {
 
 pub(crate) enum MovementTarget {
     Location(GlobalPosition),
-    Direction(Quaternion<f32>),
+    Direction(Heading),
     Turn(Heading),
 }
 

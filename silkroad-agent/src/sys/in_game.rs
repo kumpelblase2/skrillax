@@ -9,7 +9,7 @@ use crate::world::id_allocator::IdAllocator;
 use crate::GameSettings;
 use bevy_core::Time;
 use bevy_ecs::prelude::*;
-use cgmath::{Deg, Quaternion, Rotation3, Vector3};
+use cgmath::{Deg, Euler, Quaternion, Rotation3, Vector3};
 use silkroad_protocol::auth::{LogoutFinished, LogoutRequest, LogoutResponse, LogoutResult};
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::chat::{
@@ -87,9 +87,11 @@ pub(crate) fn in_game(
                         agent.movement_state = MovementState::Moving;
                     },
                     silkroad_protocol::world::MovementTarget::Direction { unknown, angle } => {
-                        debug!(id = ?client.0.id(), "Movement: {} / {} degrees", unknown, angle);
-                        agent.movement_target =
-                            Some(MovementTarget::Direction(Quaternion::from_angle_y(Deg(angle as f32))));
+                        let direction = Heading::from(angle);
+                        debug!(id = ?client.0.id(), "Movement: {} / {}({})", unknown, direction.0, angle);
+                        let local_position = position.location.to_local();
+                        sync.movement = Some(MovementUpdate::StartMoveTowards(local_position, direction.clone()));
+                        agent.movement_target = Some(MovementTarget::Direction(direction));
                     },
                 },
                 ClientPacket::Rotation(Rotation { heading }) => {

@@ -8,6 +8,7 @@ use silkroad_protocol::world::{
     GroupSpawnType, MovementDestination, MovementSource, PlayerMovementResponse,
 };
 use silkroad_protocol::ServerPacket;
+use tracing::debug;
 
 pub(crate) fn sync_changes_others(
     query: Query<(&Client, &Visibility), With<Player>>,
@@ -46,7 +47,21 @@ fn update_movement_for(client: &Client, entity: &GameEntity, movement: &Movement
                 )),
             )));
         },
-        MovementUpdate::StopMove(current) => {
+        MovementUpdate::StartMoveTowards(current, direction) => {
+            let angle: u16 = (*direction).into();
+            debug!("Starting Movement: {}({})", direction.0, angle);
+            client.send(ServerPacket::PlayerMovementResponse(PlayerMovementResponse::new(
+                entity.unique_id,
+                MovementDestination::direction(true, (*direction).into()),
+                Some(MovementSource::new(
+                    current.0.id(),
+                    (current.1.x * 10.) as u16,
+                    current.1.y * 10.,
+                    (current.1.z * 10.) as u16,
+                )),
+            )));
+        },
+        MovementUpdate::StopMove(current, _heading) => {
             client.send(ServerPacket::PlayerMovementResponse(PlayerMovementResponse::new(
                 entity.unique_id,
                 MovementDestination::location(

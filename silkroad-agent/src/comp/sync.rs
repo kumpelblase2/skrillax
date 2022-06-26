@@ -10,7 +10,8 @@ pub struct Synchronize {
 
 pub enum MovementUpdate {
     StartMove(LocalPosition, LocalPosition),
-    StopMove(LocalPosition),
+    StartMoveTowards(LocalPosition, Heading),
+    StopMove(LocalPosition, Heading),
     Turn(Heading),
 }
 
