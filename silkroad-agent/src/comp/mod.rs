@@ -41,7 +41,7 @@ impl Client {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Copy, Clone)]
 pub(crate) struct GameEntity {
     pub unique_id: u32,
     pub ref_id: u32,

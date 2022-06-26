@@ -6,7 +6,6 @@
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
-
 use crate::error::ProtocolError;
 use crate::size::Size;
 use crate::ClientPacket;
@@ -278,7 +277,7 @@ pub enum EntityTypeSpawnData {
         beginner: bool,
         title: u8,
         inventory_size: u8,
-        equipment: Vec<u32>,
+        equipment: Vec<CharacterSpawnItemData>,
         avatar_inventory_size: u8,
         avatar_items: Vec<u32>,
         mask: Option<u32>,
@@ -327,7 +326,7 @@ impl EntityTypeSpawnData {
         beginner: bool,
         title: u8,
         inventory_size: u8,
-        equipment: Vec<u32>,
+        equipment: Vec<CharacterSpawnItemData>,
         avatar_inventory_size: u8,
         avatar_items: Vec<u32>,
         mask: Option<u32>,
@@ -2116,7 +2115,8 @@ impl From<EntitySpawn> for Bytes {
                 data_writer.put_u8(*inventory_size);
                 data_writer.put_u8(equipment.len() as u8);
                 for element in equipment.iter() {
-                    data_writer.put_u32_le(*element);
+                    data_writer.put_u32_le(element.item_id);
+                    data_writer.put_u8(element.upgrade_level);
                 }
                 data_writer.put_u8(*avatar_inventory_size);
                 data_writer.put_u8(avatar_items.len() as u8);
@@ -2503,7 +2503,8 @@ impl From<GroupEntitySpawnData> for Bytes {
                             data_writer.put_u8(*inventory_size);
                             data_writer.put_u8(equipment.len() as u8);
                             for element in equipment.iter() {
-                                data_writer.put_u32_le(*element);
+                                data_writer.put_u32_le(element.item_id);
+                                data_writer.put_u8(element.upgrade_level);
                             }
                             data_writer.put_u8(*avatar_inventory_size);
                             data_writer.put_u8(avatar_items.len() as u8);

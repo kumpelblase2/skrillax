@@ -120,6 +120,11 @@
         <attribute name="siege_unkown" type="u8" value="0" />
     </struct>
 
+    <struct name="CharacterSpawnItemData">
+        <attribute name="item_id" type="u32" />
+        <attribute name="upgrade_level" type="u8" />
+    </struct>
+
     <enum name="EntityTypeSpawnData">
         <variation name="Item">
 
@@ -138,8 +143,7 @@
             <attribute name="beginner" type="bool" />
             <attribute name="title" type="u8" />
             <attribute name="inventory_size" type="u8" />
-            <attribute name="equipment" type="Vec" inner="u32"
-                       list-type="length" /><!-- TODO, should have another u8 for upgrade level -->
+            <attribute name="equipment" type="Vec" inner="CharacterSpawnItemData" list-type="length" />
             <attribute name="avatar_inventory_size" type="u8" />
             <attribute name="avatar_items" type="Vec" inner="u32"
                        list-type="length" /><!-- TODO, should have another u8 for upgrade level -->
@@ -368,6 +372,15 @@
         <attribute name="total" type="u32" />
     </packet>
 
+    <struct name="JobBagContent">
+        <attribute name="items" type="Vec" inner="InventoryItemData" list-type="length" />
+    </struct>
+
+    <struct name="SkillData">
+        <attribute name="id" type="u32" />
+        <attribute name="enabled" type="bool" />
+    </struct>
+
     <packet name="CharacterSpawnStart" source="server" opcode="0x34A5" />
     <packet name="CharacterSpawn" source="server" opcode="0x3013">
         <attribute name="time" type="u32" />
@@ -402,9 +415,13 @@
         <attribute name="unknown_3" type="u8" value="0" /> <!-- it's 8 now?! -->
         <attribute name="unknown_4" type="u8" value="0xb" /> <!-- maybe job mastery? -->
         <attribute name="unknown_5" type="u16" value="0" />
+        <!--        <attribute name="job_special_bag_size" type="u8" />-->
+        <!--        <attribute name="job_special_bag_contents" type="Option" inner="JobBagContent" length="0" />-->
+        <!--        <attribute name="job_bag_size" type="u8" />-->
+        <!--        <attribute name="job_bag_contents" type="Option" inner="JobBagContent" length="0" />-->
         <attribute name="masteries" type="Vec" inner="MasteryData" list-type="break" />
         <attribute name="unknown_6" type="u8" value="0" />
-        <attribute name="unknown_7" type="u8" value="2" /> <!-- it's 1 now ?? -->
+        <attribute name="skills" type="Vec" inner="SkillData" list-type="break" />
         <attribute name="completed_quests" type="Vec" inner="u32" list-type="length" size="2" />
         <attribute name="active_quests" type="Vec" inner="ActiveQuestData" list-type="length" />
         <attribute name="unknown_8" type="u8" value="0" />

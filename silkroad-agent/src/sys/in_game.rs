@@ -4,8 +4,9 @@ use crate::comp::pos::{Heading, LocalPosition, Position};
 use crate::comp::sync::{MovementUpdate, Synchronize};
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, GameEntity, Health};
-use crate::event::ClientDisconnectedEvent;
+use crate::event::{ChatEvent, ClientDisconnectedEvent};
 use crate::world::id_allocator::IdAllocator;
+use crate::world::lookup::EntityLookup;
 use crate::GameSettings;
 use bevy_core::Time;
 use bevy_ecs::prelude::*;
@@ -13,7 +14,7 @@ use cgmath::{Deg, Euler, Quaternion, Rotation3, Vector3};
 use silkroad_protocol::auth::{LogoutFinished, LogoutRequest, LogoutResponse, LogoutResult};
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::chat::{
-    ChatMessageResponse, ChatMessageResult, ChatSource, ChatUpdate, TextCharacterInitialization,
+    ChatMessageResponse, ChatMessageResult, ChatSource, ChatTarget, ChatUpdate, TextCharacterInitialization,
 };
 use silkroad_protocol::world::{
     CelestialUpdate, EntityRarity, EntityUpdateState, PlayerMovementRequest, Rotation, TargetEntity,
@@ -25,7 +26,9 @@ use std::time::Duration;
 use tracing::debug;
 
 pub(crate) fn in_game(
-    mut events: EventWriter<ClientDisconnectedEvent>,
+    mut disconnect_events: EventWriter<ClientDisconnectedEvent>,
+    mut chat_messages: EventWriter<ChatEvent>,
+    mut lookup: ResMut<EntityLookup>,
     settings: Res<GameSettings>,
     delta: Res<Time>,
     mut allocator: ResMut<IdAllocator>,
@@ -61,8 +64,14 @@ pub(crate) fn in_game(
                     if let Some(notice) = &settings.join_notice {
                         client.send(ChatUpdate::new(ChatSource::Notice, notice.clone()));
                     }
+                    lookup.add_player(player.character.name.clone(), entity, game_entity.unique_id);
 
-                    cmd.spawn()
+                    let mob = GameEntity {
+                        ref_id: 0x078d,
+                        unique_id: allocator.allocate(),
+                    };
+                    let spawned = cmd
+                        .spawn()
                         .insert(Synchronize::default())
                         .insert(Agent::new(16.))
                         .insert(position.clone())
@@ -70,12 +79,11 @@ pub(crate) fn in_game(
                             rarity: EntityRarity::Normal,
                             target: None,
                         })
-                        .insert(GameEntity {
-                            ref_id: 0x078d,
-                            unique_id: allocator.allocate(),
-                        })
+                        .insert(mob)
                         .insert(Health::new(100))
-                        .insert(Visibility::with_radius(10.));
+                        .insert(Visibility::with_radius(10.))
+                        .id();
+                    lookup.add_monster(mob.unique_id, spawned);
                 },
                 ClientPacket::PlayerMovementRequest(PlayerMovementRequest { kind }) => match kind {
                     silkroad_protocol::world::MovementTarget::TargetLocation { region, x, y, z } => {
@@ -102,6 +110,32 @@ pub(crate) fn in_game(
                 },
                 ClientPacket::ChatMessage(message) => {
                     debug!(id = ?client.0.id(), "Received chat message: {} @ {}", message.message, message.index);
+                    match message.target {
+                        ChatTarget::All | ChatTarget::AllGm => {
+                            if message.message.starts_with("/") && player.character.gm {
+                                chat_messages.send(ChatEvent::Command {
+                                    sender: entity,
+                                    message: message.message,
+                                });
+                            } else {
+                                chat_messages.send(ChatEvent::RegionalChat {
+                                    sender: entity,
+                                    sender_unique_id: game_entity.unique_id,
+                                    position: position.location.0,
+                                    message: message.message,
+                                });
+                            }
+                        },
+                        ChatTarget::PrivateMessage => {
+                            chat_messages.send(ChatEvent::PrivateChat {
+                                sender: player.character.name.clone(),
+                                target: message.recipient.unwrap(),
+                                message: message.message,
+                            });
+                        },
+                        _ => {},
+                    }
+
                     client.send(ChatMessageResponse::new(
                         ChatMessageResult::Success,
                         message.target,
@@ -132,7 +166,7 @@ pub(crate) fn in_game(
         if let Some(logout_time) = player.logout {
             if delta.last_update().unwrap() > logout_time {
                 client.send(LogoutFinished);
-                events.send(ClientDisconnectedEvent(entity));
+                disconnect_events.send(ClientDisconnectedEvent(entity));
             }
         }
     }
@@ -168,4 +202,34 @@ fn send_text_initialization(client: &Client) {
     }
 
     client.send(TextCharacterInitialization::new(characters));
+}
+
+fn match_chat_target_to_source(target: &ChatTarget, sender_id: u32, sender_name: &str) -> ChatSource {
+    match target {
+        ChatTarget::All => ChatSource::All { sender: sender_id },
+        ChatTarget::AllGm => ChatSource::AllGm { sender: sender_id },
+        ChatTarget::NPC => ChatSource::NPC { sender: sender_id },
+        ChatTarget::PrivateMessage => ChatSource::PrivateMessage {
+            sender: sender_name.to_string(),
+        },
+        ChatTarget::Party => ChatSource::Party {
+            sender: sender_name.to_string(),
+        },
+        ChatTarget::Guild => ChatSource::Guild {
+            sender: sender_name.to_string(),
+        },
+        ChatTarget::Global => ChatSource::Global {
+            sender: sender_name.to_string(),
+        },
+        ChatTarget::Stall => ChatSource::Stall {
+            sender: sender_name.to_string(),
+        },
+        ChatTarget::Union => ChatSource::Union {
+            sender: sender_name.to_string(),
+        },
+        ChatTarget::Academy => ChatSource::Academy {
+            sender: sender_name.to_string(),
+        },
+        ChatTarget::Notice => ChatSource::Notice,
+    }
 }

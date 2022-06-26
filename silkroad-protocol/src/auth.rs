@@ -6,7 +6,6 @@
     clippy::too_many_arguments,
     clippy::new_without_default
 )]
-
 use crate::error::ProtocolError;
 use crate::size::Size;
 use crate::ClientPacket;

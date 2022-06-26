@@ -1,18 +1,50 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <packets module="chat">
-    <enum name="ChatSource" type="u8">
+    <enum name="ChatTarget" type="u8">
         <variation name="All" value="1" />
         <variation name="AllGm" value="3" />
         <variation name="NPC" value="13" />
-        <variation name="PrivateMessage" value="2">
-            <attribute name="receiver" type="String" />
-        </variation>
+        <variation name="PrivateMessage" value="2" />
         <variation name="Party" value="4" />
         <variation name="Guild" value="5" />
         <variation name="Global" value="6" />
         <variation name="Stall" value="9" />
         <variation name="Union" value="11" />
         <variation name="Academy" value="16" />
+        <variation name="Notice" value="7" />
+    </enum>
+
+    <enum name="ChatSource" type="u8">
+        <variation name="All" value="1">
+            <attribute name="sender" type="u32" />
+        </variation>
+        <variation name="AllGm" value="3">
+            <attribute name="sender" type="u32" />
+        </variation>
+        <variation name="NPC" value="13">
+            <attribute name="sender" type="u32" />
+        </variation>
+        <variation name="PrivateMessage" value="2">
+            <attribute name="sender" type="String" />
+        </variation>
+        <variation name="Party" value="4">
+            <attribute name="sender" type="String" />
+        </variation>
+        <variation name="Guild" value="5">
+            <attribute name="sender" type="String" />
+        </variation>
+        <variation name="Global" value="6">
+            <attribute name="sender" type="String" />
+        </variation>
+        <variation name="Stall" value="9">
+            <attribute name="sender" type="String" />
+        </variation>
+        <variation name="Union" value="11">
+            <attribute name="sender" type="String" />
+        </variation>
+        <variation name="Academy" value="16">
+            <attribute name="sender" type="String" />
+        </variation>
         <variation name="Notice" value="7" />
     </enum>
 
@@ -33,15 +65,17 @@
     </packet>
 
     <packet name="ChatMessage" source="client" opcode="0x7025">
-        <attribute name="target" type="ChatSource" />
+        <attribute name="target" type="ChatTarget" />
         <attribute name="index" type="u8" />
-        <attribute name="unknown_2" type="u16" />
+        <attribute name="contains_link" type="bool" />
+        <attribute name="unknown" type="u8" value="0" />
+        <attribute name="recipient" type="Option" inner="String" if="matches!(target, ChatTarget::PrivateMessage)" />
         <attribute name="message" type="String" size="2" />
     </packet>
 
     <packet name="ChatMessageResponse" source="server" opcode="0xB025">
         <attribute name="result" type="ChatMessageResult" />
-        <attribute name="source" type="ChatSource" />
+        <attribute name="target" type="ChatTarget" />
         <attribute name="index" type="u8" />
     </packet>
 </packets>

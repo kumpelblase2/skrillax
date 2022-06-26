@@ -1,9 +1,14 @@
+use crate::event::PlayerLevelUp;
+use crate::game::chat::ChatPlugin;
 use crate::game::entity_sync::{clean_sync, sync_changes_others, update_client};
+use crate::game::levelup::notify_levelup;
 use crate::game::movement::movement;
 use crate::game::visibility::{player_visibility_update, visibility_update};
 use bevy_app::{App, CoreStage, Plugin};
 
+mod chat;
 mod entity_sync;
+mod levelup;
 mod movement;
 mod visibility;
 

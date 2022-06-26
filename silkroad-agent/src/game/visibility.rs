@@ -74,12 +74,15 @@ pub(crate) fn player_visibility_update(
         let mut spawns = Vec::new();
         for added in visibility.added_entities.iter() {
             if let Ok((pos, entity, player_opt, monster_opt)) = lookup.get(*added) {
-                let pos: &Position = pos;
-                let entity: &GameEntity = entity;
-                let player_opt: Option<&Player> = player_opt;
-                let monster_opt: Option<&Monster> = monster_opt;
-
                 if let Some(player) = player_opt {
+                    let items = player
+                        .inventory
+                        .items()
+                        .map(|(_, item)| CharacterSpawnItemData {
+                            item_id: item.ref_id as u32,
+                            upgrade_level: item.upgrade_level,
+                        })
+                        .collect();
                     spawns.push(GroupSpawnDataContent::Spawn {
                         object_id: entity.ref_id,
                         data: EntityTypeSpawnData::Character {
@@ -89,8 +92,8 @@ pub(crate) fn player_visibility_update(
                             pvp_cape: PvpCape::None,
                             beginner: true,
                             title: 0,
-                            inventory_size: 45,
-                            equipment: vec![],
+                            inventory_size: player.inventory.size() as u8,
+                            equipment: items,
                             avatar_inventory_size: 5,
                             avatar_items: vec![],
                             mask: None,

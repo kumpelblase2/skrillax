@@ -1,5 +1,30 @@
 use crate::ParseError;
+use pk2::Pk2;
+use std::io::Read;
 use std::str::FromStr;
+
+pub struct LevelMap {
+    levels: Vec<RefLevel>,
+}
+
+impl LevelMap {
+    pub fn from(pk2: &Pk2) -> LevelMap {
+        let mut file = pk2.open_file("/server_dep/silkroad/textdata/LevelData.txt").unwrap();
+        let mut full_string = String::new();
+        file.read_to_string(&mut full_string).unwrap();
+        let levels = full_string
+            .lines()
+            .filter(|line| line.len() > 0)
+            .map(|line| RefLevel::from_str(line).unwrap())
+            .collect();
+        LevelMap { levels }
+    }
+
+    pub fn get_exp_for_level(&self, level: u8) -> u64 {
+        let index = (level - 1) as usize;
+        self.levels[index].exp
+    }
+}
 
 pub struct RefLevel {
     pub level: u8,
