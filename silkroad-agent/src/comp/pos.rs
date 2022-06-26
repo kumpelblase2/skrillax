@@ -91,13 +91,13 @@ impl From<u16> for Heading {
             return Heading(0.);
         }
         let percent = (heading as f32) / (u16::MAX as f32);
-        Heading(percent * 360.)
+        Heading(360. - percent * 360.)
     }
 }
 
 impl Into<u16> for Heading {
     fn into(self) -> u16 {
-        let percentage = 360.0 / self.0;
+        let percentage = (360. - self.0) / 360.0;
         (percentage * (u16::MAX as f32)) as u16
     }
 }
