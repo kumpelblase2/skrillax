@@ -526,9 +526,13 @@
         <attribute name="value" type="u8" />
     </packet>
 
+    <enum name="TargetEntityError" type="u8">
+        <variation name="InvalidTarget" value="0" />
+    </enum>
+
     <enum name="TargetEntityResult" type="u8">
-        <variation name="Failure" value="0">
-            <attribute name="error" type="u16" />
+        <variation name="Failure" value="2">
+            <attribute name="error" type="TargetEntityError" />
         </variation>
         <variation name="Success" value="1">
             <attribute name="unique_id" type="u32" />

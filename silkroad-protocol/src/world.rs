@@ -714,10 +714,21 @@ impl Size for MovementDestination {
     }
 }
 
+#[derive(Clone, PartialEq, PartialOrd, Copy)]
+pub enum TargetEntityError {
+    InvalidTarget,
+}
+
+impl Size for TargetEntityError {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+    }
+}
+
 #[derive(Clone)]
 pub enum TargetEntityResult {
     Failure {
-        error: u16,
+        error: TargetEntityError,
     },
     Success {
         unique_id: u32,
@@ -728,7 +739,7 @@ pub enum TargetEntityResult {
 }
 
 impl TargetEntityResult {
-    pub fn failure(error: u16) -> Self {
+    pub fn failure(error: TargetEntityError) -> Self {
         TargetEntityResult::Failure { error }
     }
 
@@ -838,6 +849,24 @@ impl Size for GuildInformation {
             + self.last_union_icon_rev.calculate_size()
             + self.is_friendly.calculate_size()
             + self.siege_unkown.calculate_size()
+    }
+}
+
+#[derive(Clone)]
+pub struct CharacterSpawnItemData {
+    pub item_id: u32,
+    pub upgrade_level: u8,
+}
+
+impl CharacterSpawnItemData {
+    pub fn new(item_id: u32, upgrade_level: u8) -> Self {
+        CharacterSpawnItemData { item_id, upgrade_level }
+    }
+}
+
+impl Size for CharacterSpawnItemData {
+    fn calculate_size(&self) -> usize {
+        self.item_id.calculate_size() + self.upgrade_level.calculate_size()
     }
 }
 
@@ -1222,6 +1251,41 @@ impl Size for MovementSource {
 }
 
 #[derive(Clone)]
+pub struct JobBagContent {
+    pub items: Vec<InventoryItemData>,
+}
+
+impl JobBagContent {
+    pub fn new(items: Vec<InventoryItemData>) -> Self {
+        JobBagContent { items }
+    }
+}
+
+impl Size for JobBagContent {
+    fn calculate_size(&self) -> usize {
+        2 + self.items.iter().map(|inner| inner.calculate_size()).sum::<usize>()
+    }
+}
+
+#[derive(Clone)]
+pub struct SkillData {
+    pub id: u32,
+    pub enabled: bool,
+}
+
+impl SkillData {
+    pub fn new(id: u32, enabled: bool) -> Self {
+        SkillData { id, enabled }
+    }
+}
+
+impl Size for SkillData {
+    fn calculate_size(&self) -> usize {
+        self.id.calculate_size() + self.enabled.calculate_size()
+    }
+}
+
+#[derive(Clone)]
 pub struct CelestialUpdate {
     pub unique_id: u32,
     pub moon_position: u16,
@@ -1383,7 +1447,7 @@ pub struct CharacterSpawn {
     pub unknown_5: u16,
     pub masteries: Vec<MasteryData>,
     pub unknown_6: u8,
-    pub unknown_7: u8,
+    pub skills: Vec<SkillData>,
     pub completed_quests: Vec<u32>,
     pub active_quests: Vec<ActiveQuestData>,
     pub unknown_8: u8,
@@ -1507,7 +1571,12 @@ impl From<CharacterSpawn> for Bytes {
         }
         data_writer.put_u8(2);
         data_writer.put_u8(op.unknown_6);
-        data_writer.put_u8(op.unknown_7);
+        for element in op.skills.iter() {
+            data_writer.put_u8(1);
+            data_writer.put_u32_le(element.id);
+            data_writer.put_u8(element.enabled as u8);
+        }
+        data_writer.put_u8(2);
         data_writer.put_u16_le(op.completed_quests.len() as u16);
         for element in op.completed_quests.iter() {
             data_writer.put_u32_le(*element);
@@ -1662,6 +1731,7 @@ impl CharacterSpawn {
         avatar_item_size: u8,
         avatar_items: Vec<InventoryAvatarItemData>,
         masteries: Vec<MasteryData>,
+        skills: Vec<SkillData>,
         completed_quests: Vec<u32>,
         active_quests: Vec<ActiveQuestData>,
         unique_id: u32,
@@ -1724,7 +1794,7 @@ impl CharacterSpawn {
             unknown_5: 0,
             masteries,
             unknown_6: 0,
-            unknown_7: 2,
+            skills,
             completed_quests,
             active_quests,
             unknown_8: 0,
@@ -1817,7 +1887,11 @@ impl Size for CharacterSpawn {
                 .map(|inner| inner.calculate_size() + 1)
                 .sum::<usize>()
             + self.unknown_6.calculate_size()
-            + self.unknown_7.calculate_size()
+            + self
+                .skills
+                .iter()
+                .map(|inner| inner.calculate_size() + 1)
+                .sum::<usize>()
             + 2
             + self
                 .completed_quests
@@ -3158,8 +3232,10 @@ impl From<TargetEntityResponse> for Bytes {
         let mut data_writer = BytesMut::with_capacity(op.calculate_size());
         match &op.result {
             TargetEntityResult::Failure { error } => {
-                data_writer.put_u8(0);
-                data_writer.put_u16_le(*error);
+                data_writer.put_u8(2);
+                match &error {
+                    TargetEntityError::InvalidTarget => data_writer.put_u8(0),
+                }
             },
             TargetEntityResult::Success {
                 unique_id,
