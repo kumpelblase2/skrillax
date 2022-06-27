@@ -2,7 +2,7 @@ use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
 use crate::comp::Client;
 use crate::event::{ChatEvent, PlayerLevelUp};
-use crate::world::lookup::EntityLookup;
+use crate::world::EntityLookup;
 use bevy_app::{App, Plugin};
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;

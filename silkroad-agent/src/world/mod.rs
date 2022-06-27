@@ -1,5 +1,6 @@
-use crate::world::id_allocator::IdAllocator;
-use crate::world::lookup::{maintain_entities, EntityLookup};
+pub use crate::world::id_allocator::IdAllocator;
+pub use crate::world::lookup::maintain_entities;
+pub use crate::world::lookup::EntityLookup;
 use crate::GameSettings;
 use bevy_app::{App, CoreStage, Plugin};
 use bevy_ecs::system::ResMut;
@@ -8,12 +9,12 @@ use silkroad_data::level::LevelMap;
 use silkroad_navmesh::NavmeshLoader;
 use std::path::Path;
 
-pub mod id_allocator;
-pub(crate) mod lookup;
+mod id_allocator;
+mod lookup;
 
 const BLOWFISH_KEY: &str = "169841";
 
-pub(crate) struct WorldPlugin;
+pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
@@ -39,10 +40,10 @@ fn update_ticks(mut ticks: ResMut<Ticks>) {
 }
 
 #[derive(Default)]
-pub(crate) struct Ticks(pub u64);
+pub struct Ticks(pub u64);
 
 impl Ticks {
-    pub(crate) fn increase(&mut self) {
+    pub fn increase(&mut self) {
         self.0 += 1;
     }
 }

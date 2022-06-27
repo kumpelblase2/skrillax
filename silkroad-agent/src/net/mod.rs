@@ -1,9 +1,12 @@
-use crate::sys::in_game::in_game;
-use crate::sys::net::{accept, connected, disconnected, receive};
+mod in_game;
+mod net;
+
+use crate::net::in_game::in_game;
+use crate::net::net::{accept, connected, disconnected, receive};
 use bevy_app::{App, CoreStage, Plugin};
 use silkroad_network::server::SilkroadServer;
 
-pub(crate) struct NetworkPlugin {
+pub struct NetworkPlugin {
     server: SilkroadServer,
 }
 

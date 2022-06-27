@@ -1,10 +1,9 @@
 use bevy_ecs::entity::{Entities, Entity};
 use bevy_ecs::system::ResMut;
-use crossbeam_channel::after;
 use std::collections::HashMap;
 use tracing::debug;
 
-pub(crate) struct EntityLookup {
+pub struct EntityLookup {
     player_map: HashMap<String, Entity>,
     id_map: HashMap<u32, Entity>,
 }
@@ -34,7 +33,7 @@ impl EntityLookup {
     }
 }
 
-pub(crate) fn maintain_entities(mut lookup: ResMut<EntityLookup>, entities: &Entities) {
+pub fn maintain_entities(mut lookup: ResMut<EntityLookup>, entities: &Entities) {
     let before_player_count = lookup.player_map.len();
     lookup.player_map.retain(|_, entity| entities.contains(*entity));
     let after_player_count = lookup.player_map.len();

@@ -5,12 +5,11 @@ use crate::comp::sync::{MovementUpdate, Synchronize};
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, GameEntity, Health};
 use crate::event::{ChatEvent, ClientDisconnectedEvent};
-use crate::world::id_allocator::IdAllocator;
-use crate::world::lookup::EntityLookup;
+use crate::world::{EntityLookup, IdAllocator};
 use crate::GameSettings;
 use bevy_core::Time;
 use bevy_ecs::prelude::*;
-use cgmath::{Deg, Euler, Quaternion, Rotation3, Vector3};
+use cgmath::Vector3;
 use silkroad_protocol::auth::{LogoutFinished, LogoutRequest, LogoutResponse, LogoutResult};
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::chat::{
@@ -136,6 +135,8 @@ pub(crate) fn in_game(
                         _ => {},
                     }
 
+                    // TODO: this currently just says "success" to everything, but does not deal with errors,
+                    //  like the target not being online.
                     client.send(ChatMessageResponse::new(
                         ChatMessageResult::Success,
                         message.target,

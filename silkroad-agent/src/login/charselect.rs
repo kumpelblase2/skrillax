@@ -9,7 +9,7 @@ use crate::login::character_loader::{check_name_available, create_character, loa
 use crate::login::job_distribution::JobDistribution;
 use crate::server_plugin::ServerId;
 use crate::time::AsSilkroadTime;
-use crate::world::id_allocator::IdAllocator;
+use crate::world::IdAllocator;
 use crate::GameSettings;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
