@@ -28,7 +28,7 @@ use sqlx::PgPool;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 use tokio::sync::oneshot::error::TryRecvError;
-use tracing::warn;
+use tracing::{debug, warn};
 
 pub(crate) fn charselect(
     settings: Res<GameSettings>,
@@ -41,7 +41,6 @@ pub(crate) fn charselect(
     mut query: Query<(Entity, &mut Client, &mut CharacterSelect, &Playing)>,
 ) {
     for (entity, mut client, mut character_list, playing) in query.iter_mut() {
-        let mut character_list: &mut CharacterSelect = &mut character_list;
         while let Some(packet) = client.1.pop_front() {
             match packet {
                 ClientPacket::CharacterListRequest(CharacterListRequest { action }) => match action {
@@ -54,6 +53,14 @@ pub(crate) fn charselect(
                         boots,
                         weapon,
                     } => {
+                        if !can_create_character_with_name(&character_list, &character_name) {
+                            debug!(id = ?client.0.id(), "Tried to create character without checking name first.");
+                            client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
+                                CharacterListAction::Create,
+                                CharacterListResult::error(CharacterListError::CloudntCreateCharacter),
+                            )));
+                        }
+
                         let character = create_character_from(
                             playing.0.id,
                             server_id.0,
@@ -80,6 +87,7 @@ pub(crate) fn charselect(
                     CharacterListRequestAction::Delete { .. } => {},
                     CharacterListRequestAction::CheckName { character_name } => {
                         if character_list.character_name_check.is_none() {
+                            character_list.checked_name = Some(character_name.clone());
                             let task = task_creator.create_task(check_name_available(
                                 pool.clone(),
                                 character_name,
@@ -178,6 +186,7 @@ pub(crate) fn charselect(
                     let result = if available {
                         CharacterListResult::ok(CharacterListContent::Empty)
                     } else {
+                        character_list.checked_name = None;
                         CharacterListResult::error(CharacterListError::NameAlreadyUsed)
                     };
                     client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
@@ -211,6 +220,17 @@ pub(crate) fn charselect(
             }
         }
     }
+}
+
+fn can_create_character_with_name(charselect: &CharacterSelect, name: &str) -> bool {
+    return if let Some(ref checked_name) = charselect.checked_name {
+        if charselect.character_name_check.is_some() || checked_name != name {
+            return false;
+        }
+        true
+    } else {
+        false
+    };
 }
 
 fn send_character_list(client: &Client, character_list: &Vec<Character>) {
