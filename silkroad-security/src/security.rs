@@ -1,6 +1,4 @@
-use blowfish_compat::cipher::generic_array::GenericArray;
-use blowfish_compat::cipher::{BlockDecrypt, BlockEncrypt, NewBlockCipher};
-use blowfish_compat::BlowfishCompat;
+use blowfish_compat::{Block, BlockDecrypt, BlockEncrypt, BlowfishCompat, NewBlockCipher};
 use byteorder::{ByteOrder, LittleEndian};
 use bytes::{BufMut, Bytes};
 use rand::random;
@@ -73,8 +71,7 @@ impl SilkroadSecurity {
             _ => return Err(SilkroadSecurityError::AlreadyInitialized),
         }
 
-        let span = span!(Level::TRACE, "security initialization");
-        let _enter = span.enter();
+        let _span = span!(Level::TRACE, "security initialization").enter();
         let seed = random::<u64>();
         let count_seed = random::<u32>();
         let crc_seed = random::<u32>();
@@ -127,15 +124,14 @@ impl SilkroadSecurity {
                 value_p,
                 value_a,
             } => {
-                let span = span!(Level::TRACE, "security challenge start");
-                let _enter = span.enter();
+                let _span = span!(Level::TRACE, "security challenge start").enter();
                 let value_k = g_pow_x_mod_p(value_p as i64, value_x, value_b);
                 let new_key = to_u64(value_a, value_b);
                 let new_key = transform_key(new_key, value_k, LOBYTE(LOWORD(value_k)) & 0x03);
                 let blowfish = blowfish_from_int(new_key);
 
                 let mut key_bytes: [u8; 8] = client_key.to_le_bytes();
-                blowfish.decrypt_block(GenericArray::from_mut_slice(&mut key_bytes));
+                blowfish.decrypt_block(Block::from_mut_slice(&mut key_bytes));
 
                 let client_key = LittleEndian::read_u64(&key_bytes);
                 let new_key = to_u64(value_b, value_a);
@@ -154,7 +150,7 @@ impl SilkroadSecurity {
                 let challenge_key = to_u64(value_a, value_b);
                 let challenge_key = transform_key(challenge_key, value_k, LOBYTE(LOWORD(value_a)) & 0x07);
                 let mut key_bytes: [u8; 8] = challenge_key.to_le_bytes();
-                blowfish.encrypt_block(GenericArray::from_mut_slice(&mut key_bytes));
+                blowfish.encrypt_block(Block::from_mut_slice(&mut key_bytes));
                 let encrypted_challenge = LittleEndian::read_u64(&key_bytes);
 
                 let handshake_seed = transform_key(handshake_seed, value_k, 0x03);
@@ -222,14 +218,13 @@ impl SilkroadSecurity {
                 crc_seed: _,
                 count_seed: _,
             } => {
-                let span = span!(Level::TRACE, "security decryption");
-                let _enter = span.enter();
+                let _span = span!(Level::TRACE, "security decryption").enter();
                 if data.len() % BLOWFISH_BLOCK_SIZE != 0 {
                     return Err(SilkroadSecurityError::InvalidBlockLength(data.len()));
                 }
                 let mut result = bytes::BytesMut::from(data);
                 for chunk in result.chunks_mut(BLOWFISH_BLOCK_SIZE) {
-                    let block = GenericArray::from_mut_slice(chunk);
+                    let block = Block::from_mut_slice(chunk);
                     blowfish.decrypt_block(block);
                 }
                 Ok(result.freeze())
@@ -245,8 +240,7 @@ impl SilkroadSecurity {
                 crc_seed: _,
                 count_seed: _,
             } => {
-                let span = span!(Level::TRACE, "security encryption");
-                let _enter = span.enter();
+                let _span = span!(Level::TRACE, "security encryption").enter();
                 let target_buffer_size = Self::find_encrypted_length(data.len());
                 let mut result = bytes::BytesMut::with_capacity(target_buffer_size);
                 result.extend_from_slice(data);
@@ -254,7 +248,7 @@ impl SilkroadSecurity {
                     result.put_u8(0);
                 }
                 for chunk in result.chunks_mut(BLOWFISH_BLOCK_SIZE) {
-                    let block = GenericArray::from_mut_slice(chunk);
+                    let block = Block::from_mut_slice(chunk);
                     blowfish.encrypt_block(block);
                 }
                 Ok(result.freeze())
@@ -361,9 +355,8 @@ fn to_u64(low: u32, high: u32) -> u64 {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use byteorder::{ByteOrder, LittleEndian};
-
-    use crate::security::{SilkroadSecurity, SilkroadSecurityError};
 
     #[test]
     fn finishes_encoding() {
@@ -390,13 +383,23 @@ mod tests {
 
     #[test]
     fn cannot_encrypt_uninitialized() {
-        let security = SilkroadSecurity::default();
+        let mut security = SilkroadSecurity::default();
         assert!(matches!(
             security.encrypt(&[]),
             Err(SilkroadSecurityError::SecurityUninitialized)
         ));
         assert!(matches!(
             security.decrypt(&[]),
+            Err(SilkroadSecurityError::SecurityUninitialized)
+        ));
+
+        assert!(matches!(
+            security.accept_challenge(),
+            Err(SilkroadSecurityError::InitializationUnfinished)
+        ));
+
+        assert!(matches!(
+            security.start_challenge(0, 0),
             Err(SilkroadSecurityError::SecurityUninitialized)
         ));
     }
