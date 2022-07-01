@@ -2474,6 +2474,7 @@ dependencies = [
  "blowfish-compat",
  "byteorder",
  "bytes",
+ "once_cell",
  "rand 0.8.4",
  "thiserror",
  "tracing",
