@@ -1,4 +1,4 @@
-use blowfish_compat::{Block, BlockDecrypt, BlockEncrypt, BlowfishCompat, NewBlockCipher};
+use blowfish_compat::{Block, BlockDecrypt, BlockEncrypt, BlowfishCompat, NewBlockCipher, BLOCK_SIZE};
 use byteorder::{ByteOrder, LittleEndian};
 use bytes::{BufMut, Bytes};
 use rand::random;
@@ -7,18 +7,25 @@ use tracing::{span, Level};
 
 #[derive(Error, Debug)]
 pub enum SilkroadSecurityError {
+    /// The handshake hasn't been started or hasn't completed, yet the operation required it.
     #[error("Security has not been initialized")]
     SecurityUninitialized,
+    /// The handshake has already completed. The security would need to be reset before continuing.
     #[error("Security is already initialized")]
     AlreadyInitialized,
+    /// Finalizing the handshake requires the handshake to have exchanged public key data, which hasn't happened yet.
     #[error("Security has not completed the initialization")]
     InitializationUnfinished,
+    /// The given encrypted data is not the correct block length, as required for decryption.
     #[error("{0} is an invalid block length")]
     InvalidBlockLength(usize),
+    /// We calculated a different secret than the client, something went wrong in the handshake.
     #[error("Local calculated key was {calculated} but received {received}")]
     KeyExchangeMismatch { received: u64, calculated: u64 },
 }
 
+/// Initialization data for the handshake. These are transmitted to the client side for a Diffie-Hellman style key
+/// exchange.
 pub struct InitializationData {
     pub seed: u64,
     pub count_seed: u32,
@@ -52,6 +59,9 @@ enum SecurityState {
 
 const BLOWFISH_BLOCK_SIZE: usize = 8;
 
+/// [SilkroadSecurity] handles the handshake and continuous encryption/decryption of a connection to a silkroad client.
+///
+///  A general
 pub struct SilkroadSecurity {
     state: SecurityState,
 }
@@ -65,13 +75,19 @@ impl Default for SilkroadSecurity {
 }
 
 impl SilkroadSecurity {
+    /// Starts the handshake process. This generates the private key parts and returns [InitializationData], which
+    /// should be transferred to the client. This should later be followed by calling [start_challenge()][Self::start_challenge()]
+    /// with the client response.
+    ///
+    /// If a handshake has already been started or completed, will return [SilkroadSecurityError::AlreadyInitialized].
     pub fn initialize(&mut self) -> Result<InitializationData, SilkroadSecurityError> {
         match self.state {
             SecurityState::Uninitialized => {},
             _ => return Err(SilkroadSecurityError::AlreadyInitialized),
         }
 
-        let _span = span!(Level::TRACE, "security initialization").enter();
+        let span = span!(Level::TRACE, "security initialization");
+        let _enter = span.enter();
         let seed = random::<u64>();
         let count_seed = random::<u32>();
         let crc_seed = random::<u32>();
@@ -99,6 +115,7 @@ impl SilkroadSecurity {
         })
     }
 
+    #[cfg(test)]
     pub fn initialize_with(&mut self, handshake_seed: u64, x: u32, p: u32, a: u32) {
         self.state = SecurityState::HandshakeStarted {
             count_seed: 0,
@@ -110,10 +127,20 @@ impl SilkroadSecurity {
         }
     }
 
+    /// Resets the security to a fresh state. Is equivalent to creating a new object using [default()][Self::default()]
     pub fn restart(&mut self) {
         self.state = SecurityState::Uninitialized;
     }
 
+    /// Create a challenge to the client.
+    ///
+    /// This creates a challenge for the client, signaling a switch to an encrypted channel using the exchanged key
+    /// material. We also check if the key, that the client sent us, matches was we would expect given what we've
+    /// witnessed in the key exchange.
+    ///
+    /// If successful, returns the challenge for the client. If [initialize][Self::initialize()] hasn't been called,
+    /// returns [SilkroadSecurityError::SecurityUninitialized]. If the passed key does not match the key we expect,
+    /// will return [SilkroadSecurityError::KeyExchangeMismatch].
     pub fn start_challenge(&mut self, value_b: u32, client_key: u64) -> Result<u64, SilkroadSecurityError> {
         match self.state {
             SecurityState::HandshakeStarted {
@@ -124,7 +151,8 @@ impl SilkroadSecurity {
                 value_p,
                 value_a,
             } => {
-                let _span = span!(Level::TRACE, "security challenge start").enter();
+                let span = span!(Level::TRACE, "security challenge start");
+                let _enter = span.enter();
                 let value_k = g_pow_x_mod_p(value_p as i64, value_x, value_b);
                 let new_key = to_u64(value_a, value_b);
                 let new_key = transform_key(new_key, value_k, LOBYTE(LOWORD(value_k)) & 0x03);
@@ -166,6 +194,13 @@ impl SilkroadSecurity {
         }
     }
 
+    /// Finish the handshake.
+    ///
+    /// Client has confirmed the challenge and the handshake is complete. This will initialize the `count_seed` with the
+    /// values generated in the handshake. After this is completed, encryption/decryption is possible.
+    ///
+    /// Will return [SilkroadSecurityError::InitializationUnfinished] if [start_challenge][Self::start_challenge()]
+    /// hasn't been successfully executed.
     pub fn accept_challenge(&mut self) -> Result<(), SilkroadSecurityError> {
         match self.state {
             SecurityState::Challenged {
@@ -211,28 +246,57 @@ impl SilkroadSecurity {
         val
     }
 
+    /// Decrypt an encrypted message sent by the client.
+    ///
+    /// Decrypts the given input by splitting it into the individual encrypted blocks. The output is all decrypted data,
+    /// which may contain padding that was added before encryption. Bytes are copied before performing decryption.
+    /// To decrypt in place, use [decrypt_mut][Self::decrypt_mut()]
+    ///
+    /// If handshake hasn't been completed yet, will result in [SilkroadSecurityError::SecurityUninitialized].
+    /// If the input doesn't match the required block length it will return [SilkroadSecurityError::InvalidBlockLength].
     pub fn decrypt(&self, data: &[u8]) -> Result<Bytes, SilkroadSecurityError> {
+        let mut result = bytes::BytesMut::from(data);
+        self.decrypt_mut(&mut result)?;
+        Ok(result.freeze())
+    }
+
+    /// Decrypt an encrypted message sent by the client.
+    ///
+    /// Decrypts the given input by splitting it into the individual encrypted blocks in place. The decrypted data may
+    /// still be padded to match block length (8 bytes).
+    ///
+    /// If handshake hasn't been completed yet, will result in [SilkroadSecurityError::SecurityUninitialized].
+    /// If the input doesn't match the required block length it will return [SilkroadSecurityError::InvalidBlockLength].
+    pub fn decrypt_mut(&self, data: &mut [u8]) -> Result<(), SilkroadSecurityError> {
         match &self.state {
             SecurityState::Established {
                 blowfish,
                 crc_seed: _,
                 count_seed: _,
             } => {
-                let _span = span!(Level::TRACE, "security decryption").enter();
                 if data.len() % BLOWFISH_BLOCK_SIZE != 0 {
                     return Err(SilkroadSecurityError::InvalidBlockLength(data.len()));
                 }
-                let mut result = bytes::BytesMut::from(data);
-                for chunk in result.chunks_mut(BLOWFISH_BLOCK_SIZE) {
+
+                let span = span!(Level::TRACE, "security decryption");
+                let _enter = span.enter();
+                for chunk in data.chunks_mut(BLOWFISH_BLOCK_SIZE) {
                     let block = Block::from_mut_slice(chunk);
                     blowfish.decrypt_block(block);
                 }
-                Ok(result.freeze())
+                Ok(())
             },
             _ => Err(SilkroadSecurityError::SecurityUninitialized),
         }
     }
 
+    /// Encrypt a message to be sent to the client.
+    ///
+    /// Encrypts the given bytes using the previously established secret. Requires that the handshake has been completed.
+    /// It will copy the bytes and return the encrypted bytes as an owned reference. Bytes will be padded automatically
+    /// to the necessary block length. Use [encrypt_mut][Self::encrypt_mut()] for encryption in place.
+    ///
+    /// If handshake hasn't been completed yet, will result in [SilkroadSecurityError::SecurityUninitialized].
     pub fn encrypt(&self, data: &[u8]) -> Result<Bytes, SilkroadSecurityError> {
         match &self.state {
             SecurityState::Established {
@@ -240,23 +304,53 @@ impl SilkroadSecurity {
                 crc_seed: _,
                 count_seed: _,
             } => {
-                let _span = span!(Level::TRACE, "security encryption").enter();
                 let target_buffer_size = Self::find_encrypted_length(data.len());
                 let mut result = bytes::BytesMut::with_capacity(target_buffer_size);
                 result.extend_from_slice(data);
                 for _ in 0..(target_buffer_size - data.len()) {
                     result.put_u8(0);
                 }
-                for chunk in result.chunks_mut(BLOWFISH_BLOCK_SIZE) {
-                    let block = Block::from_mut_slice(chunk);
-                    blowfish.encrypt_block(block);
-                }
+                self.encrypt_mut(&mut result)?;
                 Ok(result.freeze())
             },
             _ => Err(SilkroadSecurityError::SecurityUninitialized),
         }
     }
 
+    /// Encrypt a message to be sent to the client.
+    ///
+    /// Encrypts the given bytes using the previously established secret. Requires that the handshake has been completed
+    /// and that `data` is a multiple of the block length.
+    ///
+    /// If handshake hasn't been completed yet, will result in [SilkroadSecurityError::SecurityUninitialized].
+    /// If the data is not block-aligned, will result in [SilkroadSecurityError::InvalidBlockLength]
+    pub fn encrypt_mut(&self, data: &mut [u8]) -> Result<(), SilkroadSecurityError> {
+        match &self.state {
+            SecurityState::Established {
+                blowfish,
+                crc_seed: _,
+                count_seed: _,
+            } => {
+                if data.len() % BLOCK_SIZE != 0 {
+                    return Err(SilkroadSecurityError::InvalidBlockLength(data.len()));
+                }
+
+                let span = span!(Level::TRACE, "security encryption");
+                let _enter = span.enter();
+                for chunk in data.chunks_mut(BLOWFISH_BLOCK_SIZE) {
+                    let block = Block::from_mut_slice(chunk);
+                    blowfish.encrypt_block(block);
+                }
+                Ok(())
+            },
+            _ => Err(SilkroadSecurityError::SecurityUninitialized),
+        }
+    }
+
+    /// Find the nearest block-aligned length.
+    ///
+    /// Given the current length of data to encrypt, calculates the length of the encrypted output, which includes
+    /// padding. Can at most increase by `BLOWFISH_BLOCK_SIZE - 1`, which is `7`.
     pub fn find_encrypted_length(given_length: usize) -> usize {
         let aligned_length = given_length % BLOWFISH_BLOCK_SIZE;
         if aligned_length == 0 {
@@ -267,6 +361,12 @@ impl SilkroadSecurity {
         given_length + (8 - aligned_length) // Add padding
     }
 
+    /// Generate the next count byte.
+    ///
+    /// A count byte is used to avoid replay attacks, used to determine a continuous flow of the data. If a packet is
+    /// dropped, or another injected, this will no longer match. It is essentially a seeded RNG number.
+    ///
+    /// If handshake hasn't been completed yet, will result in [SilkroadSecurityError::SecurityUninitialized].
     pub fn generate_count_byte(&mut self) -> Result<u8, SilkroadSecurityError> {
         match &self.state {
             SecurityState::Established { mut count_seed, .. } => {

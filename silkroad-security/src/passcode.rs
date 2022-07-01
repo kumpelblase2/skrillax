@@ -22,6 +22,13 @@ pub struct PassCodeDecoder {
 }
 
 impl PassCodeDecoder {
+    /// Decodes/Decrypts a passed in passcode.
+    ///
+    /// Decrypts a given passcode and returns it as a string. Slice length must be exactly one block, which is 8.
+    /// Returns a string that is `passcode_length` characters long containing the passcode.
+    ///
+    /// This can result in an error if the input could not be properly decoded into a string. This can happen if the
+    /// input was not an encrypted block, it was altered, or encrypted using a different key.
     pub fn decode_passcode(&self, passcode_length: u16, encrypted: &[u8]) -> Result<String, FromUtf8Error> {
         let mut data = BytesMut::from(encrypted);
         self.blowfish.decrypt_block(Block::from_mut_slice(&mut data));
