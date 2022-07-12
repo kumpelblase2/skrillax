@@ -7,9 +7,9 @@ use silkroad_network::sid::StreamId;
 use silkroad_network::stream::{Stream, StreamError, StreamReader, StreamWriter};
 use silkroad_protocol::general::{IdentityInformation, ServerInfoSeed, ServerStateSeed};
 use silkroad_protocol::login::{
-    BlockReason, Farm, GatewayNotice, GatewayNoticeResponse, LoginResponse, PasscodeAccountStatus,
-    PasscodeRequiredCode, PasscodeRequiredResponse, PatchError, PatchResponse, PatchResult, PingServer,
-    PingServerResponse, SecurityCodeResponse, SecurityError, ShardListResponse,
+    BlockReason, GatewayNotice, GatewayNoticeResponse, LoginResponse, PasscodeAccountStatus, PasscodeRequiredCode,
+    PasscodeRequiredResponse, PatchError, PatchResponse, PatchResult, PingServer, PingServerResponse,
+    SecurityCodeResponse, SecurityError, ShardListResponse,
 };
 use silkroad_protocol::{ClientPacket, ServerPacket};
 use silkroad_rpc::ReserveResponse;
@@ -222,14 +222,9 @@ impl Client {
                 ClientPacket::ShardListRequest(_) => {
                     let servers = agent_servers.servers().await;
                     let shards = servers.into_iter().map(|server| server.into()).collect();
+                    let farms = agent_servers.farms().clone();
 
-                    let response = ServerPacket::ShardListResponse(ShardListResponse {
-                        farms: vec![Farm {
-                            id: 1,
-                            name: "Testbed".to_string(),
-                        }],
-                        shards,
-                    });
+                    let response = ServerPacket::ShardListResponse(ShardListResponse { farms, shards });
                     let _ = writer.send(response).await?;
                 },
                 ClientPacket::PingServerRequest(_) => {

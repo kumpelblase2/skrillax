@@ -67,6 +67,7 @@ pub(crate) struct GatewayServerConfig {
     pub(crate) database: DbOptions,
     pub(crate) news_cache_duration: Option<u64>,
     pub(crate) agent_healthcheck_interval: Option<u64>,
+    pub(crate) farms: Option<Vec<String>>,
 }
 
 impl GatewayServerConfig {

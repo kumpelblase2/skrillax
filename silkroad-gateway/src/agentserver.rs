@@ -1,5 +1,5 @@
 use reqwest::Client;
-use silkroad_protocol::login::Shard;
+use silkroad_protocol::login::{Farm, Shard};
 use silkroad_rpc::{ReserveRequest, ReserveResponse, ServerPopulation, ServerStatusReport};
 use std::fmt::Display;
 use std::sync::Arc;
@@ -112,11 +112,12 @@ impl AgentServer {
 
 #[derive(Clone)]
 pub(crate) struct AgentServerManager {
+    farms: Vec<Farm>,
     servers: Arc<RwLock<Vec<AgentServer>>>,
 }
 
 impl AgentServerManager {
-    pub(crate) fn new(poll_interval: Duration) -> Self {
+    pub(crate) fn new(poll_interval: Duration, farms: Vec<Farm>) -> Self {
         let servers: Arc<RwLock<Vec<AgentServer>>> = Arc::new(RwLock::new(Vec::new()));
         let server_copy = servers.clone();
 
@@ -152,7 +153,7 @@ impl AgentServerManager {
             }
         });
 
-        AgentServerManager { servers }
+        AgentServerManager { servers, farms }
     }
 
     pub(crate) async fn add_server(&self, server: AgentServer) {
@@ -184,5 +185,9 @@ impl AgentServerManager {
             Ok(response) => Some(response.json().await.unwrap()),
             _ => None,
         };
+    }
+
+    pub(crate) fn farms(&self) -> &Vec<Farm> {
+        &self.farms
     }
 }
