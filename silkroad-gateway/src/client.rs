@@ -2,7 +2,6 @@ use crate::login::{LoginProvider, LoginResult};
 use crate::patch::PatchInformation;
 use crate::{AgentServerManager, NewsCacheAsync, Patcher};
 use chrono::{TimeZone, Utc};
-use lazy_static::lazy_static;
 use silkroad_network::sid::StreamId;
 use silkroad_network::stream::{Stream, StreamError, StreamReader, StreamWriter};
 use silkroad_protocol::general::{IdentityInformation, ServerInfoSeed, ServerStateSeed};
@@ -21,10 +20,6 @@ use tokio::sync::Mutex;
 use tokio::time::timeout;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, trace};
-
-lazy_static! {
-    static ref PASSCODE_DECODER: PassCodeDecoder = PassCodeDecoder::default();
-}
 
 struct LastCredentials {
     username: String,
@@ -59,7 +54,7 @@ impl Client {
             Err(_) if cancel.is_cancelled() => {},
             Err(err) => {
                 error!(?id, "Error in handshake: {:?}", err);
-            }, // TODO
+            },
         }
     }
 
@@ -115,7 +110,8 @@ impl Client {
                         .await?;
                     writer
                         .send(ServerPacket::ServerInfoSeed(ServerInfoSeed::new(0x1056)))
-                        .await?; // TODO
+                        .await?; // TODO: need to figure out what this value actually represents.
+                                 //   This seems like "server version", maybe expose a setting for it.
                     writer
                         .send(ServerPacket::ServerStateSeed(ServerStateSeed::new()))
                         .await?;
@@ -181,7 +177,9 @@ impl Client {
                 ClientPacket::SecurityCodeInput(input) => {
                     let previous = last_credentials.as_ref();
                     if let Some(previous) = previous {
-                        let decoded_passcode = PASSCODE_DECODER.decode_passcode(input.inner_size, &input.data).unwrap();
+                        let decoded_passcode = PassCodeDecoder::get()
+                            .decode_passcode(input.inner_size, &input.data)
+                            .unwrap();
 
                         let result = login_provider
                             .try_login_passcode(&previous.username, &previous.password, &decoded_passcode)
