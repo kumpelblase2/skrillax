@@ -1,11 +1,13 @@
 # Specification Codegen
 
 This takes the specification from `/packet-spec` and generates rust structures, serialization, and deserialization code.
-I chose this instead of just using rust structures directly as this could potentially allow reuse, even in other 
-languages, I'd still have to write (de-)serialization by hand because serde and the like don't (and possibly can't) 
-support what I need, and it's a lot simpler to edit.
+I chose this instead of just using rust structures directly as this could potentially allow reuse, even in other
+languages. Even if I used `Derive` in rust I'd still have to write some (de-)serialization by hand because serde and the
+like don't (and possibly can't)
+support what I need.
 
 There are currently 3 types of items it can handle:
+
 - Enums
 - Structs
 - Packets
@@ -13,9 +15,10 @@ There are currently 3 types of items it can handle:
 Packets are in themselves also just enums/structs, but they have an opcode and a direction assigned and will be added to
 the general packet handler.
 
-This project is mostly done from my perspective, but there might be some things that are still necessary. One of these 
-things is some conditional logic in the parsing which is provided in the spec. In a few cases, a packet contents may 
-vary depending on certain conditions of the previous data. An example would be if an area is a dungeon, the position 
-gets presented differently (u32 instead of u16). So far, this has mostly been encountered on the server side, which I 
-can work around without conditional logic, but in the future there may be client packets that require such a thing. It 
-might also be nice to re-use enums/structs from an existing crate so things don't get duplicated.
+This project is mostly finished from my perspective, but there might be some things that are still necessary. For
+example, the conditional logic is
+very much just bolted on and may be rust specific. It's not used as often to warrant a proper design and implementation,
+but still makes the goal of
+reuse hard to achieve. It might also be nice to re-use enums/structs from other crates, like a common crate, so things
+don't get duplicated. Or at
+least providing from/to mappings in those cases.
