@@ -26,7 +26,10 @@ pub(crate) struct CharacterSelect {
     pub(crate) characters: Option<Vec<Character>>,
     pub(crate) character_receiver: Option<Receiver<Vec<Character>>>,
     pub(crate) character_name_check: Option<Receiver<bool>>,
+    pub(crate) character_delete_task: Option<Receiver<bool>>,
+    pub(crate) checked_name: Option<String>,
     pub(crate) character_create: Option<Receiver<()>>,
+    pub(crate) character_restore: Option<Receiver<bool>>,
 }
 
 #[derive(Component)]
@@ -41,7 +44,7 @@ impl Client {
     }
 }
 
-#[derive(Component, Copy, Clone)]
+#[derive(Component, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct GameEntity {
     pub unique_id: u32,
     pub ref_id: u32,

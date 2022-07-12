@@ -21,7 +21,7 @@ pub(crate) struct CharacterData {
     pub stat_points: i16,
     pub current_hp: i32,
     pub current_mp: i32,
-    pub deletion_started: Option<DateTime<Utc>>,
+    pub deletion_end: Option<DateTime<Utc>>,
     pub x: f32,
     pub y: f32,
     pub z: f32,
@@ -47,11 +47,13 @@ pub struct CharacterItem {
 pub struct CharacterMastery {}
 
 pub(crate) async fn fetch_characters(pool: &PgPool, user: i32, shard: u16) -> Result<Vec<CharacterData>, Error> {
-    sqlx::query_as("SELECT * FROM characters WHERE user_id = $1 AND server_id = $2 ORDER BY id ASC")
-        .bind(user)
-        .bind(shard as i32)
-        .fetch_all(pool)
-        .await
+    sqlx::query_as(
+        "SELECT * FROM characters WHERE user_id = $1 AND server_id = $2 AND (deletion_end > NOW() OR deletion_end is null) ORDER BY id ASC",
+    )
+            .bind(user)
+            .bind(shard as i32)
+            .fetch_all(pool)
+            .await
 }
 
 pub(crate) async fn fetch_character_items(pool: &PgPool, character_id: i32) -> Result<Vec<CharacterItem>, Error> {

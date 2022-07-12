@@ -1,5 +1,8 @@
 use crate::db::character::{fetch_characters, fetch_characters_items, CharacterData, CharacterItem};
 use sqlx::{PgPool, Row};
+use std::ops::Add;
+use std::time::Duration;
+use tokio::time::Instant;
 use tracing::trace_span;
 
 #[derive(Clone)]
@@ -40,6 +43,37 @@ pub(crate) async fn check_name_available(pool: PgPool, name: String, server_id: 
 
     let count: i64 = result.get(0);
     count == 0
+}
+
+pub(crate) async fn start_delete_character(
+    pool: PgPool,
+    user_id: i32,
+    name: String,
+    server_id: u16,
+    deletion_duration: u32,
+) -> bool {
+    let result =
+            sqlx::query("UPDATE characters SET deletion_end = CURRENT_TIMESTAMP + ($4 * INTERVAL '1 minute') WHERE user_id = $1 AND server_id = $2 AND charname = $3")
+                    .bind(user_id)
+                    .bind(server_id as i16)
+                    .bind(name)
+                    .bind(deletion_duration as i32)
+                    .execute(&pool)
+                    .await
+                    .unwrap();
+    return result.rows_affected() == 1;
+}
+
+pub(crate) async fn restore_character(pool: PgPool, user_id: i32, name: String, server_id: u16) -> bool {
+    let result =
+            sqlx::query("UPDATE characters SET deletion_end = NULL WHERE user_id = $1 AND server_id = $2 AND charname = $3 AND deletion_end > CURRENT_TIMESTAMP")
+                    .bind(user_id)
+                    .bind(server_id as i16)
+                    .bind(name)
+                    .execute(&pool)
+                    .await
+                    .unwrap();
+    return result.rows_affected() == 1;
 }
 
 pub(crate) async fn create_character(pool: PgPool, character: Character) {

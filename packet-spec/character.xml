@@ -84,6 +84,16 @@
         <attribute name="id" type="u32" />
     </struct>
 
+    <enum name="TimeInformation" type="u8">
+        <variation name="Deleting" value="1">
+            <attribute name="last_logout" type="u32" />
+            <attribute name="deletion_time_remaining" type="u32" />
+        </variation>
+        <variation name="Playable" value="0">
+            <attribute name="last_logout" type="u32" />
+        </variation>
+    </enum>
+
     <struct name="CharacterListEntry">
         <attribute name="ref_id" type="u32" />
         <attribute name="name" type="String" />
@@ -99,8 +109,7 @@
         <attribute name="hp" type="u32" />
         <attribute name="mp" type="u32" />
         <attribute name="region" type="u16" />
-        <attribute name="remaining_deletion_time" type="Option" inner="u32" />
-        <attribute name="last_logout" type="u32" />
+        <attribute name="playtime_info" type="TimeInformation" />
         <attribute name="guild_member_class" type="u8" />
         <attribute name="guild_rename_required" type="Option" inner="String" />
         <attribute name="academy_member_class" type="u8" />

@@ -5,7 +5,10 @@ use crate::comp::visibility::Visibility;
 use crate::comp::{CharacterSelect, Client, GameEntity, Playing};
 use crate::db::character::{CharacterData, CharacterItem};
 use crate::ext::AsyncTaskCreate;
-use crate::login::character_loader::{check_name_available, create_character, load_characters_sparse, Character};
+use crate::login::character_loader::{
+    check_name_available, create_character, load_characters_sparse, restore_character, start_delete_character,
+    Character,
+};
 use crate::login::job_distribution::JobDistribution;
 use crate::server_plugin::ServerId;
 use crate::time::AsSilkroadTime;
@@ -17,7 +20,7 @@ use id_pool::IdPool;
 use silkroad_protocol::character::{
     CharacterJoinRequest, CharacterJoinResponse, CharacterJoinResult, CharacterListAction, CharacterListContent,
     CharacterListEntry, CharacterListEquippedItem, CharacterListError, CharacterListRequest,
-    CharacterListRequestAction, CharacterListResponse, CharacterListResult,
+    CharacterListRequestAction, CharacterListResponse, CharacterListResult, TimeInformation,
 };
 use silkroad_protocol::world::{
     ActionState, AliveState, BodyState, CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, EntityState,
@@ -25,7 +28,9 @@ use silkroad_protocol::world::{
 };
 use silkroad_protocol::{ClientPacket, ServerPacket};
 use sqlx::PgPool;
+use std::cmp::max;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::runtime::Runtime;
 use tokio::sync::oneshot::error::TryRecvError;
 use tracing::{debug, warn};
@@ -84,7 +89,6 @@ pub(crate) fn charselect(
                             task_creator.create_task(load_characters_sparse(pool.clone(), playing.0.id, server_id.0));
                         character_list.character_receiver = Some(receiver);
                     },
-                    CharacterListRequestAction::Delete { .. } => {},
                     CharacterListRequestAction::CheckName { character_name } => {
                         if character_list.character_name_check.is_none() {
                             character_list.checked_name = Some(character_name.clone());
@@ -96,7 +100,41 @@ pub(crate) fn charselect(
                             character_list.character_name_check = Some(task);
                         }
                     },
-                    CharacterListRequestAction::Restore { .. } => {},
+                    CharacterListRequestAction::Delete { character_name } => {
+                        if !has_user_character_with_name(&character_list, &character_name) {
+                            client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
+                                CharacterListAction::Delete,
+                                CharacterListResult::error(CharacterListError::InvalidName),
+                            )));
+                            continue;
+                        }
+
+                        let task = task_creator.create_task(start_delete_character(
+                            pool.clone(),
+                            playing.0.id,
+                            character_name,
+                            server_id.0,
+                            settings.deletion_time,
+                        ));
+                        character_list.character_delete_task = Some(task);
+                    },
+                    CharacterListRequestAction::Restore { character_name } => {
+                        if !has_user_character_with_name(&character_list, &character_name) {
+                            client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
+                                CharacterListAction::Delete,
+                                CharacterListResult::error(CharacterListError::InvalidName),
+                            )));
+                            continue;
+                        }
+
+                        let task = task_creator.create_task(restore_character(
+                            pool.clone(),
+                            playing.0.id,
+                            character_name,
+                            server_id.0,
+                        ));
+                        character_list.character_restore = Some(task);
+                    },
                     CharacterListRequestAction::ShowJobSpread => {
                         let (hunter_perc, thief_perc) = job_distribution.spread();
                         send_job_spread(&client, hunter_perc, thief_perc);
@@ -110,6 +148,13 @@ pub(crate) fn charselect(
                                 .iter()
                                 .find(|char| char.character_data.charname == character_name.as_ref())
                                 .unwrap();
+
+                            if character.character_data.deletion_end.is_some() {
+                                client.send(ServerPacket::CharacterJoinResponse(CharacterJoinResponse::new(
+                                    CharacterJoinResult::error(CharacterListError::InvalidName),
+                                )));
+                                continue;
+                            }
 
                             let player = Player {
                                 user: playing.0.clone(),
@@ -219,7 +264,60 @@ pub(crate) fn charselect(
                 },
             }
         }
+
+        if let Some(receiver) = character_list.character_delete_task.as_mut() {
+            match receiver.try_recv() {
+                Ok(true) => {
+                    client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
+                        CharacterListAction::Delete,
+                        CharacterListResult::ok(CharacterListContent::Empty),
+                    )));
+                    character_list.character_delete_task = None;
+                },
+                Err(TryRecvError::Empty) => {},
+                _ => {
+                    character_list.character_delete_task = None;
+                    todo!("Send error to client.")
+                },
+            }
+        }
+
+        if let Some(receiver) = character_list.character_restore.as_mut() {
+            match receiver.try_recv() {
+                Ok(result) => {
+                    if result {
+                        client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
+                            CharacterListAction::Restore,
+                            CharacterListResult::ok(CharacterListContent::Empty),
+                        )));
+                    } else {
+                        client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
+                            CharacterListAction::Restore,
+                            CharacterListResult::error(CharacterListError::InvalidName), // TODO: use a better error
+                        )));
+                    }
+                    character_list.character_restore = None;
+                },
+                Err(TryRecvError::Empty) => {},
+                Err(_) => {
+                    warn!(id = playing.0.id, "Error when restoring a character.");
+                    character_list.character_restore = None;
+                },
+            }
+        }
     }
+}
+
+fn has_user_character_with_name(charselect: &CharacterSelect, character_name: &str) -> bool {
+    charselect
+        .characters
+        .as_ref()
+        .map(|chars| {
+            chars
+                .iter()
+                .any(|character| character.character_data.charname == character_name)
+        })
+        .unwrap_or(false)
 }
 
 fn can_create_character_with_name(charselect: &CharacterSelect, name: &str) -> bool {
@@ -244,6 +342,13 @@ fn send_character_list(client: &Client, character_list: &Vec<Character>) {
 
 fn from_character(character: &Character) -> CharacterListEntry {
     let data = &character.character_data;
+    let last_logout = data.last_logout.map(|time| time.as_silkroad_time()).unwrap_or(0);
+    let target_deletion_date = data.deletion_end;
+    let playtime_information = target_deletion_date
+        .map(|end| end - Utc::now())
+        .map(|dur| dur.num_minutes() as u32)
+        .map(|remaining| TimeInformation::deleting(last_logout, remaining))
+        .unwrap_or_else(|| TimeInformation::playable(last_logout));
     CharacterListEntry {
         ref_id: data.character_type as u32,
         name: data.charname.clone(),
@@ -258,9 +363,8 @@ fn from_character(character: &Character) -> CharacterListEntry {
         stat_points: data.stat_points as u16,
         hp: data.current_hp as u32,
         mp: data.current_mp as u32,
-        remaining_deletion_time: None,
         region: data.region as u16,
-        last_logout: data.last_logout.map(|time| time.as_silkroad_time()).unwrap_or(0),
+        playtime_info: playtime_information,
         guild_member_class: 0,
         guild_rename_required: None,
         academy_member_class: 0,
@@ -406,7 +510,7 @@ pub(crate) fn create_character_from(
         stat_points: 0,
         current_hp: 200,
         current_mp: 200,
-        deletion_started: None,
+        deletion_end: None,
         x: 739.,
         y: 37.4519,
         z: 1757.,

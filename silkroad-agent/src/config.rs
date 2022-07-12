@@ -46,6 +46,7 @@ pub(crate) struct GameConfig {
     pub(crate) join_notice: Option<String>,
     pub(crate) data_location: String,
     pub(crate) desired_ticks: Option<u32>,
+    pub(crate) deletion_time: Option<u32>,
 }
 
 #[derive(Deserialize)]

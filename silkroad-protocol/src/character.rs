@@ -229,6 +229,43 @@ impl Size for CharacterJoinResult {
 }
 
 #[derive(Clone)]
+pub enum TimeInformation {
+    Deleting {
+        last_logout: u32,
+        deletion_time_remaining: u32,
+    },
+    Playable {
+        last_logout: u32,
+    },
+}
+
+impl TimeInformation {
+    pub fn deleting(last_logout: u32, deletion_time_remaining: u32) -> Self {
+        TimeInformation::Deleting {
+            last_logout,
+            deletion_time_remaining,
+        }
+    }
+
+    pub fn playable(last_logout: u32) -> Self {
+        TimeInformation::Playable { last_logout }
+    }
+}
+
+impl Size for TimeInformation {
+    fn calculate_size(&self) -> usize {
+        std::mem::size_of::<u8>()
+            + match &self {
+                TimeInformation::Deleting {
+                    last_logout,
+                    deletion_time_remaining,
+                } => last_logout.calculate_size() + deletion_time_remaining.calculate_size(),
+                TimeInformation::Playable { last_logout } => last_logout.calculate_size(),
+            }
+    }
+}
+
+#[derive(Clone)]
 pub struct CharacterListEquippedItem {
     pub id: u32,
     pub upgrade_level: u8,
@@ -279,8 +316,7 @@ pub struct CharacterListEntry {
     pub hp: u32,
     pub mp: u32,
     pub region: u16,
-    pub remaining_deletion_time: Option<u32>,
-    pub last_logout: u32,
+    pub playtime_info: TimeInformation,
     pub guild_member_class: u8,
     pub guild_rename_required: Option<String>,
     pub academy_member_class: u8,
@@ -302,8 +338,7 @@ impl CharacterListEntry {
         hp: u32,
         mp: u32,
         region: u16,
-        remaining_deletion_time: Option<u32>,
-        last_logout: u32,
+        playtime_info: TimeInformation,
         guild_member_class: u8,
         guild_rename_required: Option<String>,
         academy_member_class: u8,
@@ -325,8 +360,7 @@ impl CharacterListEntry {
             hp,
             mp,
             region,
-            remaining_deletion_time,
-            last_logout,
+            playtime_info,
             guild_member_class,
             guild_rename_required,
             academy_member_class,
@@ -352,8 +386,7 @@ impl Size for CharacterListEntry {
             + self.hp.calculate_size()
             + self.mp.calculate_size()
             + self.region.calculate_size()
-            + self.remaining_deletion_time.calculate_size()
-            + self.last_logout.calculate_size()
+            + self.playtime_info.calculate_size()
             + self.guild_member_class.calculate_size()
             + self.guild_rename_required.calculate_size()
             + self.academy_member_class.calculate_size()
@@ -412,13 +445,20 @@ impl From<CharacterListResponse> for Bytes {
                             data_writer.put_u32_le(element.hp);
                             data_writer.put_u32_le(element.mp);
                             data_writer.put_u16_le(element.region);
-                            if let Some(remaining_deletion_time) = &element.remaining_deletion_time {
-                                data_writer.put_u8(1);
-                                data_writer.put_u32_le(*remaining_deletion_time);
-                            } else {
-                                data_writer.put_u8(0);
+                            match &element.playtime_info {
+                                TimeInformation::Deleting {
+                                    last_logout,
+                                    deletion_time_remaining,
+                                } => {
+                                    data_writer.put_u8(1);
+                                    data_writer.put_u32_le(*last_logout);
+                                    data_writer.put_u32_le(*deletion_time_remaining);
+                                },
+                                TimeInformation::Playable { last_logout } => {
+                                    data_writer.put_u8(0);
+                                    data_writer.put_u32_le(*last_logout);
+                                },
                             }
-                            data_writer.put_u32_le(element.last_logout);
                             data_writer.put_u8(element.guild_member_class);
                             if let Some(guild_rename_required) = &element.guild_rename_required {
                                 data_writer.put_u8(1);
