@@ -36,7 +36,7 @@ impl PassCodeDecoder {
     }
 
     /// Returns a globally shared instance.
-    pub fn get() -> &Self {
+    pub fn get() -> &'static Self {
         &INSTANCE
     }
 }
