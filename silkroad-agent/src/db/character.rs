@@ -76,3 +76,9 @@ pub(crate) async fn fetch_characters_items(
     let character_item_map = all_items.into_iter().into_group_map_by(|item| item.character_id);
     Ok(character_item_map)
 }
+
+pub(crate) async fn update_last_played_of(pool: &PgPool, character_id: u32) {
+    let _ = sqlx::query("UPDATE characters SET last_logout = CURRENT_TIMESTAMP")
+        .bind(character_id as i32)
+        .execute(pool);
+}

@@ -83,6 +83,7 @@ pub enum MovementState {
 }
 
 pub(crate) struct Character {
+    pub id: u32,
     pub name: String,
     pub race: Race,
     pub scale: u8,
@@ -113,6 +114,7 @@ impl Character {
 
     pub fn from_db_character(data: &crate::db::character::CharacterData) -> Character {
         Character {
+            id: data.id as u32,
             name: data.charname.clone(),
             race: Race::Chinese,
             scale: data.scale as u8,

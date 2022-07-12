@@ -1,8 +1,5 @@
 use crate::db::character::{fetch_characters, fetch_characters_items, CharacterData, CharacterItem};
 use sqlx::{PgPool, Row};
-use std::ops::Add;
-use std::time::Duration;
-use tokio::time::Instant;
 use tracing::trace_span;
 
 #[derive(Clone)]

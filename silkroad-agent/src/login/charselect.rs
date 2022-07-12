@@ -28,9 +28,7 @@ use silkroad_protocol::world::{
 };
 use silkroad_protocol::{ClientPacket, ServerPacket};
 use sqlx::PgPool;
-use std::cmp::max;
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::runtime::Runtime;
 use tokio::sync::oneshot::error::TryRecvError;
 use tracing::{debug, warn};

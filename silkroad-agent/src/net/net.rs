@@ -1,6 +1,6 @@
-use crate::comp::sync::Synchronize;
-use crate::comp::visibility::Visibility;
-use crate::comp::{Client, GameEntity, LastAction, Login};
+use crate::comp::player::Player;
+use crate::comp::{Client, LastAction, Login};
+use crate::db::character::update_last_played_of;
 use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent};
 use crate::GameSettings;
 use bevy_core::Time;
@@ -8,7 +8,10 @@ use bevy_ecs::prelude::*;
 use silkroad_network::server::SilkroadServer;
 use silkroad_network::stream::StreamError;
 use silkroad_protocol::ClientPacket;
+use sqlx::PgPool;
 use std::collections::VecDeque;
+use std::sync::Arc;
+use tokio::runtime::Runtime;
 use tracing::{debug, warn};
 
 pub(crate) fn accept(
@@ -73,23 +76,21 @@ pub(crate) fn receive(
 pub(crate) fn disconnected(
     mut events: EventReader<ClientDisconnectedEvent>,
     mut cmd: Commands,
-    query: Query<(&Visibility, &GameEntity)>,
-    mut others: Query<&mut Synchronize>,
+    task_creator: Res<Arc<Runtime>>,
+    pool: Res<PgPool>,
+    query: Query<&Player>,
 ) {
     for event in events.iter() {
         let entity = event.0;
-        if let Ok((visibility, game_entity)) = query.get(entity) {
-            debug!("Handling client disconnect.");
-            let visibility: &Visibility = visibility;
-            let game_entity: &GameEntity = game_entity;
-            for to_notify in visibility.entities_in_radius.iter() {
-                if let Ok(mut synchronize) = others.get_mut(*to_notify) {
-                    debug!("Sending despawned!.");
-                    synchronize.despawned.push(game_entity.unique_id);
-                }
-            }
-            cmd.entity(entity).despawn();
+        debug!("Handling client disconnect.");
+        if let Ok(player) = query.get(event.0) {
+            let id = player.character.id;
+            let pool = pool.clone();
+            task_creator.spawn(async move {
+                update_last_played_of(&pool, id).await;
+            });
         }
+        cmd.entity(entity).despawn();
     }
 }
 
