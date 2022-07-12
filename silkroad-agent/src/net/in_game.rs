@@ -112,7 +112,7 @@ pub(crate) fn in_game(
                     debug!(id = ?client.0.id(), "Received chat message: {} @ {}", message.message, message.index);
                     match message.target {
                         ChatTarget::All | ChatTarget::AllGm => {
-                            if message.message.starts_with("/") && player.character.gm {
+                            if message.message.starts_with(".") && player.character.gm {
                                 chat_messages.send(ChatEvent::Command {
                                     sender: entity,
                                     message: message.message,
