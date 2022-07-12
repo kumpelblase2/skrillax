@@ -83,7 +83,7 @@ pub(crate) fn in_game(
                         .insert(Health::new(100))
                         .insert(Visibility::with_radius(10.))
                         .id();
-                    lookup.add_monster(mob.unique_id, spawned);
+                    lookup.add_entity(mob.unique_id, spawned);
                 },
                 ClientPacket::PlayerMovementRequest(PlayerMovementRequest { kind }) => match kind {
                     silkroad_protocol::world::MovementTarget::TargetLocation { region, x, y, z } => {

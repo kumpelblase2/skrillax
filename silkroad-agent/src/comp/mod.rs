@@ -1,3 +1,4 @@
+pub(crate) mod drop;
 pub(crate) mod monster;
 pub(crate) mod player;
 pub(crate) mod pos;
@@ -67,3 +68,6 @@ impl Health {
         }
     }
 }
+
+#[derive(Hash, Copy, Clone, Eq, PartialEq)]
+pub struct EntityReference(pub Entity, pub(crate) GameEntity);

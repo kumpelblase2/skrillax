@@ -3,10 +3,7 @@ use crate::comp::sync::{MovementUpdate, Synchronize};
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, GameEntity};
 use bevy_ecs::prelude::*;
-use silkroad_protocol::world::{
-    EntityDespawn, GroupEntitySpawnData, GroupEntitySpawnEnd, GroupEntitySpawnStart, GroupSpawnDataContent,
-    GroupSpawnType, MovementDestination, MovementSource, PlayerMovementResponse,
-};
+use silkroad_protocol::world::{MovementDestination, MovementSource, PlayerMovementResponse};
 use silkroad_protocol::ServerPacket;
 use tracing::debug;
 
@@ -15,17 +12,12 @@ pub(crate) fn sync_changes_others(
     others: Query<(&GameEntity, &Synchronize)>,
 ) {
     for (client, visibility) in query.iter() {
-        let client: &Client = client;
-        let visibility: &Visibility = visibility;
-
         for (entity, synchronize) in visibility
             .entities_in_radius
             .iter()
-            .map(|entity| others.get(*entity))
+            .map(|reference| others.get(reference.0))
             .filter_map(|res| res.ok())
         {
-            let entity: &GameEntity = entity;
-            let synchronize: &Synchronize = synchronize;
             if let Some(movement) = &synchronize.movement {
                 update_movement_for(client, entity, movement);
             }
@@ -95,32 +87,6 @@ pub(crate) fn update_client(query: Query<(&Client, &GameEntity, &Synchronize)>) 
         if !sync.damage.is_empty() {
             // ...
         }
-
-        if !sync.despawned.is_empty() {
-            send_despawns(client, sync);
-        }
-    }
-}
-
-fn send_despawns(client: &Client, sync: &Synchronize) {
-    if sync.despawned.len() > 1 {
-        client.send(ServerPacket::GroupEntitySpawnStart(GroupEntitySpawnStart::new(
-            GroupSpawnType::Despawn,
-            sync.despawned.len() as u16,
-        )));
-
-        let data = sync
-            .despawned
-            .iter()
-            .map(|id| GroupSpawnDataContent::despawn(*id))
-            .collect();
-
-        client.send(ServerPacket::GroupEntitySpawnData(GroupEntitySpawnData::new(data)));
-
-        client.send(ServerPacket::GroupEntitySpawnEnd(GroupEntitySpawnEnd));
-    } else {
-        let despawned_id = *sync.despawned.get(0).unwrap();
-        client.send(ServerPacket::EntityDespawn(EntityDespawn::new(despawned_id)));
     }
 }
 

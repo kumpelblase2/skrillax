@@ -15,8 +15,8 @@ impl EntityLookup {
         self.id_map.insert(id, entity);
     }
 
-    pub fn add_monster(&mut self, monster_id: u32, entity: Entity) {
-        self.id_map.insert(monster_id, entity);
+    pub fn add_entity(&mut self, entity_id: u32, entity: Entity) {
+        self.id_map.insert(entity_id, entity);
     }
 
     pub fn get_entity_for_name(&self, name: &String) -> Option<&Entity> {
