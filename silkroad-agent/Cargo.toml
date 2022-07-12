@@ -34,3 +34,4 @@ bevy_core = "0.6.0"
 bevy_app = "0.6.0"
 cgmath = "0.18.0"
 pk2 = "0.1.0"
+id-pool = { version = "0.2.1", features = ["u32"], default_features = false }

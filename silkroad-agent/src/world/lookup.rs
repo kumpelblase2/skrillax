@@ -1,5 +1,6 @@
 use bevy_ecs::entity::{Entities, Entity};
 use bevy_ecs::system::ResMut;
+use id_pool::IdPool;
 use std::collections::HashMap;
 use tracing::debug;
 
@@ -33,7 +34,7 @@ impl EntityLookup {
     }
 }
 
-pub fn maintain_entities(mut lookup: ResMut<EntityLookup>, entities: &Entities) {
+pub fn maintain_entities(mut lookup: ResMut<EntityLookup>, mut id_pool: ResMut<IdPool>, entities: &Entities) {
     let before_player_count = lookup.player_map.len();
     lookup.player_map.retain(|_, entity| entities.contains(*entity));
     let after_player_count = lookup.player_map.len();
@@ -43,5 +44,15 @@ pub fn maintain_entities(mut lookup: ResMut<EntityLookup>, entities: &Entities) 
             before_player_count, after_player_count
         );
     }
-    lookup.id_map.retain(|_, entity| entities.contains(*entity));
+    let removed_entities: Vec<u32> = lookup
+        .id_map
+        .iter()
+        .filter(|(_, entity)| !entities.contains(**entity))
+        .map(|(id, _)| *id)
+        .collect();
+
+    for id in removed_entities {
+        lookup.id_map.remove(&id);
+        let _ = id_pool.return_id(id);
+    }
 }

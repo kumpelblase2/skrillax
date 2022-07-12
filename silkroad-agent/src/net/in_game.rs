@@ -5,11 +5,12 @@ use crate::comp::sync::{MovementUpdate, Synchronize};
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, GameEntity, Health};
 use crate::event::{ChatEvent, ClientDisconnectedEvent};
-use crate::world::{EntityLookup, IdAllocator};
+use crate::world::EntityLookup;
 use crate::GameSettings;
 use bevy_core::Time;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
+use id_pool::IdPool;
 use silkroad_protocol::auth::{LogoutFinished, LogoutRequest, LogoutResponse, LogoutResult};
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::chat::{
@@ -30,7 +31,7 @@ pub(crate) fn in_game(
     mut lookup: ResMut<EntityLookup>,
     settings: Res<GameSettings>,
     delta: Res<Time>,
-    mut allocator: ResMut<IdAllocator>,
+    mut allocator: ResMut<IdPool>,
     mut cmd: Commands,
     mut query: Query<(
         Entity,
@@ -67,7 +68,7 @@ pub(crate) fn in_game(
 
                     let mob = GameEntity {
                         ref_id: 0x078d,
-                        unique_id: allocator.allocate(),
+                        unique_id: allocator.request_id().unwrap(),
                     };
                     let spawned = cmd
                         .spawn()

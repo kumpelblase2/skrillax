@@ -9,11 +9,11 @@ use crate::login::character_loader::{check_name_available, create_character, loa
 use crate::login::job_distribution::JobDistribution;
 use crate::server_plugin::ServerId;
 use crate::time::AsSilkroadTime;
-use crate::world::IdAllocator;
 use crate::GameSettings;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
 use chrono::{TimeZone, Utc};
+use id_pool::IdPool;
 use silkroad_protocol::character::{
     CharacterJoinRequest, CharacterJoinResponse, CharacterJoinResult, CharacterListAction, CharacterListContent,
     CharacterListEntry, CharacterListEquippedItem, CharacterListError, CharacterListRequest,
@@ -37,7 +37,7 @@ pub(crate) fn charselect(
     task_creator: Res<Arc<Runtime>>,
     server_id: Res<ServerId>,
     mut cmd: Commands,
-    mut allocator: ResMut<IdAllocator>,
+    mut allocator: ResMut<IdPool>,
     mut query: Query<(Entity, &mut Client, &mut CharacterSelect, &Playing)>,
 ) {
     for (entity, mut client, mut character_list, playing) in query.iter_mut() {
@@ -137,7 +137,7 @@ pub(crate) fn charselect(
 
                             let game_entity = GameEntity {
                                 ref_id: data.character_type as u32,
-                                unique_id: allocator.allocate(),
+                                unique_id: allocator.request_id().unwrap(),
                             };
 
                             client.send(CharacterJoinResponse::new(CharacterJoinResult::Success));
