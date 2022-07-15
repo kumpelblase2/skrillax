@@ -115,11 +115,14 @@ impl SilkroadSecurity {
         })
     }
 
-    #[cfg(test)]
-    pub fn initialize_with(&mut self, handshake_seed: u64, x: u32, p: u32, a: u32) {
+    /// Initialize the security with a predefined set of values.
+    /// These are the same values that would be generated randomly in [initialize()].
+    /// This effectively does the initialization, just with the predefined values,
+    /// resulting in a deterministic handshake.
+    pub fn initialize_with(&mut self, count_seed: u32, crc_seed: u32, handshake_seed: u64, x: u32, p: u32, a: u32) {
         self.state = SecurityState::HandshakeStarted {
-            count_seed: 0,
-            crc_seed: 0,
+            count_seed,
+            crc_seed,
             handshake_seed,
             value_x: x,
             value_a: a,
@@ -298,23 +301,18 @@ impl SilkroadSecurity {
     ///
     /// If handshake hasn't been completed yet, will result in [SilkroadSecurityError::SecurityUninitialized].
     pub fn encrypt(&self, data: &[u8]) -> Result<Bytes, SilkroadSecurityError> {
-        match &self.state {
-            SecurityState::Established {
-                blowfish,
-                crc_seed: _,
-                count_seed: _,
-            } => {
-                let target_buffer_size = Self::find_encrypted_length(data.len());
-                let mut result = bytes::BytesMut::with_capacity(target_buffer_size);
-                result.extend_from_slice(data);
-                for _ in 0..(target_buffer_size - data.len()) {
-                    result.put_u8(0);
-                }
-                self.encrypt_mut(&mut result)?;
-                Ok(result.freeze())
-            },
-            _ => Err(SilkroadSecurityError::SecurityUninitialized),
+        if !matches!(&self.state, SecurityState::Established { .. }) {
+            return Err(SilkroadSecurityError::SecurityUninitialized);
         }
+
+        let target_buffer_size = Self::find_encrypted_length(data.len());
+        let mut result = bytes::BytesMut::with_capacity(target_buffer_size);
+        result.extend_from_slice(data);
+        for _ in 0..(target_buffer_size - data.len()) {
+            result.put_u8(0);
+        }
+        self.encrypt_mut(&mut result)?;
+        Ok(result.freeze())
     }
 
     /// Encrypt a message to be sent to the client.
@@ -467,7 +465,7 @@ mod tests {
         let value_a = LittleEndian::read_u32(&[0x36, 0x44, 0x96, 0x24]);
 
         let mut security = SilkroadSecurity::default();
-        security.initialize_with(handshake_seed, value_x, value_p, value_a);
+        security.initialize_with(0, 0, handshake_seed, value_x, value_p, value_a);
 
         let value_b = LittleEndian::read_u32(&[0x7a, 0x04, 0x39, 0x43]);
         let key = LittleEndian::read_u64(&[0x69, 0x02, 0xec, 0x3f, 0x16, 0xbb, 0x18, 0x64]);
