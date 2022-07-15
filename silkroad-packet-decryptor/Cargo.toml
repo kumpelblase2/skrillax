@@ -1,0 +1,17 @@
+[package]
+name = "silkroad-packet-decryptor"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+silkroad-security = { path = "../silkroad-security" }
+pcap-file = "1.1.1"
+pktparse = "0.7.1"
+byteorder = "1.4.3"
+bytes = "1.1.0"
+clap = "3.2.8"
+env_logger = "0.9"
+log = "0.4"
+num_cpus = "1"

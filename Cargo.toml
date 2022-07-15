@@ -9,7 +9,8 @@ members = [
     "silkroad-agent",
     "silkroad-navmesh",
     "silkroad-navmesh-viewer",
-    "silkroad-data"
+    "silkroad-data",
+    "silkroad-packet-decryptor"
 ]
 
 [profile.dev]
