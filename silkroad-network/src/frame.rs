@@ -215,7 +215,6 @@ impl SilkroadFrame {
                     to_encrypt.put_u8(*count);
                     to_encrypt.put_u8(*crc);
                     to_encrypt.extend_from_slice(data);
-                    let _enter = span.enter();
                     let security = security.as_ref().ok_or(FrameError::MissingSecurity)?;
                     let security = security.read().expect("Security RWLock should not get poisoned");
                     let encrypted = security.encrypt(&to_encrypt)?;
