@@ -26,7 +26,7 @@ impl Patcher {
     }
 
     fn get_patches_for(&self, version: u32) -> Vec<PatchFile> {
-        todo!()
+        todo!("Load patches from dir and check them")
     }
 
     pub(crate) fn current_version(&self) -> u32 {

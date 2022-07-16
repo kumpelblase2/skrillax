@@ -72,12 +72,12 @@ pub(crate) struct GatewayServerConfig {
 
 impl GatewayServerConfig {
     pub(crate) fn load() -> Result<Self, ConfigError> {
-        let mut config = ::config::Config::new();
+        let mut config = config::Config::new();
         config
             .merge(config::File::with_name("configs/gateway_server"))
-            .unwrap()
+            .expect("Newly instantiated config should not be frozen.")
             .merge(config::Environment::with_prefix("SKRILLAX_GATEWAY"))
-            .unwrap();
+            .expect("Just merged config should not be frozen.");
         config.try_into()
     }
 }

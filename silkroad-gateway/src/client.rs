@@ -7,7 +7,7 @@ use silkroad_network::stream::{Stream, StreamError, StreamReader, StreamWriter};
 use silkroad_protocol::general::{IdentityInformation, ServerInfoSeed, ServerStateSeed};
 use silkroad_protocol::login::{
     BlockReason, GatewayNotice, GatewayNoticeResponse, LoginResponse, PasscodeAccountStatus, PasscodeRequiredCode,
-    PasscodeRequiredResponse, PatchError, PatchResponse, PatchResult, PingServer, PingServerResponse,
+    PasscodeRequiredResponse, PasscodeResponse, PatchError, PatchResponse, PatchResult, PingServer, PingServerResponse,
     SecurityCodeResponse, SecurityError, ShardListResponse,
 };
 use silkroad_protocol::{ClientPacket, ServerPacket};
@@ -140,7 +140,10 @@ impl Client {
 
                     match login_provider.try_login(&login.username, &login.password).await {
                         LoginResult::Success(id) => {
-                            Self::try_reserve_spot(&mut writer, &agent_servers, id as u32, &last_credentials).await?
+                            let creds = last_credentials
+                                .as_ref()
+                                .expect("We just set the credentials so have to be present");
+                            Self::try_reserve_spot(&mut writer, &agent_servers, id as u32, creds).await?
                         },
                         LoginResult::MissingPasscode => {
                             let _ = writer
@@ -177,9 +180,18 @@ impl Client {
                 ClientPacket::SecurityCodeInput(input) => {
                     let previous = last_credentials.as_ref();
                     if let Some(previous) = previous {
-                        let decoded_passcode = PassCodeDecoder::get()
-                            .decode_passcode(input.inner_size, &input.data)
-                            .unwrap();
+                        let decoded_passcode =
+                            match PassCodeDecoder::get().decode_passcode(input.inner_size, &input.data) {
+                                Ok(passcode) => passcode,
+                                Err(_) => {
+                                    // Maybe this should return a more fitting response code?
+                                    // Or should the client just be ditched?
+                                    let _ = writer
+                                        .send(ServerPacket::PasscodeResponse(PasscodeResponse::new(4, 2, 1)))
+                                        .await;
+                                    continue;
+                                },
+                            };
 
                         let result = login_provider
                             .try_login_passcode(&previous.username, &previous.password, &decoded_passcode)
@@ -194,11 +206,10 @@ impl Client {
                                         invalid_attempts: 3,
                                     }))
                                     .await?;
-                                Self::try_reserve_spot(&mut writer, &agent_servers, id as u32, &last_credentials)
-                                    .await?
+                                Self::try_reserve_spot(&mut writer, &agent_servers, id as u32, previous).await?
                             },
                             LoginResult::MissingPasscode => {
-                                todo!("Should not happen")
+                                error!("Player entered passcode but we somehow didn't use it.");
                             },
                             LoginResult::InvalidCredentials => {
                                 writer
@@ -247,9 +258,8 @@ impl Client {
         writer: &mut StreamWriter,
         agent_servers: &AgentServerManager,
         user_id: u32,
-        last_credentials: &Option<LastCredentials>,
+        last_credentials: &LastCredentials,
     ) -> Result<(), StreamError> {
-        let last_credentials = last_credentials.as_ref().unwrap();
         let result = agent_servers
             .reserve(user_id, &last_credentials.username, last_credentials.shard)
             .await;
