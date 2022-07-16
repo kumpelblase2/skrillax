@@ -1,6 +1,6 @@
 use byteorder::ByteOrder;
 use clap::{arg, ArgAction};
-use log::{debug, error, warn, LevelFilter};
+use log::{debug, error, LevelFilter};
 use pcap_file::pcap::Packet;
 use pcap_file::{PcapReader, PcapWriter};
 use pktparse::ethernet::EtherType;
@@ -12,7 +12,6 @@ use pktparse::{ethernet, ipv4, ipv6, tcp};
 use silkroad_security::security::SilkroadSecurity;
 use std::fs::File;
 use std::path::Path;
-use std::process::exit;
 
 fn g_pow_x_mod_p(p: i64, mut x: u32, g: u32) -> u32 {
     let mut current: i64 = 1;
@@ -119,6 +118,7 @@ struct Rewriter {
     read: PcapReader<File>,
     write: PcapWriter<File>,
     server_ports: Vec<u16>,
+    filter_other: bool,
     decryption: DecryptionOrchestrator,
     current_security: Option<SilkroadSecurity>,
     security_initialization: Option<SecurityData>,
@@ -129,6 +129,7 @@ impl Rewriter {
         read: PcapReader<File>,
         write: PcapWriter<File>,
         server_ports: Vec<u16>,
+        filter_other: bool,
         decryption: DecryptionOrchestrator,
     ) -> Self {
         Self {
@@ -136,6 +137,7 @@ impl Rewriter {
             write,
             server_ports,
             decryption,
+            filter_other,
             current_security: None,
             security_initialization: None,
         }
@@ -241,10 +243,10 @@ impl Rewriter {
                         }
                         let result = self.handle_packet(&packet, &tcp, data_copy);
                         self.write.write_packet(&result).unwrap();
-                    } else {
+                    } else if !self.filter_other {
                         self.write.write_packet(&packet).unwrap();
                     }
-                } else {
+                } else if !self.filter_other {
                     self.write.write_packet(&packet).unwrap();
                 }
             }
@@ -266,6 +268,7 @@ fn main() {
                 .value_parser(clap::value_parser!(u8).range(1..))
                 .required(false),
         )
+        .arg(arg!(-f --filter "Filters out unrelated packets").action(ArgAction::SetTrue))
         .arg(arg!(-v --verbose "Enables verbose output").action(ArgAction::SetTrue));
 
     let matches = cmd.get_matches();
@@ -276,11 +279,12 @@ fn main() {
         .copied()
         .unwrap_or(num_cpus::get() as u8);
     let decryption_orchestrator = DecryptionOrchestrator::new(threads);
-    let port = *matches.get_one::<u16>("port").unwrap();
+    let port = *matches.get_one::<u16>("port").unwrap_or(&22233);
     let ports = vec![15779, port];
-    let verbose = *matches.get_one::<bool>("verbose").unwrap();
+    let verbose = *matches.get_one::<bool>("verbose").unwrap_or(&false);
     let filter_level = if verbose { LevelFilter::Debug } else { LevelFilter::Info };
     env_logger::builder().filter_level(filter_level).init();
+    let filter_other = *matches.get_one::<bool>("filter").unwrap_or(&false);
 
     let file_in_path = Path::new(file.as_str());
     let file_in_dir = file_in_path.parent().unwrap();
@@ -292,6 +296,6 @@ fn main() {
     let pcap_reader = PcapReader::new(file_in).unwrap();
     let pcap_writer = PcapWriter::new(file_out).unwrap();
 
-    let mut rewriter = Rewriter::new(pcap_reader, pcap_writer, ports, decryption_orchestrator);
+    let mut rewriter = Rewriter::new(pcap_reader, pcap_writer, ports, filter_other, decryption_orchestrator);
     rewriter.run();
 }
