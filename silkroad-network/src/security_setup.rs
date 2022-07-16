@@ -7,10 +7,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum HandshakeError {
-    #[error("Received a packet that not meant for the handshake")]
+    #[error("Received a packet that was not expected in the handshake")]
     NonHandshakePacketReceived,
-    #[error("A packet was received before the handshake was accepted")]
-    HandshakeNotAccepted,
     #[error("Stream error occurred while performing the handshake")]
     StreamError(#[from] StreamError),
 }
@@ -21,9 +19,8 @@ impl SecurityHandshake {
     pub(crate) async fn do_handshake(
         writer: &mut StreamWriter,
         reader: &mut StreamReader,
-        security: Option<Arc<RwLock<SilkroadSecurity>>>,
+        security: Arc<RwLock<SilkroadSecurity>>,
     ) -> Result<(), HandshakeError> {
-        let security = security.expect("Security should be passed otherwise we shouldn't get run");
         let init = {
             let mut security = security
                 .write()
@@ -65,9 +62,11 @@ impl SecurityHandshake {
         match response {
             ClientPacket::HandshakeAccepted(_) => {
                 let mut security = security.write().expect("Should still hold lock on security");
-                security.accept_challenge().unwrap();
+                security
+                    .accept_challenge()
+                    .expect("We ran start challenge earlier, so we must be able to accept it.");
             },
-            _ => return Err(HandshakeError::HandshakeNotAccepted),
+            _ => return Err(HandshakeError::NonHandshakePacketReceived),
         }
         Ok(())
     }

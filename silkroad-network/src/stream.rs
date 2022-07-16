@@ -193,7 +193,7 @@ impl Stream {
         let mut reader = StreamReader::new(id, FramedRead::new(read, SilkroadFrameDecoder::new(security.clone())));
 
         debug!(?id, "Starting handshake");
-        if enable_encryption {
+        if let Some(security) = security {
             SecurityHandshake::do_handshake(&mut writer, &mut reader, security).await?;
         }
         Ok((writer, reader))
