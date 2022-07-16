@@ -258,11 +258,7 @@ fn main() {
     let cmd = clap::Command::new("silkroad-packet-decryptor")
         .bin_name("silkroad-packet-decryptor")
         .arg(arg!([pcap] "PCAP-file to decrypt.").required(true))
-        .arg(
-            arg!([port] "Game server port.")
-                .required(true)
-                .value_parser(clap::value_parser!(u16).range(1..)),
-        )
+        .arg(arg!([port] "Game server port.").value_parser(clap::value_parser!(u16).range(1..)))
         .arg(
             arg!(-t --threads <COUNT> "Sets the threads to use. Defaults to half the threads available ot the system.")
                 .value_parser(clap::value_parser!(u8).range(1..))
@@ -277,9 +273,9 @@ fn main() {
     let threads = matches
         .get_one::<u8>("threads")
         .copied()
-        .unwrap_or(num_cpus::get() as u8);
+        .unwrap_or(num_cpus::get_physical() as u8);
     let decryption_orchestrator = DecryptionOrchestrator::new(threads);
-    let port = *matches.get_one::<u16>("port").unwrap_or(&22233);
+    let port = *matches.get_one::<u16>("port").unwrap_or(&15779);
     let ports = vec![15779, port];
     let verbose = *matches.get_one::<bool>("verbose").unwrap_or(&false);
     let filter_level = if verbose { LevelFilter::Debug } else { LevelFilter::Info };
