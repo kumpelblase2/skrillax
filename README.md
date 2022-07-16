@@ -16,3 +16,5 @@ This project is organized in many subprojects, each having their own individual 
 - silkroad-navmesh: Navigation Mesh implementation, loading from official data files
 - [silkroad-gateway](silkroad-gateway/README.md): Loginserver implementation
 - [silkroad-agent](silkroad-agent/README.md): Gameserver implementation
+- [silkroad-packet-decryptor](silkroad-packet-decryptor/README.md): Tool to decrypt encrypted packet stream from
+  silkroad.
