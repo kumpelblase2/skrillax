@@ -13,13 +13,13 @@ silkroad-rpc = { path = "../silkroad-rpc" }
 silkroad-navmesh = { path = "../silkroad-navmesh", features = ["pk2"] }
 silkroad-data = { path = "../silkroad-data" }
 tokio = { version = "1.16.1", features = ["full"] }
+axum = "0.5.13"
 bytes = "1.1.0"
 lazy_static = "1.4.0"
 byteorder = "1.4.3"
 rand = "0.8.4"
 crossbeam-channel = "0.5.2"
 tracing = "*"
-salvo = "0.16"
 config = "*"
 sqlx = { version = "0.5", default-features = false, features = [ "runtime-tokio-native-tls", "postgres", "macros", "uuid", "chrono" ] }
 log = "*"
