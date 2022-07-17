@@ -8,7 +8,6 @@ members = [
     "silkroad-security",
     "silkroad-agent",
     "silkroad-navmesh",
-    "silkroad-navmesh-viewer",
     "silkroad-data",
     "silkroad-packet-decryptor"
 ]
