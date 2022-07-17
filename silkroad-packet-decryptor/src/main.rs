@@ -2,7 +2,7 @@ use byteorder::ByteOrder;
 use clap::{arg, ArgAction};
 use log::{debug, error, LevelFilter};
 use pcap_file::pcap::Packet;
-use pcap_file::{PcapReader, PcapWriter};
+use pcap_file::{PcapError, PcapReader, PcapWriter};
 use pktparse::ethernet::EtherType;
 use pktparse::ip::IPProtocol;
 use pktparse::ipv4::IPv4Header;
@@ -152,9 +152,7 @@ impl Rewriter {
             } {
                 if matches!(ip_header.protocol(), IPProtocol::TCP) {
                     if let Ok((remaining, tcp_header)) = tcp::parse_tcp_header(remaining) {
-                        if tcp_header.flag_psh && remaining.len() > 0 {
-                            return Some((tcp_header, remaining));
-                        }
+                        return Some((tcp_header, remaining));
                     }
                 }
             }
@@ -232,25 +230,34 @@ impl Rewriter {
         self.server_ports.contains(&tcp.source_port) || self.server_ports.contains(&tcp.dest_port)
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> Result<(), PcapError> {
         while let Some(packet) = self.read.next() {
-            if let Ok(packet) = packet {
-                if let Some((tcp, data)) = Self::get_tcp_data(&packet) {
-                    if self.should_handle_packet(&tcp) {
+            let packet = packet?;
+            if let Some((tcp, data)) = Self::get_tcp_data(&packet) {
+                if self.should_handle_packet(&tcp) {
+                    if tcp.flag_psh && data.len() > 0 {
+                        // How to deal with packets that are split?
+                        // We currently can't turn headers back into their bytes
+                        // so combining two packets is not feasible.
                         let mut data_copy = Vec::with_capacity(data.len());
                         for by in data {
                             data_copy.push(*by);
                         }
                         let result = self.handle_packet(&packet, &tcp, data_copy);
-                        self.write.write_packet(&result).unwrap();
-                    } else if !self.filter_other {
-                        self.write.write_packet(&packet).unwrap();
+                        self.write.write_packet(&result)?;
+                    } else {
+                        self.write.write_packet(&packet)?;
                     }
-                } else if !self.filter_other {
-                    self.write.write_packet(&packet).unwrap();
+                    continue;
                 }
             }
+
+            if !self.filter_other {
+                self.write.write_packet(&packet)?;
+            }
         }
+
+        Ok(())
     }
 }
 
@@ -293,5 +300,10 @@ fn main() {
     let pcap_writer = PcapWriter::new(file_out).unwrap();
 
     let mut rewriter = Rewriter::new(pcap_reader, pcap_writer, ports, filter_other, decryption_orchestrator);
-    rewriter.run();
+    match rewriter.run() {
+        Ok(_) => {},
+        Err(e) => {
+            eprintln!("Encountered an error: {}", e)
+        },
+    }
 }
