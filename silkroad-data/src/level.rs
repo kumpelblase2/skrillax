@@ -48,12 +48,12 @@ impl FromStr for RefLevel {
             level: elements.get(0).ok_or(ParseError::MissingColumn(0))?.parse()?,
             exp: elements.get(1).ok_or(ParseError::MissingColumn(1))?.parse()?,
             exp_mastery: elements.get(2).ok_or(ParseError::MissingColumn(2))?.parse()?,
-            mob_exp: elements.get(3).ok_or(ParseError::MissingColumn(3))?.parse()?,
-            job_exp_trader: elements.get(4).ok_or(ParseError::MissingColumn(4))?.parse()?,
-            job_exp_thief: elements.get(5).ok_or(ParseError::MissingColumn(5))?.parse()?,
-            job_exp_hunter: elements.get(6).ok_or(ParseError::MissingColumn(6))?.parse()?,
-            pet_exp: elements.get(7).ok_or(ParseError::MissingColumn(7))?.parse()?,
-            pet_stored_sp: elements.get(8).ok_or(ParseError::MissingColumn(8))?.parse()?,
+            mob_exp: elements.get(5).ok_or(ParseError::MissingColumn(3))?.parse()?,
+            job_exp_trader: elements.get(6).ok_or(ParseError::MissingColumn(4))?.parse()?,
+            job_exp_thief: elements.get(7).ok_or(ParseError::MissingColumn(5))?.parse()?,
+            job_exp_hunter: elements.get(8).ok_or(ParseError::MissingColumn(6))?.parse()?,
+            pet_exp: elements.get(9).ok_or(ParseError::MissingColumn(7))?.parse()?,
+            pet_stored_sp: elements.get(10).ok_or(ParseError::MissingColumn(8))?.parse()?,
         })
     }
 }
