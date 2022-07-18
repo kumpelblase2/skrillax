@@ -20,9 +20,9 @@ impl LevelMap {
         LevelMap { levels }
     }
 
-    pub fn get_exp_for_level(&self, level: u8) -> u64 {
+    pub fn get_exp_for_level(&self, level: u8) -> Option<u64> {
         let index = (level - 1) as usize;
-        self.levels[index].exp
+        self.levels.get(index).map(|level| level.exp)
     }
 }
 
