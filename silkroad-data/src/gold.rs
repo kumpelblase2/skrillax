@@ -1,5 +1,41 @@
-use crate::ParseError;
+use crate::{parse_file, FileError, ParseError};
+use pk2::Pk2;
+use std::ops::RangeInclusive;
 use std::str::FromStr;
+
+pub struct GoldMap {
+    gold_levels: Vec<RefGold>,
+}
+
+impl GoldMap {
+    pub fn from(pk2: &Pk2) -> Result<GoldMap, FileError> {
+        let mut file = pk2.open_file("/server_dep/silkroad/textdata/levelgold.txt")?;
+        let gold_lines = parse_file(&mut file)?;
+        Ok(GoldMap::new(gold_lines))
+    }
+
+    pub fn new(gold_levels: Vec<RefGold>) -> Self {
+        Self { gold_levels }
+    }
+
+    pub fn get_for_level(&self, level: u8) -> RangeInclusive<u32> {
+        if level == 0 {
+            return 0..=0;
+        }
+
+        self.gold_levels
+            .iter()
+            .find(|gold| gold.level == level)
+            .map(|level| level.min..=level.max)
+            .unwrap_or_else(|| {
+                let last = self
+                    .gold_levels
+                    .last()
+                    .expect("We should always have at least one entry.");
+                last.min..=last.max
+            })
+    }
+}
 
 pub struct RefGold {
     pub level: u8,

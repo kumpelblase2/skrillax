@@ -5,6 +5,7 @@ use bevy_app::{App, CoreStage, Plugin};
 use bevy_ecs::system::ResMut;
 use id_pool::IdPool;
 use pk2::Pk2;
+use silkroad_data::gold::GoldMap;
 use silkroad_data::level::LevelMap;
 use silkroad_navmesh::NavmeshLoader;
 use std::path::Path;
@@ -23,11 +24,13 @@ impl Plugin for WorldPlugin {
         let data_pk2 = Pk2::open(data_file, BLOWFISH_KEY).unwrap();
         let media_file = location.join("Media.pk2");
         let media_pk2 = Pk2::open(media_file, BLOWFISH_KEY).unwrap();
-        let levels = LevelMap::from(&media_pk2);
+        let levels = LevelMap::from(&media_pk2).unwrap();
+        let gold = GoldMap::from(&media_pk2).unwrap();
         app.insert_resource(IdPool::new())
             .insert_resource(Ticks::default())
             .insert_resource(EntityLookup::new())
             .insert_resource(levels)
+            .insert_resource(gold)
             .add_system_to_stage(CoreStage::First, update_ticks)
             .add_system_to_stage(CoreStage::First, maintain_entities)
             .insert_resource(NavmeshLoader::new(data_pk2));
