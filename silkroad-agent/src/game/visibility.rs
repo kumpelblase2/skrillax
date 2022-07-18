@@ -5,18 +5,16 @@ use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, EntityReference, GameEntity};
 use bevy_ecs::prelude::*;
-use bytes::Bytes;
 use cgmath::prelude::*;
+use silkroad_protocol::inventory::CharacterSpawnItemData;
 use silkroad_protocol::world::{
-    ActionState, ActiveScroll, AliveState, BodyState, CharacterSpawnItemData, EntityMovementState, EntityState,
-    EntityTypeSpawnData, GroupEntitySpawnData, GroupEntitySpawnEnd, GroupEntitySpawnStart, GroupSpawnDataContent,
-    GroupSpawnType, GuildInformation, InteractOptions, JobType, MovementType, PlayerKillState, PvpCape,
+    ActionState, ActiveScroll, AliveState, BodyState, EntityMovementState, EntityState, EntityTypeSpawnData,
+    GroupEntitySpawnData, GroupEntitySpawnEnd, GroupEntitySpawnStart, GroupSpawnDataContent, GroupSpawnType,
+    GuildInformation, InteractOptions, JobType, MovementType, PlayerKillState, PvpCape,
 };
 use silkroad_protocol::ServerPacket;
 use std::collections::HashSet;
 use tracing::debug;
-
-static EMPTY_BYTES: [u8; 9] = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
 pub(crate) fn visibility_update(
     mut query: Query<(Entity, &mut Visibility, &Position)>,
@@ -121,9 +119,9 @@ pub(crate) fn player_visibility_update(
                                 union_id: 0,
                                 last_union_icon_rev: 0,
                                 is_friendly: 0,
-                                siege_unkown: 0,
+                                siege_unknown: 0,
                             },
-                            unknown3: Bytes::from(&EMPTY_BYTES[..]),
+                            unknown3: [0; 9],
                             equipment_cooldown: false,
                             unknown4: 0,
                         },
@@ -147,7 +145,7 @@ pub(crate) fn player_visibility_update(
                                 berserk_speed: 80.0,
                                 active_buffs: vec![],
                             },
-                            interaction_options: InteractOptions::None,
+                            interaction_options: InteractOptions::talk(vec![5]),
                             rarity: monster.rarity,
                             unknown: 0,
                         },

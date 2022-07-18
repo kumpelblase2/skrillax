@@ -22,9 +22,9 @@ use silkroad_protocol::character::{
     CharacterListEntry, CharacterListEquippedItem, CharacterListError, CharacterListRequest,
     CharacterListRequestAction, CharacterListResponse, CharacterListResult, TimeInformation,
 };
+use silkroad_protocol::inventory::{InventoryItemBindingData, InventoryItemContentData, InventoryItemData, RentInfo};
 use silkroad_protocol::world::{
-    ActionState, AliveState, BodyState, CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, EntityState,
-    InventoryItemBindingData, InventoryItemContentData, InventoryItemData, JobType,
+    ActionState, AliveState, BodyState, CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, EntityState, JobType,
 };
 use silkroad_protocol::{ClientPacket, ServerPacket};
 use sqlx::PgPool;
@@ -404,7 +404,7 @@ fn send_spawn(client: &Client, entity: &GameEntity, player: &Player, position: &
         .items()
         .map(|(slot, item)| InventoryItemData {
             slot: *slot,
-            rent_data: 0,
+            rent_data: RentInfo::Empty,
             item_id: item.ref_id as u32,
             content_data: InventoryItemContentData::Equipment {
                 plus_level: item.upgrade_level,

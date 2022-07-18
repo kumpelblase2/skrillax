@@ -120,7 +120,7 @@ impl Position {
         }
     }
 
-    pub fn as_movement(&self) -> silkroad_protocol::world::EntityMovementState {
+    pub fn as_movement(&self) -> EntityMovementState {
         let local = self.location.to_local();
         EntityMovementState::Moving {
             movement_type: MovementType::Running,

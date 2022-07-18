@@ -1,13 +1,14 @@
 [workspace]
 members = [
     "silkroad-network",
-    "silkroad-codegen",
     "silkroad-protocol",
     "silkroad-gateway",
     "silkroad-rpc",
     "silkroad-security",
     "silkroad-agent",
     "silkroad-navmesh",
+    "silkroad-serde",
+    "silkroad-serde-derive",
     "silkroad-data",
     "silkroad-packet-decryptor"
 ]

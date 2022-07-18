@@ -3,10 +3,10 @@ name = "silkroad-protocol"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 byteorder = "1.4.3"
 chrono = "0.4.19"
 bytes = "1.1.0"
 thiserror = "1.0.30"
+silkroad-serde = { path = "../silkroad-serde" }
+silkroad-serde-derive = { path = "../silkroad-serde-derive" }

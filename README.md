@@ -8,8 +8,7 @@ somewhat working program at the end of the day would help with motivation.
 
 This project is organized in many subprojects, each having their own individual goal:
 
-- [silkroad-codegen](silkroad-codegen/README.md): Generate (de-)serialization code for packets
-- silkroad-protocol: The generated code from the current packet specification
+- silkroad-protocol: Packet specification that is used for communicating with the client
 - silkroad-rpc: Shared types for RPC between servers
 - [silkroad-security](silkroad-security/README.md): Implementation of security primitives used in Silkroad
 - silkroad-network: Abstraction to handle connections to Silkroad clients
@@ -18,3 +17,5 @@ This project is organized in many subprojects, each having their own individual 
 - [silkroad-agent](silkroad-agent/README.md): Gameserver implementation
 - [silkroad-packet-decryptor](silkroad-packet-decryptor/README.md): Tool to decrypt encrypted packet stream from
   silkroad.
+- silkroad-serde: Serialization/Deserialization traits used for packets.
+- silkroad-serde-derive: Derive macros to implement serialization/deserialization traits.

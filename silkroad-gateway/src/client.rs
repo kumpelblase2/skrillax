@@ -187,7 +187,7 @@ impl Client {
                                     // Maybe this should return a more fitting response code?
                                     // Or should the client just be ditched?
                                     let _ = writer
-                                        .send(ServerPacket::PasscodeResponse(PasscodeResponse::new(4, 2, 1)))
+                                        .send(ServerPacket::PasscodeResponse(PasscodeResponse::new(2, 1)))
                                         .await;
                                     continue;
                                 },

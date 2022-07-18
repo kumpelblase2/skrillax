@@ -7,178 +7,143 @@ use crate::login::*;
 use crate::world::*;
 use bytes::Bytes;
 
-pub mod error;
-
-pub mod size;
-
+pub mod auth;
 pub mod character;
-
+pub mod chat;
+pub mod error;
+pub mod general;
+pub mod inventory;
+pub mod login;
 pub mod world;
 
-pub mod chat;
+use crate::inventory::*;
 
-pub mod login;
-
-pub mod general;
-
-pub mod auth;
-
-pub enum ClientPacket {
-    CharacterListRequest(CharacterListRequest),
-    CharacterJoinRequest(CharacterJoinRequest),
-    FinishLoading(FinishLoading),
-    ConsignmentList(ConsignmentList),
-    PlayerMovementRequest(PlayerMovementRequest),
-    AddFriend(AddFriend),
-    CreateFriendGroup(CreateFriendGroup),
-    DeleteFriend(DeleteFriend),
-    Rotation(Rotation),
-    TargetEntity(TargetEntity),
-    UnTargetEntity(UnTargetEntity),
-    ChatMessage(ChatMessage),
-    PatchRequest(PatchRequest),
-    LoginRequest(LoginRequest),
-    SecurityCodeInput(SecurityCodeInput),
-    GatewayNoticeRequest(GatewayNoticeRequest),
-    PingServerRequest(PingServerRequest),
-    ShardListRequest(ShardListRequest),
-    IdentityInformation(IdentityInformation),
-    KeepAlive(KeepAlive),
-    HandshakeChallenge(HandshakeChallenge),
-    HandshakeAccepted(HandshakeAccepted),
-    AuthRequest(AuthRequest),
-    LogoutRequest(LogoutRequest),
-}
-
-impl ClientPacket {
-    pub fn deserialize(opcode: u16, data: Bytes) -> Result<ClientPacket, ProtocolError> {
-        match opcode {
-            0x7007 => Ok(ClientPacket::CharacterListRequest(data.try_into()?)),
-            0x7001 => Ok(ClientPacket::CharacterJoinRequest(data.try_into()?)),
-            0x34c6 => Ok(ClientPacket::FinishLoading(data.try_into()?)),
-            0x750E => Ok(ClientPacket::ConsignmentList(data.try_into()?)),
-            0x7021 => Ok(ClientPacket::PlayerMovementRequest(data.try_into()?)),
-            0x7302 => Ok(ClientPacket::AddFriend(data.try_into()?)),
-            0x7310 => Ok(ClientPacket::CreateFriendGroup(data.try_into()?)),
-            0x7304 => Ok(ClientPacket::DeleteFriend(data.try_into()?)),
-            0x7024 => Ok(ClientPacket::Rotation(data.try_into()?)),
-            0x7045 => Ok(ClientPacket::TargetEntity(data.try_into()?)),
-            0x704B => Ok(ClientPacket::UnTargetEntity(data.try_into()?)),
-            0x7025 => Ok(ClientPacket::ChatMessage(data.try_into()?)),
-            0x6100 => Ok(ClientPacket::PatchRequest(data.try_into()?)),
-            0x610A => Ok(ClientPacket::LoginRequest(data.try_into()?)),
-            0x6117 => Ok(ClientPacket::SecurityCodeInput(data.try_into()?)),
-            0x6104 => Ok(ClientPacket::GatewayNoticeRequest(data.try_into()?)),
-            0x6107 => Ok(ClientPacket::PingServerRequest(data.try_into()?)),
-            0x6101 => Ok(ClientPacket::ShardListRequest(data.try_into()?)),
-            0x2001 => Ok(ClientPacket::IdentityInformation(data.try_into()?)),
-            0x2002 => Ok(ClientPacket::KeepAlive(data.try_into()?)),
-            0x5000 => Ok(ClientPacket::HandshakeChallenge(data.try_into()?)),
-            0x9000 => Ok(ClientPacket::HandshakeAccepted(data.try_into()?)),
-            0x6103 => Ok(ClientPacket::AuthRequest(data.try_into()?)),
-            0x7005 => Ok(ClientPacket::LogoutRequest(data.try_into()?)),
-            _ => Err(ProtocolError::UnknownOpcode(opcode)),
+macro_rules! client_packets {
+    ($($opcode:literal => $name:ident),*) => {
+        pub enum ClientPacket {
+            $($name($name)),*
         }
-    }
+
+        impl ClientPacket {
+            pub fn deserialize(opcode: u16, data: Bytes) -> Result<ClientPacket, ProtocolError> {
+                match opcode {
+                    $($opcode => Ok(ClientPacket::$name(data.try_into()?)),)*
+                    _ => Err(ProtocolError::UnknownOpcode(opcode)),
+                }
+            }
+        }
+
+        $(
+            impl From<$name> for ClientPacket {
+                fn from(other: $name) -> Self {
+                    ClientPacket::$name(other)
+                }
+            }
+        )*
+    };
 }
 
-pub enum ServerPacket {
-    CharacterListResponse(CharacterListResponse),
-    CharacterJoinResponse(CharacterJoinResponse),
-    CharacterStatsMessage(CharacterStatsMessage),
-    UnknownPacket(UnknownPacket),
-    UnknownPacket2(UnknownPacket2),
-    CelestialUpdate(CelestialUpdate),
-    LunarEventInfo(LunarEventInfo),
-    CharacterSpawnStart(CharacterSpawnStart),
-    CharacterSpawn(CharacterSpawn),
-    CharacterSpawnEnd(CharacterSpawnEnd),
-    CharacterFinished(CharacterFinished),
-    EntityDespawn(EntityDespawn),
-    EntitySpawn(EntitySpawn),
-    GroupEntitySpawnStart(GroupEntitySpawnStart),
-    GroupEntitySpawnData(GroupEntitySpawnData),
-    GroupEntitySpawnEnd(GroupEntitySpawnEnd),
-    ConsignmentResponse(ConsignmentResponse),
-    WeatherUpdate(WeatherUpdate),
-    FriendListInfo(FriendListInfo),
-    GameNotification(GameNotification),
-    PlayerMovementResponse(PlayerMovementResponse),
-    EntityUpdateState(EntityUpdateState),
-    TargetEntityResponse(TargetEntityResponse),
-    UnTargetEntityResponse(UnTargetEntityResponse),
-    TextCharacterInitialization(TextCharacterInitialization),
-    ChatUpdate(ChatUpdate),
-    ChatMessageResponse(ChatMessageResponse),
-    PatchResponse(PatchResponse),
-    LoginResponse(LoginResponse),
-    SecurityCodeResponse(SecurityCodeResponse),
-    GatewayNoticeResponse(GatewayNoticeResponse),
-    PingServerResponse(PingServerResponse),
-    ShardListResponse(ShardListResponse),
-    PasscodeRequiredResponse(PasscodeRequiredResponse),
-    PasscodeResponse(PasscodeResponse),
-    QueueUpdate(QueueUpdate),
-    IdentityInformation(IdentityInformation),
-    ServerInfoSeed(ServerInfoSeed),
-    ServerStateSeed(ServerStateSeed),
-    SecuritySetup(SecuritySetup),
-    AuthResponse(AuthResponse),
-    LogoutResponse(LogoutResponse),
-    LogoutFinished(LogoutFinished),
-    Disconnect(Disconnect),
+client_packets! {
+    0x7007 => CharacterListRequest,
+    0x7001 => CharacterJoinRequest,
+    0x34c6 => FinishLoading,
+    0x750E => ConsignmentList,
+    0x7021 => PlayerMovementRequest,
+    0x7302 => AddFriend,
+    0x7310 => CreateFriendGroup,
+    0x7304 => DeleteFriend,
+    0x7024 => Rotation,
+    0x7045 => TargetEntity,
+    0x704B => UnTargetEntity,
+    0x7034 => InventoryOperation,
+    0x7025 => ChatMessage,
+    0x6100 => PatchRequest,
+    0x610A => LoginRequest,
+    0x6117 => SecurityCodeInput,
+    0x6104 => GatewayNoticeRequest,
+    0x6107 => PingServerRequest,
+    0x6101 => ShardListRequest,
+    0x2001 => IdentityInformation,
+    0x2002 => KeepAlive,
+    0x5000 => HandshakeChallenge,
+    0x9000 => HandshakeAccepted,
+    0x6103 => AuthRequest,
+    0x7005 => LogoutRequest
+}
+
+macro_rules! server_packets {
+    ($($opcode:literal => $name:ident),*) => {
+        pub enum ServerPacket {
+            $($name($name)),*
+        }
+
+        impl ServerPacket {
+            pub fn into_serialize(self) -> (u16, Bytes) {
+                match self {
+                    $(ServerPacket::$name(data) => ($opcode, data.into()),)*
+                }
+            }
+        }
+
+        $(
+            impl From<$name> for ServerPacket {
+                fn from(other: $name) -> Self {
+                    ServerPacket::$name(other)
+                }
+            }
+        )*
+    };
+}
+
+server_packets! {
+    0xB007 => CharacterListResponse,
+    0xB001 => CharacterJoinResponse,
+    0x303D => CharacterStatsMessage,
+    0x3601 => UnknownPacket,
+    0xB602 => UnknownPacket2,
+    0x3020 => CelestialUpdate,
+    0x34f2 => LunarEventInfo,
+    0x34A5 => CharacterSpawnStart,
+    0x3013 => CharacterSpawn,
+    0x34A6 => CharacterSpawnEnd,
+    0x3077 => CharacterFinished,
+    0x3016 => EntityDespawn,
+    0x3015 => EntitySpawn,
+    0x3017 => GroupEntitySpawnStart,
+    0x3019 => GroupEntitySpawnData,
+    0x3018 => GroupEntitySpawnEnd,
+    0xB50E => ConsignmentResponse,
+    0x3809 => WeatherUpdate,
+    0x3305 => FriendListInfo,
+    0x300C => GameNotification,
+    0xB021 => PlayerMovementResponse,
+    0x30BF => EntityUpdateState,
+    0xB045 => TargetEntityResponse,
+    0xB04B => UnTargetEntityResponse,
+    0x3535 => TextCharacterInitialization,
+    0x3026 => ChatUpdate,
+    0xB025 => ChatMessageResponse,
+    0xA100 => PatchResponse,
+    0xA10A => LoginResponse,
+    0xA117 => SecurityCodeResponse,
+    0xA104 => GatewayNoticeResponse,
+    0xA107 => PingServerResponse,
+    0xA101 => ShardListResponse,
+    0x2116 => PasscodeRequiredResponse,
+    0xA117 => PasscodeResponse,
+    0x210E => QueueUpdate,
+    0x2001 => IdentityInformation,
+    0x2005 => ServerInfoSeed,
+    0x6005 => ServerStateSeed,
+    0x5000 => SecuritySetup,
+    0xA103 => AuthResponse,
+    0xB005 => LogoutResponse,
+    0x300A => LogoutFinished,
+    0x2212 => Disconnect,
+    0x3057 => EntityBarsUpdate
 }
 
 impl ServerPacket {
-    pub fn into_serialize(self) -> (u16, Bytes) {
-        match self {
-            ServerPacket::CharacterListResponse(data) => (0xB007, data.into()),
-            ServerPacket::CharacterJoinResponse(data) => (0xB001, data.into()),
-            ServerPacket::CharacterStatsMessage(data) => (0x303D, data.into()),
-            ServerPacket::UnknownPacket(data) => (0x3601, data.into()),
-            ServerPacket::UnknownPacket2(data) => (0xB602, data.into()),
-            ServerPacket::CelestialUpdate(data) => (0x3020, data.into()),
-            ServerPacket::LunarEventInfo(data) => (0x34f2, data.into()),
-            ServerPacket::CharacterSpawnStart(data) => (0x34A5, data.into()),
-            ServerPacket::CharacterSpawn(data) => (0x3013, data.into()),
-            ServerPacket::CharacterSpawnEnd(data) => (0x34A6, data.into()),
-            ServerPacket::CharacterFinished(data) => (0x3077, data.into()),
-            ServerPacket::EntityDespawn(data) => (0x3016, data.into()),
-            ServerPacket::EntitySpawn(data) => (0x3015, data.into()),
-            ServerPacket::GroupEntitySpawnStart(data) => (0x3017, data.into()),
-            ServerPacket::GroupEntitySpawnData(data) => (0x3019, data.into()),
-            ServerPacket::GroupEntitySpawnEnd(data) => (0x3018, data.into()),
-            ServerPacket::ConsignmentResponse(data) => (0xB50E, data.into()),
-            ServerPacket::WeatherUpdate(data) => (0x3809, data.into()),
-            ServerPacket::FriendListInfo(data) => (0x3305, data.into()),
-            ServerPacket::GameNotification(data) => (0x300C, data.into()),
-            ServerPacket::PlayerMovementResponse(data) => (0xB021, data.into()),
-            ServerPacket::EntityUpdateState(data) => (0x30BF, data.into()),
-            ServerPacket::TargetEntityResponse(data) => (0xB045, data.into()),
-            ServerPacket::UnTargetEntityResponse(data) => (0xB04B, data.into()),
-            ServerPacket::TextCharacterInitialization(data) => (0x3535, data.into()),
-            ServerPacket::ChatUpdate(data) => (0x3026, data.into()),
-            ServerPacket::ChatMessageResponse(data) => (0xB025, data.into()),
-            ServerPacket::PatchResponse(data) => (0xA100, data.into()),
-            ServerPacket::LoginResponse(data) => (0xA10A, data.into()),
-            ServerPacket::SecurityCodeResponse(data) => (0xA117, data.into()),
-            ServerPacket::GatewayNoticeResponse(data) => (0xA104, data.into()),
-            ServerPacket::PingServerResponse(data) => (0xA107, data.into()),
-            ServerPacket::ShardListResponse(data) => (0xA101, data.into()),
-            ServerPacket::PasscodeRequiredResponse(data) => (0x2116, data.into()),
-            ServerPacket::PasscodeResponse(data) => (0xA117, data.into()),
-            ServerPacket::QueueUpdate(data) => (0x210E, data.into()),
-            ServerPacket::IdentityInformation(data) => (0x2001, data.into()),
-            ServerPacket::ServerInfoSeed(data) => (0x2005, data.into()),
-            ServerPacket::ServerStateSeed(data) => (0x6005, data.into()),
-            ServerPacket::SecuritySetup(data) => (0x5000, data.into()),
-            ServerPacket::AuthResponse(data) => (0xA103, data.into()),
-            ServerPacket::LogoutResponse(data) => (0xB005, data.into()),
-            ServerPacket::LogoutFinished(data) => (0x300A, data.into()),
-            ServerPacket::Disconnect(data) => (0x2212, data.into()),
-        }
-    }
-
     pub fn is_massive(&self) -> bool {
         matches!(
             self,
