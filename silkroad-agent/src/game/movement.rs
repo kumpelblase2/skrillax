@@ -14,9 +14,6 @@ pub(crate) fn movement(
     delta: Res<Time>,
 ) {
     for (mut agent, mut position, mut sync) in query.iter_mut() {
-        let mut agent: &mut Agent = &mut agent;
-        let mut position: &mut Position = &mut position;
-        let mut sync: &mut Synchronize = &mut sync;
         match &agent.movement_target {
             Some(MovementTarget::Direction(direction)) => {
                 let old_position = position.location.clone();
@@ -42,6 +39,7 @@ pub(crate) fn movement(
             Some(MovementTarget::Turn(heading)) => {
                 position.rotation = heading.clone();
                 sync.movement = Some(MovementUpdate::Turn(heading.clone()));
+                agent.movement_target = None;
             },
             Some(MovementTarget::Location(location)) => {
                 let old_position = position.location.clone();
