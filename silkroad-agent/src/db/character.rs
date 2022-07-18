@@ -25,6 +25,7 @@ pub(crate) struct CharacterData {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+    pub rotation: i16,
     pub region: i16,
     pub berserk_points: i16,
     pub gold: i64,

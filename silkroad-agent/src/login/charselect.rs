@@ -169,7 +169,7 @@ pub(crate) fn charselect(
                                     Vector3::new(data.x, data.y, data.z),
                                 )
                                 .to_global(),
-                                rotation: Heading(0.0),
+                                rotation: Heading::from(data.rotation as u16),
                             };
 
                             let agent = Agent {
@@ -512,6 +512,7 @@ pub(crate) fn create_character_from(
         x: 739.,
         y: 37.4519,
         z: 1757.,
+        rotation: 0,
         region: 24998,
         berserk_points: 0,
         gold: 5000000,
