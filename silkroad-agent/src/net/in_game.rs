@@ -44,10 +44,6 @@ pub(crate) fn in_game(
     )>,
 ) {
     for (entity, mut client, game_entity, mut player, mut agent, position, mut sync) in query.iter_mut() {
-        let mut agent: &mut Agent = &mut agent;
-        let game_entity: &GameEntity = game_entity;
-        let mut sync: &mut Synchronize = &mut sync;
-
         while let Some(packet) = client.1.pop_front() {
             match packet {
                 ClientPacket::FinishLoading(_) => {

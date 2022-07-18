@@ -7,7 +7,7 @@ use silkroad_network::stream::{SendResult, Stream};
 use silkroad_protocol::auth::{AuthResponse, AuthResult, AuthResultError};
 use silkroad_protocol::general::IdentityInformation;
 use silkroad_protocol::ClientPacket;
-use tracing::debug;
+use tracing::{debug, warn};
 
 pub(crate) fn login(
     mut buffer: Commands,
@@ -46,14 +46,18 @@ fn handle_packets(
                     send_login_result(&client.0, AuthResult::success())?;
                     break;
                 },
-                Err(ReservationError::NoSuchToken) => {
-                    send_login_result(&client.0, AuthResult::error(AuthResultError::InvalidData))?;
-                },
-                _ => {
-                    send_login_result(&client.0, AuthResult::error(AuthResultError::ServerFull))?;
+                Err(err) => match err {
+                    ReservationError::NoSuchToken | ReservationError::AlreadyHasReservation => {
+                        send_login_result(&client.0, AuthResult::error(AuthResultError::InvalidData))?;
+                    },
+                    ReservationError::NoSpotsAvailable | ReservationError::AllTokensTaken => {
+                        send_login_result(&client.0, AuthResult::error(AuthResultError::ServerFull))?;
+                    },
                 },
             },
-            _ => {},
+            _ => {
+                warn!(id = ?client.0.id(), "Client sent packet that didn't fit in login phase.")
+            },
         }
     }
     Ok(())
