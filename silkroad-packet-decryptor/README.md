@@ -29,7 +29,7 @@ used agent/game server. However, if the port is know, it can be passed as anothe
 stream as well. If the game server used the port `22233`, the command would look as follows:
 
 ```shell
-silkroad-packet-decryptor /path/to/file.pcap 22233
+silkroad-packet-decryptor --port 22233 /path/to/file.pcap
 ```
 
 As the tool does a brute force attack on the key exchange, the more processing power it has available, the faster it can
@@ -40,7 +40,7 @@ advised to not use more than twice as many threads as there are cores, due to th
 threads. If the tool should use `10` threads, it could be invoked like this:
 
 ```shell
-silkroad-packet-decryptor --threads 10 /path/to/file.pcap 22233
+silkroad-packet-decryptor --threads 10 --port 22233 /path/to/file.pcap
 ```
 
 To display a short help to list all these options, the `--help` flag can be provided.
