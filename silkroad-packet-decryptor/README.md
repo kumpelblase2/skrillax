@@ -55,7 +55,7 @@ the full data is actually kept secret. In other sources that explain how the sec
 `x` and is used to derive a public value `a`. The other two parts that influence `a` are called `g` and `p` which are
 both publicly shared. Thus, to generate the secret key using the public parts `g`, `p`, and `a`, we only need to brute
 force `x`. `x` is a random 32bit number, however, only 31 bits are actually used. The operation performed to derive `a`
-is multiplication with modulo, making it impossible to calculate the inverse, but is simple enough to run a brute force
+is multiplication with modulo, making it infeasible to calculate the inverse, but is simple enough to run a brute force
 attack. This effectively checks every number from 0 to 2^31 if, together with `p` and `g`, the result matches `a`. Often
 this only applies to a single number, but can sometimes result in multiple possible matches. In that case, we consult
 the client challenge material which allows us to verify which of the candidates was used by the client. With the
@@ -63,5 +63,5 @@ verified match, we now have everything that made up the state of the server and 
 used in the exchange.
 
 On modern systems, this may only take a minute or two to go through 2^31 - or ~2*10^9 - possibilities and is thus quite
-acceptable for hte breaking speed. This could be improved through GPU acceleration, but for the presented use case is
+acceptable for the breaking speed. This could be improved through GPU acceleration, but for the presented use case is
 enough to satisfy.
