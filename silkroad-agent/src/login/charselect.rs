@@ -194,7 +194,7 @@ pub(crate) fn charselect(
                                 .insert(agent)
                                 .insert(position.clone())
                                 .insert(Buffed {})
-                                .insert(Visibility::with_radius(200.))
+                                .insert(Visibility::with_radius(500.))
                                 .remove::<CharacterSelect>();
                         },
                         None => {
