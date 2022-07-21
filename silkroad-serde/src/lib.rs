@@ -65,7 +65,7 @@ impl Deserialize for u8 {
 }
 
 impl Serialize for bool {
-    fn write_to(&self, mut writer: &mut BytesMut) {
+    fn write_to(&self, writer: &mut BytesMut) {
         let value = if *self { 1 } else { 0u8 };
         value.write_to(writer);
     }
