@@ -1,4 +1,5 @@
 use crate::comp::drop::ItemDrop;
+use crate::comp::monster::Monster;
 use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, GameEntity};
@@ -12,6 +13,7 @@ use cgmath::num_traits::Pow;
 use cgmath::MetricSpace;
 use id_pool::IdPool;
 use silkroad_protocol::chat::{ChatSource, ChatUpdate};
+use silkroad_protocol::world::EntityRarity;
 use silkroad_protocol::ServerPacket;
 
 pub(crate) struct ChatPlugin;
@@ -99,6 +101,25 @@ pub(crate) fn chat_update(
                             .id();
 
                         lookup.add_entity(id, drop);
+                    },
+                    "spawn" => {
+                        let id: u32 = elements[1].parse().unwrap();
+                        let spawn_id = id_pool.request_id().unwrap();
+                        let (_, _, pos, _) = query.get(*sender).unwrap();
+                        let spawned = cmd
+                            .spawn()
+                            .insert(GameEntity {
+                                ref_id: id,
+                                unique_id: spawn_id,
+                            })
+                            .insert(Monster {
+                                target: None,
+                                rarity: EntityRarity::Normal,
+                            })
+                            .insert(pos.clone())
+                            .id();
+
+                        lookup.add_entity(spawn_id, spawned);
                     },
                     _ => {},
                 }
