@@ -1,5 +1,5 @@
 use bevy_ecs_macros::Component;
-use cgmath::{Vector2, Vector3};
+use cgmath::{MetricSpace, Vector2, Vector3};
 use silkroad_navmesh::region::Region;
 use silkroad_protocol::world::{EntityMovementState, MovementType};
 use std::fmt::{Display, Formatter};
@@ -42,20 +42,20 @@ impl Display for LocalPosition {
     }
 }
 
+impl LocalPosition {
+    pub fn to_global(&self) -> GlobalPosition {
+        let global_x = self.1.x + (self.0.x() as f32 * 1920.);
+        let global_z = self.1.z + (self.0.y() as f32 * 1920.);
+        GlobalPosition(Vector3::new(global_x, self.1.y, global_z))
+    }
+}
+
 #[derive(Copy, Clone)]
 pub struct GlobalPosition(pub Vector3<f32>);
 
 impl Display for GlobalPosition {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}|{}|{}", self.0.x, self.0.y, self.0.z)
-    }
-}
-
-impl LocalPosition {
-    pub fn to_global(&self) -> GlobalPosition {
-        let global_x = self.1.x + (self.0.x() as f32 * 1920.);
-        let global_z = self.1.z + (self.0.y() as f32 * 1920.);
-        GlobalPosition(Vector3::new(global_x, self.1.y, global_z))
     }
 }
 
@@ -97,6 +97,9 @@ impl From<u16> for Heading {
 
 impl Into<u16> for Heading {
     fn into(self) -> u16 {
+        if self.0 == 0.0 {
+            return 0;
+        }
         let percentage = (360. - self.0) / 360.0;
         (percentage * (u16::MAX as f32)) as u16
     }
@@ -129,5 +132,19 @@ impl Position {
             y: local.1.y as u16,
             z: local.1.z as u16,
         }
+    }
+
+    pub fn as_standing(&self) -> EntityMovementState {
+        EntityMovementState::Standing {
+            movement_type: MovementType::Walking,
+            unknown: 0,
+            angle: self.rotation.into(),
+        }
+    }
+
+    pub fn distance_to(&self, other: &Position) -> f32 {
+        let my_vec2 = Vector2::new(self.location.0.x, self.location.0.z);
+        let other_vec2 = Vector2::new(other.location.0.x, other.location.0.z);
+        my_vec2.distance(other_vec2)
     }
 }
