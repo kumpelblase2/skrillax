@@ -192,6 +192,13 @@ pub enum EntityTypeSpawnData {
         pk_state: PlayerKillState,
         unknown4: u8,
     },
+    NPC {
+        unique_id: u32,
+        position: Position,
+        movement: EntityMovementState,
+        entity_state: EntityState,
+        interaction_options: InteractOptions,
+    },
     Monster {
         unique_id: u32,
         position: Position,
