@@ -1,6 +1,6 @@
 use config::ConfigError;
-use lazy_static::lazy_static;
 use log::LevelFilter;
+use once_cell::sync::Lazy;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{ConnectOptions, PgPool};
@@ -47,6 +47,13 @@ pub(crate) struct GameConfig {
     pub(crate) data_location: String,
     pub(crate) desired_ticks: Option<u32>,
     pub(crate) deletion_time: Option<u32>,
+    pub(crate) spawner: Option<SpawnOptions>,
+}
+
+#[derive(Deserialize, Default, Clone)]
+pub(crate) struct SpawnOptions {
+    pub(crate) radius: Option<f32>,
+    pub(crate) amount: Option<usize>,
 }
 
 #[derive(Deserialize)]
@@ -78,6 +85,4 @@ pub(crate) fn get_config() -> &'static GameServerConfig {
     &CONFIG
 }
 
-lazy_static! {
-    static ref CONFIG: GameServerConfig = GameServerConfig::load().expect("Could not load config.");
-}
+static CONFIG: Lazy<GameServerConfig> = Lazy::new(|| GameServerConfig::load().expect("Could not load config."));

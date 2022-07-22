@@ -68,6 +68,10 @@ impl GlobalPosition {
         let local_z = self.0.z % 1920.;
         LocalPosition(region, Vector3::new(local_x, self.0.y, local_z))
     }
+
+    pub fn to_location(&self) -> GlobalLocation {
+        GlobalLocation(Vector2::new(self.0.x, self.0.z))
+    }
 }
 
 impl From<GlobalPosition> for LocalPosition {
