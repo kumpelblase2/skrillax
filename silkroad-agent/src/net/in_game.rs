@@ -133,7 +133,7 @@ pub(crate) fn in_game(
                 },
                 ClientPacket::TargetEntity(TargetEntity { unique_id }) => {
                     client.send(ServerPacket::TargetEntityResponse(TargetEntityResponse::new(
-                        TargetEntityResult::success(unique_id),
+                        TargetEntityResult::success_monster(unique_id, 54),
                     )));
                 },
                 _ => {},

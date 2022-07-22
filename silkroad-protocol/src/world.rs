@@ -425,15 +425,21 @@ pub enum TargetEntityError {
 }
 
 #[derive(Clone, Serialize, ByteSize)]
+#[silkroad(size = 0)]
+pub enum TargetEntityData {
+    Monster { unknown: u32, interact_data: Option<u8> },
+    NPC { talk_options: Option<InteractOptions> },
+}
+
+#[derive(Clone, Serialize, ByteSize)]
 pub enum TargetEntityResult {
     #[silkroad(value = 2)]
     Failure { error: TargetEntityError },
     #[silkroad(value = 1)]
     Success {
         unique_id: u32,
-        unknown1: u8,
-        unknown2: u8,
-        unknown3: u8,
+        health: Option<u32>,
+        entity_data: TargetEntityData,
     },
 }
 
@@ -442,12 +448,24 @@ impl TargetEntityResult {
         TargetEntityResult::Failure { error }
     }
 
-    pub fn success(unique_id: u32) -> Self {
+    pub fn success_monster(unique_id: u32, health: u32) -> Self {
         TargetEntityResult::Success {
             unique_id,
-            unknown1: 1,
-            unknown2: 5,
-            unknown3: 4,
+            health: Some(health),
+            entity_data: TargetEntityData::Monster {
+                unknown: 0,
+                interact_data: Some(5),
+            },
+        }
+    }
+
+    pub fn success_npc(unique_id: u32) -> Self {
+        TargetEntityResult::Success {
+            unique_id,
+            health: None,
+            entity_data: TargetEntityData::NPC {
+                talk_options: Some(InteractOptions::talk(vec![])),
+            },
         }
     }
 }
