@@ -2175,6 +2175,7 @@ dependencies = [
  "bevy_core",
  "bevy_ecs",
  "bevy_ecs_macros",
+ "bevy_tasks",
  "byteorder",
  "bytes",
  "cgmath 0.18.0",

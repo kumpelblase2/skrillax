@@ -3,6 +3,7 @@ use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent};
 use crate::GameSettings;
 use bevy_app::{App, Plugin, ScheduleRunnerPlugin, ScheduleRunnerSettings};
 use bevy_ecs::event::Events;
+use bevy_tasks::TaskPoolBuilder;
 use std::ops::Div;
 use std::time::Duration;
 
@@ -34,6 +35,7 @@ impl Plugin for ServerPlugin {
         }
 
         app.insert_resource(settings)
+            .insert_resource(TaskPoolBuilder::default().build())
             .insert_resource(ServerId(self.server_id))
             .insert_resource(Events::<ClientDisconnectedEvent>::default())
             .insert_resource(Events::<ClientConnectedEvent>::default());

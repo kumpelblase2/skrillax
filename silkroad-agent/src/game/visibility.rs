@@ -5,7 +5,11 @@ use crate::comp::player::Player;
 use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, EntityReference, GameEntity};
+use crate::game::player_activity::PlayerActivity;
 use bevy_ecs::prelude::*;
+use bevy_tasks::TaskPool;
+use cgmath::num_traits::Pow;
+use silkroad_navmesh::region::Region;
 use silkroad_protocol::inventory::CharacterSpawnItemData;
 use silkroad_protocol::world::{
     ActionState, ActiveScroll, AliveState, BodyState, EntityState, EntityTypeSpawnData, GroupEntitySpawnData,
@@ -13,44 +17,67 @@ use silkroad_protocol::world::{
     InteractOptions, JobType, PlayerKillState, PvpCape,
 };
 use silkroad_protocol::ServerPacket;
-use std::collections::HashSet;
-use tracing::debug;
+use std::collections::{BTreeMap, HashSet};
+use tracing::{trace, trace_span};
+
+static EMPTY_VEC: Vec<(Entity, &Position, &GameEntity)> = vec![];
 
 pub(crate) fn visibility_update(
+    pool: Res<TaskPool>,
+    activity: Res<PlayerActivity>,
     mut query: Query<(Entity, &GameEntity, &mut Visibility, &Position)>,
     lookup: Query<(Entity, &Position, &GameEntity)>,
 ) {
-    for (entity, game_entity, mut visibility, position) in query.iter_mut() {
-        let entities_in_range: HashSet<EntityReference> = lookup
-            .iter()
-            .filter(|(other_entity, _, _)| other_entity.id() != entity.id())
-            .filter(|(_, other_position, _)| position.distance_to(other_position) < visibility.visibility_radius)
-            .map(|(entity, _, game_entity)| EntityReference(entity, *game_entity))
-            .collect();
+    let span = trace_span!("visibility_update");
+    span.in_scope(|| {
+        let grouped = lookup
+                .iter()
+                .fold(BTreeMap::new(), |mut acc: BTreeMap<Region, Vec<(Entity, &Position, &GameEntity)>>, (entity, pos, game_entity)| {
+                    acc.entry(pos.location.region()).or_default().push((entity, pos, game_entity));
+                    acc
+                });
 
-        let removed: Vec<EntityReference> = visibility
-            .entities_in_radius
-            .difference(&entities_in_range)
-            .copied()
-            .collect();
-        let added: Vec<EntityReference> = entities_in_range
-            .difference(&visibility.entities_in_radius)
-            .copied()
-            .collect();
+        query.par_for_each_mut(&pool, 300, |(entity, game_entity, mut visibility, position)| {
+            let my_region = position.location.region();
+            let close_regions = my_region.neighbours();
+            if close_regions.iter().any(|region| activity.set.contains(&region.id())) {
+                let entities_in_range: HashSet<EntityReference> = close_regions
+                        .iter()
+                        .flat_map(|region| {
+                            grouped.get(region).unwrap_or_else(|| &EMPTY_VEC)
+                        })
+                        .filter(|(other_entity, _, _)| other_entity.id() != entity.id())
+                        .filter(|(_, other_position, _)| {
+                            position.distance_to(other_position) < (visibility.visibility_radius.pow(2))
+                        })
+                        .map(|(entity, _, game_entity)| EntityReference(*entity, **game_entity))
+                        .collect();
 
-        for reference in removed.iter() {
-            debug!(player = ?game_entity.unique_id, "Removed entity {} from visibility.", reference.1.unique_id);
-            visibility.entities_in_radius.remove(reference);
-        }
+                let removed: Vec<EntityReference> = visibility
+                        .entities_in_radius
+                        .difference(&entities_in_range)
+                        .copied()
+                        .collect();
+                let added: Vec<EntityReference> = entities_in_range
+                        .difference(&visibility.entities_in_radius)
+                        .copied()
+                        .collect();
 
-        for reference in added.iter() {
-            debug!(player = ?game_entity.unique_id, "Added entity {} to visibility.", reference.1.unique_id);
-            visibility.entities_in_radius.insert(*reference);
-        }
+                for reference in removed.iter() {
+                    trace!(player = ?game_entity.unique_id, "Removed entity {} from visibility.", reference.1.unique_id);
+                    visibility.entities_in_radius.remove(reference);
+                }
 
-        visibility.added_entities.extend(added);
-        visibility.removed_entities.extend(removed);
-    }
+                for reference in added.iter() {
+                    trace!(player = ?game_entity.unique_id, "Added entity {} to visibility.", reference.1.unique_id);
+                    visibility.entities_in_radius.insert(*reference);
+                }
+
+                visibility.added_entities.extend(added);
+                visibility.removed_entities.extend(removed);
+            }
+        });
+    });
 }
 
 pub(crate) fn player_visibility_update(
@@ -64,8 +91,6 @@ pub(crate) fn player_visibility_update(
     )>,
 ) {
     for (client, mut visibility) in query.iter_mut() {
-        let visibility: &mut Visibility = &mut visibility;
-
         let mut spawns = Vec::new();
         for reference in visibility.added_entities.iter() {
             let added = reference.0;
@@ -130,7 +155,6 @@ pub(crate) fn player_visibility_update(
                         },
                     });
                 } else if let Some(monster) = monster_opt {
-                    debug!("Spawning monster {}.", entity.unique_id);
                     spawns.push(GroupSpawnDataContent::spawn(
                         entity.ref_id,
                         EntityTypeSpawnData::Monster {
@@ -198,6 +222,13 @@ pub(crate) fn player_visibility_update(
 
         send_group_spawn_packet(client, GroupSpawnType::Despawn, despawns);
 
+        visibility.added_entities.clear();
+        visibility.removed_entities.clear();
+    }
+}
+
+pub(crate) fn clear_visibility(mut query: Query<&mut Visibility, Without<Player>>) {
+    for mut visibility in query.iter_mut() {
         visibility.added_entities.clear();
         visibility.removed_entities.clear();
     }

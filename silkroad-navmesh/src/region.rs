@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct Region(u16);
 
 impl Display for Region {
@@ -30,6 +30,20 @@ impl Region {
 
     pub fn is_dungeon(&self) -> bool {
         (self.0 & 0x8000) != 0
+    }
+
+    pub fn neighbours(&self) -> Vec<Region> {
+        let mut regions = Vec::new();
+        regions.push(Region::from_xy(self.x() - 1, self.y()));
+        regions.push(Region::from_xy(self.x(), self.y()));
+        regions.push(Region::from_xy(self.x() + 1, self.y()));
+        regions.push(Region::from_xy(self.x() - 1, self.y() - 1));
+        regions.push(Region::from_xy(self.x(), self.y() - 1));
+        regions.push(Region::from_xy(self.x() + 1, self.y() - 1));
+        regions.push(Region::from_xy(self.x() - 1, self.y() + 1));
+        regions.push(Region::from_xy(self.x(), self.y() + 1));
+        regions.push(Region::from_xy(self.x() + 1, self.y() + 1));
+        regions
     }
 }
 

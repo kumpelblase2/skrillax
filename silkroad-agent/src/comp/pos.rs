@@ -69,6 +69,12 @@ impl GlobalPosition {
         LocalPosition(region, Vector3::new(local_x, self.0.y, local_z))
     }
 
+    pub fn region(&self) -> Region {
+        let region_x = (self.0.x / 1920.) as u8;
+        let region_y = (self.0.z / 1920.) as u8;
+        Region::from_xy(region_x, region_y)
+    }
+
     pub fn to_location(&self) -> GlobalLocation {
         GlobalLocation(Vector2::new(self.0.x, self.0.z))
     }
@@ -149,6 +155,6 @@ impl Position {
     pub fn distance_to(&self, other: &Position) -> f32 {
         let my_vec2 = Vector2::new(self.location.0.x, self.location.0.z);
         let other_vec2 = Vector2::new(other.location.0.x, other.location.0.z);
-        my_vec2.distance(other_vec2)
+        my_vec2.distance2(other_vec2)
     }
 }

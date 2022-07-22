@@ -57,12 +57,12 @@ pub(crate) struct Playing(pub(crate) ServerUser, pub(crate) PlayingToken);
 
 #[derive(Component)]
 pub(crate) struct Health {
-    pub current_health: usize,
-    pub max_health: usize,
+    pub current_health: u32,
+    pub max_health: u32,
 }
 
 impl Health {
-    pub fn new(max_health: usize) -> Self {
+    pub fn new(max_health: u32) -> Self {
         Self {
             current_health: max_health,
             max_health,

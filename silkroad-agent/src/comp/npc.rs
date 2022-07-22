@@ -1,10 +1,11 @@
-use crate::comp::pos::{GlobalPosition, Heading, LocalPosition, Position};
+use crate::comp::pos::{Heading, LocalPosition, Position};
 use crate::comp::GameEntity;
 use bevy_ecs::prelude::*;
 
 #[derive(Component)]
 pub(crate) struct NPC;
 
+#[derive(Bundle)]
 pub(crate) struct NpcBundle {
     game_entity: GameEntity,
     npc: NPC,
