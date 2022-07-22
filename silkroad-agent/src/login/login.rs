@@ -1,7 +1,7 @@
 use crate::comp::{CharacterSelect, Client, Login, Playing};
 use crate::event::ClientDisconnectedEvent;
-use crate::population::queue::LoginQueue;
-use crate::population::queue::ReservationError;
+use crate::population::LoginQueue;
+use crate::population::ReservationError;
 use bevy_ecs::prelude::*;
 use silkroad_network::stream::{SendResult, Stream};
 use silkroad_protocol::auth::{AuthResponse, AuthResult, AuthResultError};

@@ -1,4 +1,4 @@
-use crate::comp::{EntityReference, GameEntity};
+use crate::comp::EntityReference;
 use bevy_ecs::prelude::*;
 use std::collections::HashSet;
 
