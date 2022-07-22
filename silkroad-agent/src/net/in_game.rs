@@ -31,8 +31,6 @@ pub(crate) fn in_game(
     mut lookup: ResMut<EntityLookup>,
     settings: Res<GameSettings>,
     delta: Res<Time>,
-    mut allocator: ResMut<IdPool>,
-    mut cmd: Commands,
     mut query: Query<(
         Entity,
         &mut Client,
@@ -61,25 +59,6 @@ pub(crate) fn in_game(
                         client.send(ChatUpdate::new(ChatSource::Notice, notice.clone()));
                     }
                     lookup.add_player(player.character.name.clone(), entity, game_entity.unique_id);
-
-                    let mob = GameEntity {
-                        ref_id: 0x078d,
-                        unique_id: allocator.request_id().unwrap(),
-                    };
-                    let spawned = cmd
-                        .spawn()
-                        .insert(Synchronize::default())
-                        .insert(Agent::new(16.))
-                        .insert(position.clone())
-                        .insert(Monster {
-                            rarity: EntityRarity::Normal,
-                            target: None,
-                        })
-                        .insert(mob)
-                        .insert(Health::new(100))
-                        .insert(Visibility::with_radius(10.))
-                        .id();
-                    lookup.add_entity(mob.unique_id, spawned);
                 },
                 ClientPacket::PlayerMovementRequest(PlayerMovementRequest { kind }) => match kind {
                     silkroad_protocol::world::MovementTarget::TargetLocation { region, x, y, z } => {
