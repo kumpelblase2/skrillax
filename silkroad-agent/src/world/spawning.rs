@@ -1,6 +1,8 @@
-use crate::comp::monster::{Monster, MonsterBundle, SpawnedBy, Spawner};
+use crate::comp::monster::{Monster, MonsterBundle, RandomStroll, SpawnedBy, Spawner};
 use crate::comp::npc::NpcBundle;
+use crate::comp::player::{Agent, MovementState};
 use crate::comp::pos::{GlobalLocation, Heading, LocalPosition, Position};
+use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use crate::game::player_activity::PlayerActivity;
@@ -219,6 +221,7 @@ fn spawn_monster(
     health: u32,
     target_location: Position,
 ) -> MonsterBundle {
+    let spawn_center = target_location.location.to_location();
     MonsterBundle {
         monster: Monster {
             target: None,
@@ -229,5 +232,12 @@ fn spawn_monster(
         entity: GameEntity { ref_id, unique_id },
         visibility: Visibility::with_radius(100.0),
         spawner: SpawnedBy { spawner },
+        navigation: Agent {
+            movement_speed: 16.0,
+            movement_state: MovementState::Standing,
+            movement_target: None,
+        },
+        sync: Synchronize::default(),
+        stroll: RandomStroll::new(spawn_center, 100.0, Duration::from_secs(2)),
     }
 }

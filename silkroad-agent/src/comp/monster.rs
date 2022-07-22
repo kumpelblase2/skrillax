@@ -1,10 +1,13 @@
-use crate::comp::pos::Position;
+use crate::comp::player::Agent;
+use crate::comp::pos::{GlobalLocation, Position};
+use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use crate::settings::SpawnSettings;
+use bevy_core::Timer;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::world::EntityRarity;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 #[derive(Component)]
 pub struct Monster {
@@ -25,6 +28,26 @@ pub struct MonsterBundle {
     pub(crate) entity: GameEntity,
     pub(crate) visibility: Visibility,
     pub(crate) spawner: SpawnedBy,
+    pub(crate) navigation: Agent,
+    pub(crate) sync: Synchronize,
+    pub(crate) stroll: RandomStroll,
+}
+
+#[derive(Component)]
+pub struct RandomStroll {
+    pub(crate) origin: GlobalLocation,
+    pub(crate) radius: f32,
+    pub(crate) check_timer: Timer,
+}
+
+impl RandomStroll {
+    pub fn new(origin: GlobalLocation, radius: f32, interval: Duration) -> Self {
+        Self {
+            origin,
+            radius,
+            check_timer: Timer::new(interval, true),
+        }
+    }
 }
 
 #[derive(Component)]

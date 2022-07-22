@@ -3,11 +3,10 @@ use crate::game::chat::ChatPlugin;
 use crate::game::drop::tick_drop;
 use crate::game::entity_sync::{clean_sync, sync_changes_others, update_client};
 use crate::game::levelup::notify_levelup;
-use crate::game::movement::movement;
+use crate::game::movement::{movement, movement_monster};
 use crate::game::player_activity::{reset_player_activity, update_player_activity, PlayerActivity};
 use crate::game::visibility::{clear_visibility, player_visibility_update, visibility_update};
 use bevy_app::{App, CoreStage, Plugin};
-use std::collections::HashSet;
 
 mod chat;
 mod drop;
@@ -22,11 +21,12 @@ pub(crate) struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(ChatPlugin)
-            .insert_resource(PlayerActivity { set: HashSet::new() })
+            .insert_resource(PlayerActivity::default())
             .add_event::<PlayerLevelUp>()
             .add_system_to_stage(CoreStage::PreUpdate, update_player_activity)
             .add_system(visibility_update)
             .add_system(movement)
+            .add_system(movement_monster)
             .add_system(tick_drop)
             .add_system_to_stage(CoreStage::PostUpdate, sync_changes_others)
             .add_system_to_stage(CoreStage::PostUpdate, player_visibility_update)

@@ -1,24 +1,21 @@
-use crate::comp::monster::Monster;
 use crate::comp::player::{Agent, Character, MovementState, MovementTarget, Player, SpawningState};
 use crate::comp::pos::{Heading, LocalPosition, Position};
 use crate::comp::sync::{MovementUpdate, Synchronize};
-use crate::comp::visibility::Visibility;
-use crate::comp::{Client, GameEntity, Health};
+use crate::comp::{Client, GameEntity};
 use crate::event::{ChatEvent, ClientDisconnectedEvent};
 use crate::world::EntityLookup;
 use crate::GameSettings;
 use bevy_core::Time;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
-use id_pool::IdPool;
 use silkroad_protocol::auth::{LogoutFinished, LogoutRequest, LogoutResponse, LogoutResult};
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::chat::{
     ChatMessageResponse, ChatMessageResult, ChatSource, ChatTarget, ChatUpdate, TextCharacterInitialization,
 };
 use silkroad_protocol::world::{
-    CelestialUpdate, EntityRarity, EntityUpdateState, PlayerMovementRequest, Rotation, TargetEntity,
-    TargetEntityResponse, TargetEntityResult,
+    CelestialUpdate, EntityUpdateState, PlayerMovementRequest, Rotation, TargetEntity, TargetEntityResponse,
+    TargetEntityResult,
 };
 use silkroad_protocol::{ClientPacket, ServerPacket};
 use std::ops::Add;

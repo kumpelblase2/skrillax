@@ -77,9 +77,6 @@ fn update_movement_for(client: &Client, entity: &GameEntity, movement: &Movement
 
 pub(crate) fn update_client(query: Query<(&Client, &GameEntity, &Synchronize)>) {
     for (client, entity, sync) in query.iter() {
-        let client: &Client = client;
-        let sync: &Synchronize = sync;
-
         if let Some(movement) = &sync.movement {
             update_movement_for(client, entity, movement);
         }
