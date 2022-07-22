@@ -15,8 +15,12 @@ impl Heightmap {
         }
     }
 
+    fn max_size(&self) -> usize {
+        self.size * self.tile_size
+    }
+
     pub fn height_at_position(&self, x: f32, y: f32) -> Option<f32> {
-        if x < 0. || x > self.size as f32 || y < 0. || y > self.size as f32 {
+        if x < 0. || x > self.max_size() as f32 || y < 0. || y > self.max_size() as f32 {
             return None;
         }
 
