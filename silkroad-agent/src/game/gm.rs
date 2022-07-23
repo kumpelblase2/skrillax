@@ -24,7 +24,7 @@ pub(crate) fn handle_gm_commands(
     characters: Res<CharacterMap>,
     items: Res<ItemMap>,
     mut id_pool: ResMut<IdPool>,
-    mut lookup: ResMut<EntityLookup>,
+    lookup: Res<EntityLookup>,
 ) {
     for (entity, game_entity, client, position, mut input, mut sync) in query.iter_mut() {
         for command in take(&mut input.inputs) {
@@ -47,8 +47,7 @@ pub(crate) fn handle_gm_commands(
                             sync: Default::default(),
                             stroll: RandomStroll::new(position.location.to_location(), 100., Duration::from_secs(1)),
                         };
-                        let spawned = commands.spawn().insert_bundle(bundle).id();
-                        lookup.add_entity(unique_id, spawned);
+                        commands.spawn().insert_bundle(bundle);
                     }
                 },
                 GmCommand::MakeItem { ref_id, amount } => {
@@ -63,8 +62,7 @@ pub(crate) fn handle_gm_commands(
                         position: position.clone(),
                         game_entity: GameEntity { unique_id, ref_id },
                     };
-                    let spawned = commands.spawn().insert_bundle(bundle).id();
-                    lookup.add_entity(unique_id, spawned);
+                    commands.spawn().insert_bundle(bundle);
                 },
                 GmCommand::Invincible => {
                     sync.state.push(UpdatedState::Body(BodyState::GMInvincible));

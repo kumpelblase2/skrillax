@@ -7,7 +7,6 @@ use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use crate::game::player_activity::PlayerActivity;
 use crate::math::random_point_in_circle;
-use crate::world::EntityLookup;
 use crate::GameSettings;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
@@ -69,7 +68,6 @@ pub(crate) fn spawn_monsters(
     mut commands: Commands,
     activity: Res<PlayerActivity>,
     mut navmesh: ResMut<NavmeshLoader<Pk2>>,
-    mut lookup: ResMut<EntityLookup>,
     mut id_pool: ResMut<IdPool>,
     despawn_query: Query<(Entity, &SpawnedBy)>,
 ) {
@@ -95,7 +93,6 @@ pub(crate) fn spawn_monsters(
                 &mut commands,
                 &mut navmesh,
                 &mut id_pool,
-                &mut lookup,
             );
         } else if spawner.active && !should_be_active {
             trace!("Deactivating spawner {:?}", entity);
@@ -114,7 +111,6 @@ pub(crate) fn spawn_monsters(
                         entity,
                         &mut commands,
                         &mut navmesh,
-                        &mut lookup,
                         &mut id_pool,
                         &mut spawner,
                         position,
@@ -131,7 +127,6 @@ fn spawn_n_monsters(
     spawner_entity: Entity,
     commands: &mut Commands,
     mut navmesh: &mut NavmeshLoader<Pk2>,
-    lookup: &mut EntityLookup,
     id_pool: &mut IdPool,
     spawner: &mut Spawner,
     position: &Position,
@@ -145,9 +140,7 @@ fn spawn_n_monsters(
 
     let spawned_amount = spawned.len();
     for bundle in spawned {
-        let unique_id = bundle.entity.unique_id;
-        let spawned = commands.spawn().insert_bundle(bundle).id();
-        lookup.add_entity(unique_id, spawned);
+        commands.spawn().insert_bundle(bundle);
     }
     spawned_amount
 }
@@ -159,13 +152,11 @@ fn activate_spawner(
     commands: &mut Commands,
     navmesh: &mut NavmeshLoader<Pk2>,
     id_pool: &mut IdPool,
-    lookup: &mut EntityLookup,
 ) {
     let spawned = spawn_n_monsters(
         entity,
         commands,
         navmesh,
-        lookup,
         id_pool,
         spawner,
         position,

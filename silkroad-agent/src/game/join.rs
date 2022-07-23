@@ -2,7 +2,6 @@ use crate::comp::player::{Character, Player, SpawningState};
 use crate::comp::sync::Synchronize;
 use crate::comp::{Client, GameEntity};
 use crate::event::LoadingFinishedEvent;
-use crate::world::EntityLookup;
 use crate::GameSettings;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::character::CharacterStatsMessage;
@@ -13,7 +12,6 @@ use tracing::debug;
 pub(crate) fn load_finished(
     mut reader: EventReader<LoadingFinishedEvent>,
     settings: Res<GameSettings>,
-    mut lookup: ResMut<EntityLookup>,
     mut query: Query<(&Client, &GameEntity, &mut Player, &mut Synchronize)>,
 ) {
     for event in reader.iter() {
@@ -32,7 +30,6 @@ pub(crate) fn load_finished(
         if let Some(notice) = &settings.join_notice {
             client.send(ChatUpdate::new(ChatSource::Notice, notice.clone()));
         }
-        lookup.add_player(player.character.name.clone(), event.0, game_entity.unique_id);
     }
 }
 

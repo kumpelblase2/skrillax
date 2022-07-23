@@ -1,5 +1,7 @@
-use bevy_ecs::entity::{Entities, Entity};
-use bevy_ecs::system::ResMut;
+use crate::comp::player::Player;
+use crate::comp::GameEntity;
+use bevy_ecs::entity::Entities;
+use bevy_ecs::prelude::*;
 use id_pool::IdPool;
 use std::collections::HashMap;
 use tracing::debug;
@@ -30,6 +32,19 @@ impl EntityLookup {
         Self {
             player_map: HashMap::new(),
             id_map: HashMap::new(),
+        }
+    }
+}
+
+pub(crate) fn collect_entities(
+    mut lookup: ResMut<EntityLookup>,
+    query: Query<(Entity, &GameEntity, Option<&Player>), Added<GameEntity>>,
+) {
+    for (entity, game_entity, player_opt) in query.iter() {
+        if let Some(player) = player_opt {
+            lookup.add_player(player.character.name.clone(), entity, game_entity.unique_id);
+        } else {
+            lookup.add_entity(game_entity.unique_id, entity);
         }
     }
 }

@@ -1,3 +1,4 @@
+use crate::world::lookup::collect_entities;
 pub use crate::world::lookup::maintain_entities;
 pub use crate::world::lookup::EntityLookup;
 use crate::GameSettings;
@@ -44,6 +45,7 @@ impl Plugin for WorldPlugin {
             .add_startup_system(spawning::spawn_npcs)
             .add_system_to_stage(CoreStage::First, update_ticks)
             .add_system_to_stage(CoreStage::First, maintain_entities)
+            .add_system_to_stage(CoreStage::Last, collect_entities)
             .add_system(spawning::spawn_monsters)
             .insert_resource(NavmeshLoader::new(data_pk2));
     }
