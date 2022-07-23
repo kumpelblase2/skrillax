@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use tracing::debug;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct GameServerConfig {
     pub(crate) region: String,
@@ -16,7 +16,7 @@ pub(crate) struct GameServerConfig {
     pub(crate) token: String,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct PatchConfig {
     pub(crate) remote_url: String,
@@ -26,7 +26,7 @@ pub(crate) struct PatchConfig {
     pub(crate) minimum_client_version: u32,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct DbOptions {
     pub(crate) host: String,
@@ -57,7 +57,7 @@ impl DbOptions {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct GatewayServerConfig {
     pub(crate) listen_port: u16,
