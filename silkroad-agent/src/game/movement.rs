@@ -1,7 +1,9 @@
 use crate::comp::monster::{Monster, RandomStroll};
+use crate::comp::net::MovementInput;
 use crate::comp::player::{Agent, MovementState, MovementTarget};
-use crate::comp::pos::{GlobalLocation, Heading, Position};
+use crate::comp::pos::{GlobalLocation, Heading, LocalPosition, Position};
 use crate::comp::sync::{MovementUpdate, Synchronize};
+use crate::comp::Client;
 use crate::ext::Vector3Ext;
 use crate::math::random_point_in_circle;
 use bevy_core::Time;
@@ -10,6 +12,43 @@ use cgmath::{Deg, InnerSpace, MetricSpace, Quaternion, Rotation3, Vector2, Vecto
 use pk2::Pk2;
 use rand::random;
 use silkroad_navmesh::NavmeshLoader;
+use silkroad_protocol::world::{PlayerMovementRequest, Rotation};
+use silkroad_protocol::ClientPacket;
+use std::mem::take;
+use tracing::debug;
+
+pub(crate) fn movement_input(mut query: Query<(&Client, &mut MovementInput, &mut Agent, &Position, &mut Synchronize)>) {
+    for (client, mut input, mut agent, position, mut sync) in query.iter_mut() {
+        for packet in take(&mut input.inputs) {
+            match packet {
+                ClientPacket::PlayerMovementRequest(PlayerMovementRequest { kind }) => match kind {
+                    silkroad_protocol::world::MovementTarget::TargetLocation { region, x, y, z } => {
+                        let local_position = position.location.to_local();
+                        let target_pos = LocalPosition(region.into(), Vector3::new(x as f32, y as f32, z as f32));
+                        debug!(id = ?client.0.id(), "Movement: {} -> {}", local_position, target_pos);
+                        sync.movement = Some(MovementUpdate::StartMove(local_position, target_pos.clone()));
+                        agent.movement_target = Some(MovementTarget::Location(target_pos.to_global()));
+                        agent.movement_state = MovementState::Moving;
+                    },
+                    silkroad_protocol::world::MovementTarget::Direction { unknown, angle } => {
+                        let direction = Heading::from(angle);
+                        debug!(id = ?client.0.id(), "Movement: {} / {}({})", unknown, direction.0, angle);
+                        let local_position = position.location.to_local();
+                        sync.movement = Some(MovementUpdate::StartMoveTowards(local_position, direction.clone()));
+                        agent.movement_target = Some(MovementTarget::Direction(direction));
+                    },
+                },
+                ClientPacket::Rotation(Rotation { heading }) => {
+                    let heading = Heading::from(heading);
+                    if agent.movement_target.is_none() {
+                        agent.movement_target = Some(MovementTarget::Turn(heading));
+                    }
+                },
+                _ => {},
+            }
+        }
+    }
+}
 
 pub(crate) fn movement(
     mut query: Query<(&mut Agent, &mut Position, &mut Synchronize)>,

@@ -1,5 +1,6 @@
 pub(crate) mod drop;
 pub(crate) mod monster;
+pub(crate) mod net;
 pub(crate) mod npc;
 pub(crate) mod player;
 pub(crate) mod pos;
@@ -12,8 +13,7 @@ use crate::login::character_loader::Character;
 use crate::population::capacity::PlayingToken;
 use bevy_ecs::prelude::*;
 use silkroad_network::stream::Stream;
-use silkroad_protocol::{ClientPacket, ServerPacket};
-use std::collections::VecDeque;
+use silkroad_protocol::ServerPacket;
 use std::time::Instant;
 use tokio::sync::oneshot::Receiver;
 
@@ -35,7 +35,7 @@ pub(crate) struct CharacterSelect {
 }
 
 #[derive(Component)]
-pub(crate) struct Client(pub(crate) Stream, pub(crate) VecDeque<ClientPacket>);
+pub(crate) struct Client(pub(crate) Stream);
 
 impl Client {
     pub fn send<T: Into<ServerPacket>>(&self, packet: T) {

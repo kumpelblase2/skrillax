@@ -22,7 +22,7 @@ use silkroad_navmesh::NavmeshLoader;
 use silkroad_protocol::world::EntityRarity;
 use std::cmp::min;
 use std::time::{Duration, Instant};
-use tracing::debug;
+use tracing::trace;
 
 pub(crate) fn spawn_npcs(
     npc_spawns: Res<Vec<NpcPosition>>,
@@ -87,7 +87,7 @@ pub(crate) fn spawn_monsters(
     for (entity, mut spawner, position) in query.iter_mut() {
         let should_be_active = active_regions.contains(&position.location.region().id());
         if !spawner.active && should_be_active {
-            debug!("Activating spawner {:?}", entity);
+            trace!("Activating spawner {:?}", entity);
             activate_spawner(
                 entity,
                 &mut spawner,
@@ -98,7 +98,7 @@ pub(crate) fn spawn_monsters(
                 &mut lookup,
             );
         } else if spawner.active && !should_be_active {
-            debug!("Deactivating spawner {:?}", entity);
+            trace!("Deactivating spawner {:?}", entity);
             deactivate_spawner(entity, &mut spawner, &mut commands, &despawn_query);
         } else if spawner.active {
             if spawner.has_spots_available()

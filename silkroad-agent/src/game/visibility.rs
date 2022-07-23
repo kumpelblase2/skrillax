@@ -12,9 +12,9 @@ use cgmath::num_traits::Pow;
 use silkroad_navmesh::region::Region;
 use silkroad_protocol::inventory::CharacterSpawnItemData;
 use silkroad_protocol::world::{
-    ActionState, ActiveScroll, AliveState, BodyState, EntityState, EntityTypeSpawnData, GroupEntitySpawnData,
-    GroupEntitySpawnEnd, GroupEntitySpawnStart, GroupSpawnDataContent, GroupSpawnType, GuildInformation,
-    InteractOptions, JobType, PlayerKillState, PvpCape,
+    ActionState, ActiveScroll, AliveState, BodyState, DroppedItemSource, EntityState, EntityTypeSpawnData,
+    GroupEntitySpawnData, GroupEntitySpawnEnd, GroupEntitySpawnStart, GroupSpawnDataContent, GroupSpawnType,
+    GuildInformation, InteractOptions, JobType, PlayerKillState, PvpCape,
 };
 use silkroad_protocol::ServerPacket;
 use std::collections::{BTreeMap, HashSet};
@@ -178,16 +178,27 @@ pub(crate) fn player_visibility_update(
                         },
                     ));
                 } else if let Some(item) = item_opt {
-                    spawns.push(GroupSpawnDataContent::spawn(
-                        entity.ref_id,
-                        EntityTypeSpawnData::Gold {
-                            amount: item.amount,
+                    // spawns.push(GroupSpawnDataContent::spawn(
+                    //     entity.ref_id,
+                    //     EntityTypeSpawnData::Gold {
+                    //         amount: item.amount,
+                    //         unique_id: entity.unique_id,
+                    //         position: pos.as_protocol(),
+                    //         owner: None,
+                    //         rarity: 0,
+                    //     },
+                    // ));
+                    spawns.push(GroupSpawnDataContent::Spawn {
+                        object_id: entity.ref_id,
+                        data: EntityTypeSpawnData::Item {
                             unique_id: entity.unique_id,
                             position: pos.as_protocol(),
-                            owner: None,
                             rarity: 0,
+                            owner: None,
+                            source: DroppedItemSource::None,
+                            source_id: 0,
                         },
-                    ));
+                    });
                 } else if let Some(_) = npc_opt {
                     spawns.push(GroupSpawnDataContent::spawn(
                         entity.ref_id,

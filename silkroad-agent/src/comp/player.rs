@@ -1,5 +1,9 @@
-use crate::comp::pos::{GlobalPosition, Heading};
+use crate::comp::net::InputBundle;
+use crate::comp::pos::{GlobalPosition, Heading, Position};
 use crate::comp::stats::Stats;
+use crate::comp::sync::Synchronize;
+use crate::comp::visibility::Visibility;
+use crate::comp::GameEntity;
 use crate::db::character::CharacterItem;
 use crate::db::user::ServerUser;
 use bevy_ecs::prelude::*;
@@ -135,17 +139,14 @@ impl Character {
         }
     }
 }
-//
-// pub(crate) struct FriendList {
-//
-// }
 
 #[derive(Component)]
 pub(crate) struct Player {
     pub user: ServerUser,
     pub character: Character,
     pub inventory: Inventory,
-    pub logout: Option<Instant>, // pub friend_list: FriendList,
+    pub logout: Option<Instant>,
+    pub target: Option<Entity>,
 }
 
 pub(crate) enum MovementTarget {
@@ -174,4 +175,32 @@ impl Agent {
 #[derive(Component)]
 pub(crate) struct Buffed {
     // pub buffs: Vec<Buff>
+}
+
+#[derive(Bundle)]
+pub(crate) struct PlayerBundle {
+    player: Player,
+    game_entity: GameEntity,
+    agent: Agent,
+    sync: Synchronize,
+    pos: Position,
+    buff: Buffed,
+    visibility: Visibility,
+    #[bundle]
+    inputs: InputBundle,
+}
+
+impl PlayerBundle {
+    pub fn new(player: Player, game_entity: GameEntity, agent: Agent, pos: Position, visibility: Visibility) -> Self {
+        Self {
+            player,
+            game_entity,
+            agent,
+            sync: Synchronize::default(),
+            pos,
+            buff: Buffed {},
+            visibility,
+            inputs: InputBundle::default(),
+        }
+    }
 }

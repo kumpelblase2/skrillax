@@ -30,6 +30,10 @@ impl ItemMap {
     pub fn new(item_data: Vec<RefItemData>) -> Self {
         Self { item_data }
     }
+
+    pub fn find_id(&self, id: u32) -> Option<&RefItemData> {
+        self.item_data.iter().find(|item| item.ref_id == id)
+    }
 }
 
 #[derive(TryFromPrimitive, Copy, Clone)]
@@ -62,13 +66,14 @@ pub enum RefItemRarity {
 
 #[derive(Clone)]
 pub struct RefItemData {
-    ref_id: u32,
-    id: String,
-    type_id: TypeId,
-    despawn_time: Duration,
-    country: RefItemCountry,
-    price: u64,
-    params: [isize; 4],
+    pub ref_id: u32,
+    pub id: String,
+    pub type_id: TypeId,
+    pub despawn_time: Duration,
+    pub country: RefItemCountry,
+    pub price: u64,
+    pub max_stack_size: usize,
+    pub params: [isize; 4],
 }
 
 impl FromStr for RefItemData {
@@ -94,6 +99,7 @@ impl FromStr for RefItemData {
                 elements.get(122).ok_or(ParseError::MissingColumn(122))?.parse()?,
                 elements.get(124).ok_or(ParseError::MissingColumn(124))?.parse()?,
             ],
+            max_stack_size: elements.get(57).ok_or(ParseError::MissingColumn(57))?.parse()?,
         })
     }
 }

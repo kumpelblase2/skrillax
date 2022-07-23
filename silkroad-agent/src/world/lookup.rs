@@ -19,12 +19,12 @@ impl EntityLookup {
         self.id_map.insert(entity_id, entity);
     }
 
-    pub fn get_entity_for_name(&self, name: &String) -> Option<&Entity> {
-        self.player_map.get(name)
+    pub fn get_entity_for_name(&self, name: &String) -> Option<Entity> {
+        self.player_map.get(name).copied()
     }
 
-    pub fn get_entity_for_id(&self, id: u32) -> Option<&Entity> {
-        self.id_map.get(&id)
+    pub fn get_entity_for_id(&self, id: u32) -> Option<Entity> {
+        self.id_map.get(&id).copied()
     }
     pub fn new() -> Self {
         Self {

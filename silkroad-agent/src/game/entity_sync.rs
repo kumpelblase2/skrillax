@@ -3,7 +3,9 @@ use crate::comp::sync::{MovementUpdate, Synchronize};
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, GameEntity};
 use bevy_ecs::prelude::*;
-use silkroad_protocol::world::{MovementDestination, MovementSource, PlayerMovementResponse};
+use silkroad_protocol::world::{
+    EntityUpdateState, MovementDestination, MovementSource, PlayerMovementResponse, UpdatedState,
+};
 use silkroad_protocol::ServerPacket;
 use tracing::debug;
 
@@ -20,6 +22,10 @@ pub(crate) fn sync_changes_others(
         {
             if let Some(movement) = &synchronize.movement {
                 update_movement_for(client, entity, movement);
+            }
+
+            for state in synchronize.state.iter() {
+                update_state(client, entity, *state);
             }
         }
     }
@@ -81,10 +87,21 @@ pub(crate) fn update_client(query: Query<(&Client, &GameEntity, &Synchronize)>) 
             update_movement_for(client, entity, movement);
         }
 
+        for state in sync.state.iter() {
+            update_state(client, entity, *state);
+        }
+
         if !sync.damage.is_empty() {
             // ...
         }
     }
+}
+
+pub(crate) fn update_state(client: &Client, entity: &GameEntity, state: UpdatedState) {
+    client.send(ServerPacket::EntityUpdateState(EntityUpdateState {
+        unique_id: entity.unique_id,
+        update: state,
+    }));
 }
 
 pub(crate) fn clean_sync(mut query: Query<&mut Synchronize>) {

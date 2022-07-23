@@ -103,7 +103,7 @@ pub enum GroupSpawnType {
     Despawn,
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, PartialEq, PartialOrd, Copy, Deserialize, Serialize, ByteSize)]
 pub enum EntityRarity {
     #[silkroad(value = 0)]
     Normal,
@@ -154,10 +154,27 @@ impl GroupSpawnDataContent {
     }
 }
 
+#[derive(Serialize, ByteSize)]
+pub enum DroppedItemSource {
+    #[silkroad(value = 0)]
+    None,
+    #[silkroad(value = 5)]
+    Monster,
+    #[silkroad(value = 6)]
+    Player,
+}
+
 #[derive(Clone, Serialize, ByteSize)]
 #[silkroad(size = 0)]
 pub enum EntityTypeSpawnData {
-    Item,
+    Item {
+        unique_id: u32,
+        position: Position,
+        owner: Option<u32>,
+        rarity: u8,
+        source: DroppedItemSource,
+        source_id: u32,
+    },
     Gold {
         amount: u32,
         unique_id: u32,
@@ -419,8 +436,10 @@ impl MovementDestination {
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[silkroad(size = 2)]
 pub enum TargetEntityError {
-    #[silkroad(value = 0)]
+    // FIXME: this is not quite right.
+    #[silkroad(value = 0x04)]
     InvalidTarget,
 }
 
@@ -1121,16 +1140,48 @@ pub struct Rotation {
     pub heading: u16,
 }
 
+#[derive(Copy, Clone, Serialize, ByteSize)]
+pub enum UpdatedState {
+    #[silkroad(value = 0)]
+    Life(AliveState),
+    #[silkroad(value = 1)]
+    Movement(MovementType),
+    #[silkroad(value = 4)]
+    Body(BodyState),
+    #[silkroad(value = 7)]
+    Pvp(u8),
+    #[silkroad(value = 8)]
+    Battle(bool),
+    #[silkroad(value = 11)]
+    Scroll(u8),
+}
+
 #[derive(Clone, Serialize, ByteSize)]
 pub struct EntityUpdateState {
     pub unique_id: u32,
-    pub kind: u8,
-    pub value: u8,
+    pub update: UpdatedState,
 }
 
 impl EntityUpdateState {
-    pub fn new(unique_id: u32, kind: u8, value: u8) -> Self {
-        EntityUpdateState { unique_id, kind, value }
+    pub fn life(unique_id: u32, new: AliveState) -> Self {
+        EntityUpdateState {
+            unique_id,
+            update: UpdatedState::Life(new),
+        }
+    }
+
+    pub fn movement(unique_id: u32, new: MovementType) -> Self {
+        EntityUpdateState {
+            unique_id,
+            update: UpdatedState::Movement(new),
+        }
+    }
+
+    pub fn body(unique_id: u32, new: BodyState) -> Self {
+        EntityUpdateState {
+            unique_id,
+            update: UpdatedState::Body(new),
+        }
     }
 }
 
@@ -1166,26 +1217,49 @@ impl UnTargetEntityResponse {
     }
 }
 
-// Better name for this...
+#[derive(Serialize, ByteSize)]
+#[silkroad(size = 2)]
+pub enum EntityBarUpdateSource {
+    #[silkroad(value = 0x01)]
+    Damage,
+    #[silkroad(value = 0x10)]
+    Regen,
+    #[silkroad(value = 0x80)]
+    LevelUp,
+}
+
+// TODO: this should be a bitflag
+#[derive(Serialize, ByteSize)]
+pub enum EntityBarUpdates {
+    #[silkroad(value = 0)]
+    None,
+    #[silkroad(value = 1)]
+    HP { amount: u32 },
+    #[silkroad(value = 2)]
+    MP { amount: u32 },
+    #[silkroad(value = 3)]
+    Both { hp: u32, mp: u32 },
+    #[silkroad(value = 4)]
+    Status {
+        effects: u32,
+        #[silkroad(list_type = "none")]
+        levels: Vec<u8>,
+    },
+}
+
 #[derive(Serialize, ByteSize)]
 pub struct EntityBarsUpdate {
     pub unique_id: u32,
-    pub mp: u16,
-    pub hp: u16,
-    #[silkroad(value = 1)]
-    pub unknown1: u8,
-    #[silkroad(value = 0)]
-    pub unknown2: u16,
+    pub source: EntityBarUpdateSource,
+    pub updates: EntityBarUpdates,
 }
 
 impl EntityBarsUpdate {
-    pub fn new(unique_id: u32, mp: u16, hp: u16) -> Self {
-        Self {
+    pub fn hp(unique_id: u32, source: EntityBarUpdateSource, hp: u32) -> Self {
+        EntityBarsUpdate {
             unique_id,
-            mp,
-            hp,
-            unknown1: 1,
-            unknown2: 0,
+            source,
+            updates: EntityBarUpdates::HP { amount: hp },
         }
     }
 }

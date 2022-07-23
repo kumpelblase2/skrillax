@@ -2,12 +2,10 @@ use crate::login::job_distribution::{update_job_distribution, JobDistribution};
 use crate::LoginQueue;
 use bevy_app::{App, CoreStage, Plugin};
 use charselect::charselect;
-use login::login;
 
 pub mod character_loader;
 pub mod charselect;
 pub mod job_distribution;
-pub mod login;
 pub mod web;
 
 pub(crate) struct LoginPlugin {
@@ -19,7 +17,6 @@ impl Plugin for LoginPlugin {
         app.insert_resource(self.login_queue.clone())
             .insert_resource(JobDistribution::default())
             .add_system_to_stage(CoreStage::PostUpdate, update_job_distribution)
-            .add_system(login)
             .add_system(charselect);
     }
 }

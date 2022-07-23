@@ -1,7 +1,8 @@
+use crate::comp::net::{CharselectInput, ChatInput, GmInput, MovementInput, WorldInput};
 use crate::comp::player::Player;
 use crate::comp::{Client, LastAction, Login};
 use crate::db::character::update_last_played_of;
-use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent};
+use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent, LoadingFinishedEvent};
 use crate::GameSettings;
 use bevy_core::Time;
 use bevy_ecs::prelude::*;
@@ -9,7 +10,6 @@ use silkroad_network::server::SilkroadServer;
 use silkroad_network::stream::StreamError;
 use silkroad_protocol::ClientPacket;
 use sqlx::PgPool;
-use std::collections::VecDeque;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 use tracing::{debug, warn};
@@ -25,7 +25,7 @@ pub(crate) fn accept(
 
         let entity = cmd
             .spawn()
-            .insert(Client(client, VecDeque::new()))
+            .insert(Client(client))
             .insert(LastAction(time.last_update().unwrap()))
             .insert(Login)
             .id();
@@ -36,19 +36,78 @@ pub(crate) fn accept(
 
 pub(crate) fn receive(
     mut events: EventWriter<ClientDisconnectedEvent>,
+    mut loading_events: EventWriter<LoadingFinishedEvent>,
     settings: Res<GameSettings>,
     time: Res<Time>,
-    mut query: Query<(Entity, &mut Client, &mut LastAction)>,
+    mut query: Query<
+        (
+            Entity,
+            &Client,
+            &mut LastAction,
+            Option<&mut CharselectInput>,
+            Option<&mut MovementInput>,
+            Option<&mut ChatInput>,
+            Option<&mut WorldInput>,
+            Option<&mut GmInput>,
+        ),
+        Without<Login>,
+    >,
 ) {
-    'query: for (entity, mut client, mut last_action) in query.iter_mut() {
+    'query: for (
+        entity,
+        client,
+        mut last_action,
+        mut charselect_opt,
+        mut movement_opt,
+        mut chat_opt,
+        mut world_opt,
+        mut gm_opt,
+    ) in query.iter_mut()
+    {
         let mut has_activity = false;
         loop {
             match client.0.received() {
                 Ok(Some(packet)) => {
                     has_activity = true;
                     // Already handle keep-alives to not clog other systems
-                    if !matches!(packet, ClientPacket::KeepAlive(_)) {
-                        client.1.push_back(packet);
+                    match packet {
+                        packet @ ClientPacket::ChatMessage(_) => {
+                            if let Some(input) = chat_opt.as_mut() {
+                                input.inputs.push(packet);
+                            }
+                        },
+                        packet @ ClientPacket::CharacterListRequest(_)
+                        | packet @ ClientPacket::CharacterJoinRequest(_) => {
+                            if let Some(input) = charselect_opt.as_mut() {
+                                input.inputs.push(packet);
+                            }
+                        },
+                        packet @ ClientPacket::Rotation(_) | packet @ ClientPacket::PlayerMovementRequest(_) => {
+                            if let Some(input) = movement_opt.as_mut() {
+                                input.inputs.push(packet);
+                            }
+                        },
+                        ClientPacket::FinishLoading(_) => {
+                            loading_events.send(LoadingFinishedEvent(entity));
+                        },
+                        packet @ ClientPacket::LogoutRequest(_)
+                        | packet @ ClientPacket::TargetEntity(_)
+                        | packet @ ClientPacket::UnTargetEntity(_) => {
+                            if let Some(input) = world_opt.as_mut() {
+                                input.inputs.push(packet);
+                            }
+                        },
+                        ClientPacket::GmCommand(command) => {
+                            if let Some(input) = gm_opt.as_mut() {
+                                input.inputs.push(command);
+                            }
+                        },
+                        ClientPacket::ConsignmentList(_) => {},
+                        ClientPacket::AddFriend(_) => {},
+                        ClientPacket::CreateFriendGroup(_) => {},
+                        ClientPacket::DeleteFriend(_) => {},
+                        ClientPacket::InventoryOperation(_) => {},
+                        _ => {},
                     }
                 },
                 Ok(None) => break,

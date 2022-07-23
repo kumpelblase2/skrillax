@@ -1,7 +1,7 @@
-mod in_game;
+mod login;
 mod net;
 
-use crate::net::in_game::in_game;
+use crate::net::login::login;
 use crate::net::net::{accept, connected, disconnected, receive};
 use bevy_app::{App, CoreStage, Plugin};
 use silkroad_network::server::SilkroadServer;
@@ -17,7 +17,7 @@ impl Plugin for NetworkPlugin {
             .add_system_to_stage(CoreStage::PreUpdate, receive)
             .add_system_to_stage(CoreStage::PreUpdate, disconnected)
             .add_system_to_stage(CoreStage::PreUpdate, connected)
-            .add_system(in_game);
+            .add_system_to_stage(CoreStage::PreUpdate, login);
     }
 }
 

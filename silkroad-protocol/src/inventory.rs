@@ -73,6 +73,7 @@ pub enum ItemPickupData {
         ref_id: u32,
         content: InventoryItemContentData,
     },
+    General,
 }
 
 impl ItemPickupData {
@@ -85,22 +86,50 @@ impl ItemPickupData {
     }
 }
 
-// TODO: factor out action into a single enum
 #[derive(Clone, Serialize, ByteSize)]
-pub enum InventoryOperationResponse {
+pub enum InventoryOperationResponseData {
+    #[silkroad(value = 0x00)]
+    UpdateSlots {
+        source_slot: u8,
+        target_slot: u8,
+        amount: u16,
+        unknown: Option<u8>,
+    },
     #[silkroad(value = 0x0A)]
     DropGold { amount: u64 },
     #[silkroad(value = 0x06)]
     PickupItem { slot: u8, item: ItemPickupData },
+    #[silkroad(value = 0x0e)]
+    AddedByServer {
+        slot: u8,
+        unknown: u8,
+        data: ItemPickupData,
+    },
 }
 
-impl InventoryOperationResponse {
+impl InventoryOperationResponseData {
     pub fn dropgold(amount: u64) -> Self {
-        InventoryOperationResponse::DropGold { amount }
+        InventoryOperationResponseData::DropGold { amount }
     }
 
     pub fn pickupitem(slot: u8, item: ItemPickupData) -> Self {
-        InventoryOperationResponse::PickupItem { slot, item }
+        InventoryOperationResponseData::PickupItem { slot, item }
+    }
+
+    pub fn pickup_gold(amount: u32) -> Self {
+        InventoryOperationResponseData::PickupItem {
+            slot: 0xFE,
+            item: ItemPickupData::Gold { amount },
+        }
+    }
+
+    pub fn move_item(source: u8, dest: u8, amount: u16) -> Self {
+        InventoryOperationResponseData::UpdateSlots {
+            source_slot: source,
+            target_slot: dest,
+            amount,
+            unknown: None,
+        }
     }
 }
 
@@ -175,15 +204,29 @@ impl InventoryItemContentData {
     }
 }
 
+#[derive(Copy, Clone, Serialize, ByteSize)]
+pub enum InventoryOperationError {
+    #[silkroad(value = 0x38)]
+    Indisposable,
+    #[silkroad(value = 0xDC)]
+    RequiresSpecialtyBag,
+}
+
 #[derive(Clone, Serialize, ByteSize)]
-pub struct InventoryOperationResult {
-    pub success: bool,
-    pub operation: InventoryOperationResponse,
+pub enum InventoryOperationResult {
+    #[silkroad(value = 2)]
+    Error { error: InventoryOperationError, slot: u8 },
+    #[silkroad(value = 1)]
+    Success(InventoryOperationResponseData),
 }
 
 impl InventoryOperationResult {
-    pub fn new(success: bool, operation: InventoryOperationResponse) -> Self {
-        InventoryOperationResult { success, operation }
+    pub fn success(operation: InventoryOperationResponseData) -> Self {
+        InventoryOperationResult::Success(operation)
+    }
+
+    pub fn error(error: InventoryOperationError, slot: u8) -> Self {
+        InventoryOperationResult::Error { error, slot }
     }
 }
 

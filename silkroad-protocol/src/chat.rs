@@ -95,16 +95,27 @@ impl ChatSource {
     }
 }
 
+#[derive(Copy, Clone, Serialize, ByteSize)]
+#[silkroad(size = 2)]
+pub enum ChatErrorCode {
+    #[silkroad(value = 3)]
+    InvalidTarget,
+    #[silkroad(value = 0x2006)]
+    WhisperMuted,
+    #[silkroad(value = 0x2008)]
+    InvalidCommand,
+}
+
 #[derive(Clone, Serialize, ByteSize)]
 pub enum ChatMessageResult {
     #[silkroad(value = 1)]
     Success,
     #[silkroad(value = 2)]
-    Error { code: u16 },
+    Error { code: ChatErrorCode },
 }
 
 impl ChatMessageResult {
-    pub fn error(code: u16) -> Self {
+    pub fn error(code: ChatErrorCode) -> Self {
         ChatMessageResult::Error { code }
     }
 }

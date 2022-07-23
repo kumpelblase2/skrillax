@@ -3,6 +3,7 @@ use crate::character::*;
 use crate::chat::*;
 use crate::error::ProtocolError;
 use crate::general::*;
+use crate::gm::*;
 use crate::login::*;
 use crate::world::*;
 use bytes::Bytes;
@@ -12,6 +13,7 @@ pub mod character;
 pub mod chat;
 pub mod error;
 pub mod general;
+pub mod gm;
 pub mod inventory;
 pub mod login;
 pub mod world;
@@ -68,7 +70,8 @@ client_packets! {
     0x5000 => HandshakeChallenge,
     0x9000 => HandshakeAccepted,
     0x6103 => AuthRequest,
-    0x7005 => LogoutRequest
+    0x7005 => LogoutRequest,
+    0x7010 => GmCommand
 }
 
 macro_rules! server_packets {
@@ -140,7 +143,9 @@ server_packets! {
     0xB005 => LogoutResponse,
     0x300A => LogoutFinished,
     0x2212 => Disconnect,
-    0x3057 => EntityBarsUpdate
+    0x3057 => EntityBarsUpdate,
+    0xB034 => InventoryOperationResult,
+    0xB010 => GmResponse
 }
 
 impl ServerPacket {

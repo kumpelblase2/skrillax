@@ -1,11 +1,12 @@
 use crate::comp::pos::{Heading, LocalPosition};
 use bevy_ecs_macros::Component;
+use silkroad_protocol::world::UpdatedState;
 
 #[derive(Component, Default)]
 pub struct Synchronize {
     pub movement: Option<MovementUpdate>,
     pub damage: Vec<DamageReceived>,
-    pub despawned: Vec<u32>,
+    pub state: Vec<UpdatedState>,
 }
 
 pub enum MovementUpdate {
@@ -19,7 +20,7 @@ impl Synchronize {
     pub fn clear(&mut self) {
         self.movement = None;
         self.damage.clear();
-        self.despawned.clear();
+        self.state.clear();
     }
 }
 

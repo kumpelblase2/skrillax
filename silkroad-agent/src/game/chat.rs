@@ -1,129 +1,108 @@
-use crate::comp::drop::ItemDrop;
-use crate::comp::monster::Monster;
-use crate::comp::pos::Position;
+use crate::comp::net::ChatInput;
+use crate::comp::player::Player;
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, GameEntity};
-use crate::event::{ChatEvent, PlayerLevelUp};
+use crate::game::gm::handle_gm_commands;
 use crate::world::EntityLookup;
 use bevy_app::{App, Plugin};
-use bevy_core::Timer;
-use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
-use cgmath::num_traits::Pow;
-use cgmath::MetricSpace;
-use id_pool::IdPool;
-use silkroad_protocol::chat::{ChatSource, ChatUpdate};
-use silkroad_protocol::world::EntityRarity;
-use silkroad_protocol::ServerPacket;
+use silkroad_protocol::chat::{
+    ChatErrorCode, ChatMessageResponse, ChatMessageResult, ChatSource, ChatTarget, ChatUpdate,
+};
+use silkroad_protocol::{ClientPacket, ServerPacket};
+use std::mem::take;
+use tracing::debug;
 
 pub(crate) struct ChatPlugin;
 
 impl Plugin for ChatPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<ChatEvent>().add_system(chat_update);
+        app.add_system(handle_chat).add_system(handle_gm_commands);
     }
 }
 
-pub(crate) fn chat_update(
-    mut chats: EventReader<ChatEvent>,
-    mut levelup: EventWriter<PlayerLevelUp>,
-    mut cmd: Commands,
-    mut id_pool: ResMut<IdPool>,
-    mut lookup: ResMut<EntityLookup>,
-    query: Query<(Entity, &Client, &Position, &Visibility)>,
+fn handle_chat(
+    mut query: Query<(&Client, &GameEntity, &mut ChatInput, &Visibility, &Player)>,
+    lookup: Res<EntityLookup>,
+    others: Query<(&Client, &Player)>,
 ) {
-    for chat in chats.iter() {
-        match chat {
-            ChatEvent::RegionalChat {
-                sender,
-                sender_unique_id,
-                position,
-                message,
-            } => {
-                for (_, client, _, _) in
-                    query
-                        .iter()
-                        .filter(|(target, _, _, _)| target != sender)
-                        .filter(|(_, _, pos, visibility)| {
-                            let pos: &Position = pos;
-                            let visibility: &Visibility = visibility;
-                            position.distance2(pos.location.0) <= visibility.visibility_radius.pow(2)
-                        })
-                {
-                    client.send(ServerPacket::ChatUpdate(ChatUpdate::new(
-                        ChatSource::all(*sender_unique_id),
-                        message.clone(),
-                    )));
-                }
-            },
-
-            ChatEvent::PrivateChat {
-                sender,
-                target,
-                message,
-            } => {
-                if let Some(target) = lookup.get_entity_for_name(target) {
-                    if let Ok((_, client, _, _)) = query.get(*target) {
-                        client.send(ServerPacket::ChatUpdate(ChatUpdate::new(
-                            ChatSource::privatemessage(sender.clone()),
-                            message.clone(),
-                        )));
+    for (client, game_entity, mut chat_input, visibility, player) in query.iter_mut() {
+        for packet in take(&mut chat_input.inputs) {
+            match packet {
+                ClientPacket::ChatMessage(message) => {
+                    debug!(id = ?client.0.id(), "Received chat message: {} @ {}", message.message, message.index);
+                    match message.target {
+                        ChatTarget::All => {
+                            visibility.entities_in_radius.iter().for_each(|e| {
+                                if let Ok((client, _)) = others.get(e.0) {
+                                    client.send(ServerPacket::ChatUpdate(ChatUpdate::new(
+                                        ChatSource::all(game_entity.unique_id),
+                                        message.message.clone(),
+                                    )));
+                                }
+                            });
+                            client.send(ChatMessageResponse::new(
+                                ChatMessageResult::Success,
+                                message.target,
+                                message.index,
+                            ));
+                        },
+                        ChatTarget::AllGm => {
+                            if player.character.gm {
+                                others
+                                    .iter()
+                                    .filter(|(_, player)| player.character.gm)
+                                    .filter(|(_, other)| other.user.id != player.user.id)
+                                    .for_each(|(client, _)| {
+                                        client.send(ServerPacket::ChatUpdate(ChatUpdate::new(
+                                            ChatSource::allgm(game_entity.unique_id),
+                                            message.message.clone(),
+                                        )));
+                                    });
+                                client.send(ChatMessageResponse::new(
+                                    ChatMessageResult::Success,
+                                    message.target,
+                                    message.index,
+                                ));
+                            } else {
+                                client.send(ChatMessageResponse::new(
+                                    ChatMessageResult::error(ChatErrorCode::InvalidTarget),
+                                    message.target,
+                                    message.index,
+                                ));
+                            }
+                        },
+                        ChatTarget::PrivateMessage => {
+                            match message
+                                .recipient
+                                .and_then(|target| lookup.get_entity_for_name(&target))
+                                .and_then(|entity| others.get(entity).ok())
+                            {
+                                Some((other, _)) => {
+                                    other.send(ServerPacket::ChatUpdate(ChatUpdate::new(
+                                        ChatSource::privatemessage(player.character.name.clone()),
+                                        message.message.clone(),
+                                    )));
+                                    client.send(ChatMessageResponse::new(
+                                        ChatMessageResult::Success,
+                                        message.target,
+                                        message.index,
+                                    ));
+                                },
+                                None => {
+                                    client.send(ChatMessageResponse::new(
+                                        ChatMessageResult::error(ChatErrorCode::InvalidTarget),
+                                        message.target,
+                                        message.index,
+                                    ));
+                                },
+                            }
+                        },
+                        _ => {},
                     }
-                } else {
-                    // TODO
-                }
-            },
-
-            ChatEvent::Command { sender, message } => {
-                let command_str = &message[1..];
-                let elements = command_str.split(' ').collect::<Vec<&str>>();
-                match elements[0] {
-                    "levelup" => {
-                        let target: u8 = elements[1].parse().unwrap();
-                        levelup.send(PlayerLevelUp(*sender, target));
-                    },
-                    "drop" => {
-                        let amount: u32 = elements[1].parse().unwrap();
-                        let (_, _, pos, _) = query.get(*sender).unwrap();
-                        let id = id_pool.request_id().unwrap();
-                        let drop = cmd
-                            .spawn()
-                            .insert(ItemDrop {
-                                despawn_timer: Timer::from_seconds(10.0, false),
-                                owner: None,
-                                amount,
-                            })
-                            .insert(pos.clone())
-                            .insert(GameEntity {
-                                unique_id: id,
-                                ref_id: 1,
-                            })
-                            .id();
-
-                        lookup.add_entity(id, drop);
-                    },
-                    "spawn" => {
-                        let id: u32 = elements[1].parse().unwrap();
-                        let spawn_id = id_pool.request_id().unwrap();
-                        let (_, _, pos, _) = query.get(*sender).unwrap();
-                        let spawned = cmd
-                            .spawn()
-                            .insert(GameEntity {
-                                ref_id: id,
-                                unique_id: spawn_id,
-                            })
-                            .insert(Monster {
-                                target: None,
-                                rarity: EntityRarity::Normal,
-                            })
-                            .insert(pos.clone())
-                            .id();
-
-                        lookup.add_entity(spawn_id, spawned);
-                    },
-                    _ => {},
-                }
-            },
+                },
+                _ => {},
+            }
         }
     }
 }

@@ -1,3 +1,4 @@
+use crate::comp::net::CharselectInput;
 use crate::comp::{CharacterSelect, Client, Login, Playing};
 use crate::event::ClientDisconnectedEvent;
 use crate::population::LoginQueue;
@@ -13,10 +14,10 @@ pub(crate) fn login(
     mut buffer: Commands,
     login_queue: Res<LoginQueue>,
     mut events: EventWriter<ClientDisconnectedEvent>,
-    mut query: Query<(Entity, &mut Client), With<Login>>,
+    mut query: Query<(Entity, &Client), With<Login>>,
 ) {
-    for (entity, mut client) in query.iter_mut() {
-        match handle_packets(entity, &mut client, &login_queue, &mut buffer) {
+    for (entity, client) in query.iter_mut() {
+        match handle_packets(entity, client, &login_queue, &mut buffer) {
             Err(_) => {
                 events.send(ClientDisconnectedEvent(entity));
             },
@@ -25,13 +26,8 @@ pub(crate) fn login(
     }
 }
 
-fn handle_packets(
-    entity: Entity,
-    client: &mut Client,
-    login_queue: &Res<LoginQueue>,
-    cmd: &mut Commands,
-) -> SendResult {
-    while let Some(packet) = client.1.pop_front() {
+fn handle_packets(entity: Entity, client: &Client, login_queue: &Res<LoginQueue>, cmd: &mut Commands) -> SendResult {
+    while let Ok(Some(packet)) = client.0.received() {
         match packet {
             ClientPacket::IdentityInformation(_id) => {
                 send_identity_information(&client.0)?;
@@ -42,6 +38,7 @@ fn handle_packets(
                     cmd.entity(entity)
                         .remove::<Login>()
                         .insert(Playing(user, token))
+                        .insert(CharselectInput::default())
                         .insert(CharacterSelect::default());
                     send_login_result(&client.0, AuthResult::success())?;
                     break;

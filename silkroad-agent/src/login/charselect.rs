@@ -1,6 +1,6 @@
-use crate::comp::player::{Agent, Buffed, Inventory, MovementState, Player};
+use crate::comp::net::{CharselectInput, GmInput, InputBundle};
+use crate::comp::player::{Agent, Inventory, MovementState, Player, PlayerBundle};
 use crate::comp::pos::{Heading, LocalPosition, Position};
-use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
 use crate::comp::{CharacterSelect, Client, GameEntity, Playing};
 use crate::db::character::{CharacterData, CharacterItem};
@@ -28,6 +28,7 @@ use silkroad_protocol::world::{
 };
 use silkroad_protocol::{ClientPacket, ServerPacket};
 use sqlx::PgPool;
+use std::mem::take;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 use tokio::sync::oneshot::error::TryRecvError;
@@ -41,10 +42,10 @@ pub(crate) fn charselect(
     server_id: Res<ServerId>,
     mut cmd: Commands,
     mut allocator: ResMut<IdPool>,
-    mut query: Query<(Entity, &mut Client, &mut CharacterSelect, &Playing)>,
+    mut query: Query<(Entity, &Client, &mut CharselectInput, &mut CharacterSelect, &Playing)>,
 ) {
-    for (entity, mut client, mut character_list, playing) in query.iter_mut() {
-        while let Some(packet) = client.1.pop_front() {
+    for (entity, client, mut charselect_inputs, mut character_list, playing) in query.iter_mut() {
+        for packet in take(&mut charselect_inputs.inputs) {
             match packet {
                 ClientPacket::CharacterListRequest(CharacterListRequest { action }) => match action {
                     CharacterListRequestAction::Create {
@@ -159,6 +160,7 @@ pub(crate) fn charselect(
                                 character: crate::comp::player::Character::from_db_character(&character.character_data),
                                 inventory: Inventory::from(&character.items, 45),
                                 logout: None,
+                                target: None,
                             };
 
                             let data = &character.character_data;
@@ -187,15 +189,23 @@ pub(crate) fn charselect(
 
                             send_spawn(&client, &game_entity, &player, &position, settings.max_level);
 
-                            cmd.entity(entity)
-                                .insert(Synchronize::default())
-                                .insert(game_entity)
-                                .insert(player)
-                                .insert(agent)
-                                .insert(position.clone())
-                                .insert(Buffed {})
-                                .insert(Visibility::with_radius(500.))
+                            let is_gm = player.character.gm;
+
+                            let mut spawn_cmd = cmd.entity(entity);
+                            spawn_cmd
+                                .insert_bundle(PlayerBundle::new(
+                                    player,
+                                    game_entity,
+                                    agent,
+                                    position.clone(),
+                                    Visibility::with_radius(500.),
+                                ))
+                                .insert_bundle(InputBundle::default())
                                 .remove::<CharacterSelect>();
+
+                            if is_gm {
+                                spawn_cmd.insert(GmInput::default());
+                            }
                         },
                         None => {
                             client.send(CharacterJoinResponse::new(CharacterJoinResult::Error {
