@@ -154,7 +154,7 @@ impl GroupSpawnDataContent {
     }
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Copy, Clone, Serialize, ByteSize)]
 pub enum DroppedItemSource {
     #[silkroad(value = 0)]
     None,
@@ -321,24 +321,6 @@ pub enum WeatherType {
     Rain,
     #[silkroad(value = 3)]
     Snow,
-}
-
-#[derive(Clone, Serialize, ByteSize)]
-pub enum GameNotificationContent {
-    #[silkroad(value = 0x05)]
-    UniqueSpawned { unknown: u8, ref_id: u16 },
-    #[silkroad(value = 0x06)]
-    UniqueKilled { ref_id: u16 },
-}
-
-impl GameNotificationContent {
-    pub fn uniquespawned(ref_id: u16) -> Self {
-        GameNotificationContent::UniqueSpawned { unknown: 1, ref_id }
-    }
-
-    pub fn uniquekilled(ref_id: u16) -> Self {
-        GameNotificationContent::UniqueKilled { ref_id }
-    }
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
@@ -1088,13 +1070,24 @@ impl FriendListInfo {
 }
 
 #[derive(Clone, Serialize, ByteSize)]
-pub struct GameNotification {
-    pub result: GameNotificationContent,
+pub enum GameNotification {
+    #[silkroad(value = 0x05)]
+    UniqueSpawned { unknown: u8, ref_id: u32 },
+    #[silkroad(value = 0x06)]
+    UniqueKilled { unknown: u8, ref_id: u32, player: String },
 }
 
 impl GameNotification {
-    pub fn new(result: GameNotificationContent) -> Self {
-        GameNotification { result }
+    pub fn uniquespawned(ref_id: u32) -> Self {
+        GameNotification::UniqueSpawned { unknown: 0x0C, ref_id }
+    }
+
+    pub fn uniquekilled(ref_id: u32, killer: String) -> Self {
+        GameNotification::UniqueKilled {
+            unknown: 0x0C,
+            ref_id,
+            player: killer,
+        }
     }
 }
 
