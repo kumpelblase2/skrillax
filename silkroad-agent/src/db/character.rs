@@ -11,7 +11,7 @@ pub(crate) struct CharacterData {
     pub charname: String,
     pub character_type: i32,
     pub scale: i16,
-    pub levels: i16,
+    pub level: i16,
     pub max_level: i16,
     pub exp: i64,
     pub sp: i32,

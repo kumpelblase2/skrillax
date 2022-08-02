@@ -122,7 +122,7 @@ impl Character {
             name: data.charname.clone(),
             race: Race::Chinese,
             scale: data.scale as u8,
-            level: data.levels as u8,
+            level: data.level as u8,
             max_level: data.max_level as u8,
             exp: data.exp as u64,
             sp: data.sp as u32,

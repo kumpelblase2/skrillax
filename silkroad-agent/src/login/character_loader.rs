@@ -74,13 +74,13 @@ pub(crate) async fn restore_character(pool: PgPool, user_id: i32, name: String, 
 }
 
 pub(crate) async fn create_character(pool: PgPool, character: Character) {
-    let result = sqlx::query("INSERT INTO characters(user_id, server_id, charname, character_type, scale, levels, max_level, strength, intelligence, stat_points, current_hp, current_mp, x, y, z, region, beginner_mark) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id")
+    let result = sqlx::query("INSERT INTO characters(user_id, server_id, charname, character_type, scale, level, max_level, strength, intelligence, stat_points, current_hp, current_mp, x, y, z, region, beginner_mark) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id")
             .bind(character.character_data.user_id)
             .bind(character.character_data.server_id)
             .bind(character.character_data.charname)
             .bind(character.character_data.character_type)
             .bind(character.character_data.scale)
-            .bind(character.character_data.levels)
+            .bind(character.character_data.level)
             .bind(character.character_data.max_level)
             .bind(character.character_data.strength)
             .bind(character.character_data.intelligence)
