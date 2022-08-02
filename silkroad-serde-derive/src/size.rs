@@ -108,7 +108,7 @@ fn generate_size_for(field: &Field, ident: TokenStream) -> TokenStream {
         UsedType::Collection(inner) => {
             let inner_ty = get_type_of(inner);
             let inner_ts = generate_size_for_inner(inner, &inner_ty, quote!(elem));
-            let length_type = field_args.list_type.unwrap_or("length".to_string());
+            let length_type = field_args.list_type.unwrap_or_else(|| "length".to_string());
             if length_type == "break" || length_type == "has-more" {
                 quote_spanned! { field.span() =>
                     1 + #ident.iter().map(|elem| #inner_ts + 1).sum::<usize>()

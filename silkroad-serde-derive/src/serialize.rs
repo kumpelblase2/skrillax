@@ -12,7 +12,7 @@ pub(crate) fn serialize(ident: &Ident, data: &Data, args: SilkroadArgs) -> Token
             Fields::Named(ref fields) => {
                 let content = fields.named.iter().map(|field| {
                     let ident = field.ident.as_ref().unwrap();
-                    generate_for_field(&field, quote!(self.#ident))
+                    generate_for_field(field, quote!(self.#ident))
                 });
                 quote_spanned! { ident.span() =>
                     #(#content)*
@@ -21,7 +21,7 @@ pub(crate) fn serialize(ident: &Ident, data: &Data, args: SilkroadArgs) -> Token
             Fields::Unnamed(ref fields) => {
                 let content = fields.unnamed.iter().enumerate().map(|(i, field)| {
                     let index = Index::from(i);
-                    generate_for_field(&field, quote!(self.#index))
+                    generate_for_field(field, quote!(self.#index))
                 });
                 quote_spanned! { ident.span() =>
                     #(#content)*
@@ -83,7 +83,7 @@ fn generate_for_field(field: &Field, ident: TokenStream) -> TokenStream {
             }
         },
         UsedType::Collection(inner) => {
-            let length_type = args.list_type.as_ref().map(|s| s.as_str()).unwrap_or(DEFAULT_LIST_TYPE);
+            let length_type = args.list_type.as_deref().unwrap_or(DEFAULT_LIST_TYPE);
             // TODO: this does not handle double length strings.
             let inner_ty = match get_type_of(inner) {
                 UsedType::Primitive => quote!(inner.write_to(writer)),
