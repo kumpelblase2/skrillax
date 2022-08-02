@@ -71,7 +71,8 @@ client_packets! {
     0x9000 => HandshakeAccepted,
     0x6103 => AuthRequest,
     0x7005 => LogoutRequest,
-    0x7010 => GmCommand
+    0x7010 => GmCommand,
+    0x755D => OpenItemMall
 }
 
 macro_rules! server_packets {
@@ -145,7 +146,8 @@ server_packets! {
     0x2212 => Disconnect,
     0x3057 => EntityBarsUpdate,
     0xB034 => InventoryOperationResult,
-    0xB010 => GmResponse
+    0xB010 => GmResponse,
+    0xB55D => OpenItemMallResponse
 }
 
 impl ServerPacket {

@@ -344,3 +344,17 @@ impl ConsignmentResponse {
 pub struct InventoryOperation {
     pub data: InventoryOperationRequest,
 }
+
+#[derive(Clone, Deserialize, ByteSize)]
+pub struct OpenItemMall;
+
+#[derive(Serialize, ByteSize)]
+pub struct OpenItemMallResponse(pub OpenItemMallResult);
+
+#[derive(Serialize, ByteSize)]
+pub enum OpenItemMallResult {
+    #[silkroad(value = 2)]
+    Error,
+    #[silkroad(value = 1)]
+    Success { jid: u32, token: String },
+}
