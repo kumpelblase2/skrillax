@@ -14,6 +14,7 @@ mod time;
 mod world;
 
 use crate::config::get_config;
+use crate::db::server::register_server;
 use crate::game::GamePlugin;
 use crate::login::LoginPlugin;
 use crate::net::NetworkPlugin;
@@ -25,6 +26,8 @@ use crate::world::WorldPlugin;
 use bevy_app::App;
 use bevy_core::CorePlugin;
 use login::web::WebServer;
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 use silkroad_network::server::SilkroadServer;
 use std::net::SocketAddr;
 use std::str::FromStr;
@@ -40,7 +43,7 @@ fn main() {
     let configuration = get_config();
     let external_addr = match &configuration.external_address {
         Some(addr) => SocketAddr::from_str(addr),
-        None => SocketAddr::from_str(&format!("127.0.0.1:{}", configuration.listen_port)),
+        None => format!("127.0.0.1:{}", configuration.listen_port).parse(),
     }
     .unwrap();
 
@@ -57,13 +60,28 @@ fn main() {
 
     let db_pool = runtime.block_on(configuration.database.create_pool()).unwrap();
 
+    let token: String = thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(30)
+        .map(char::from)
+        .collect();
+
+    runtime.block_on(register_server(
+        db_pool.clone(),
+        configuration.name.clone(),
+        configuration.region.clone().unwrap_or_else(|| "EU".to_string()),
+        external_addr,
+        configuration.rpc_port.unwrap_or(DEFAULT_RPC_PORT),
+        token.clone(),
+    ));
+
     let _web_handle = runtime.spawn(
         WebServer::new(
             configuration.server_id,
             db_pool.clone(),
             queue.clone(),
             capacity_manager.clone(),
-            external_addr,
+            token,
             configuration.rpc_port.unwrap_or(DEFAULT_RPC_PORT),
         )
         .run(),

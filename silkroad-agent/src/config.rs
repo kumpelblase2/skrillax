@@ -67,6 +67,8 @@ pub(crate) struct GameServerConfig {
     pub(crate) max_player_count: u16,
     pub(crate) database: DbOptions,
     pub(crate) game: GameConfig,
+    pub(crate) region: Option<String>,
+    pub(crate) name: String,
 }
 
 impl GameServerConfig {

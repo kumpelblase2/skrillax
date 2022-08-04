@@ -260,6 +260,20 @@ impl Client {
         user_id: u32,
         last_credentials: &LastCredentials,
     ) -> Result<(), StreamError> {
+        let server = match agent_servers.server_details(last_credentials.shard).await {
+            Some(addr) => addr,
+            None => {
+                let _ = writer
+                    .send(ServerPacket::LoginResponse(LoginResponse {
+                        result: silkroad_protocol::login::LoginResult::Error {
+                            error: SecurityError::Inspection,
+                        },
+                    }))
+                    .await?;
+                return Ok(());
+            },
+        };
+
         let result = agent_servers
             .reserve(user_id, &last_credentials.username, last_credentials.shard)
             .await;
@@ -276,13 +290,15 @@ impl Client {
             },
             Some(result) => {
                 let _ = match result {
-                    ReserveResponse::Success { ip, port, token, .. } => {
+                    ReserveResponse::Success { token, .. } => {
+                        let ip = server.ip();
+                        let port = server.port();
                         debug!("Got a spot at {}:{}: {}", ip, port, token);
                         writer
                             .send(ServerPacket::LoginResponse(LoginResponse {
                                 result: silkroad_protocol::login::LoginResult::Success {
                                     session_id: token,
-                                    agent_ip: ip,
+                                    agent_ip: ip.to_string(),
                                     agent_port: port,
                                     unknown: 1,
                                 },

@@ -2,6 +2,8 @@ name = "Testing"
 listen-port = 15780
 server-id = 1
 max-player-count = 2
+external-address = "10.0.2.2:15780"
+region = "EU"
 
 [database]
 host = "localhost"

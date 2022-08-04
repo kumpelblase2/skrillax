@@ -6,7 +6,7 @@ mod news;
 mod patch;
 mod server;
 
-use crate::agentserver::{AgentServer, AgentServerManager};
+use crate::agentserver::AgentServerManager;
 use crate::config::get_config;
 use crate::login::LoginProvider;
 use crate::news::NewsCacheAsync;
@@ -55,20 +55,8 @@ async fn main() {
                 .unwrap_or(DEFAULT_HEALTHCHECK_INTERVAL),
         ),
         farms,
+        db_pool.clone(),
     );
-
-    let mut id = 1;
-    for (name, server) in configuration.servers.iter() {
-        agent_server_manager
-            .add_server(AgentServer::new(
-                id,
-                name.clone(),
-                server.address.clone(),
-                server.region.clone().into(),
-            ))
-            .await;
-        id += 1;
-    }
 
     let listen_addr = SocketAddr::from_str(&format!(
         "{}:{}",

@@ -1,7 +1,10 @@
 use reqwest::Client;
 use silkroad_protocol::login::{Farm, Shard};
 use silkroad_rpc::{ReserveRequest, ReserveResponse, ServerPopulation, ServerStatusReport};
+use sqlx::{PgPool, Row};
 use std::fmt::Display;
+use std::mem;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
@@ -58,9 +61,11 @@ impl From<ServerStatus> for bool {
 pub(crate) struct AgentServer {
     pub(crate) id: u16,
     pub(crate) name: String,
-    pub(crate) address: String,
+    pub(crate) address: SocketAddr,
+    pub(crate) rpc_address: SocketAddr,
     pub(crate) region: ServerRegion,
     pub(crate) status: ServerStatus,
+    pub(crate) token: String,
     pub(crate) population: ServerPopulation,
 }
 
@@ -79,12 +84,21 @@ impl From<AgentServer> for Shard {
 }
 
 impl AgentServer {
-    pub(crate) fn new(id: u16, name: String, address: String, region: ServerRegion) -> Self {
+    pub(crate) fn new(
+        id: u16,
+        name: String,
+        address: SocketAddr,
+        rpc: SocketAddr,
+        region: ServerRegion,
+        token: String,
+    ) -> Self {
         AgentServer {
             id,
             name,
             address,
+            rpc_address: rpc,
             region,
+            token,
             status: ServerStatus::Offline,
             population: ServerPopulation::Easy,
         }
@@ -92,20 +106,10 @@ impl AgentServer {
 
     pub(crate) fn update(&mut self, report: ServerStatusReport) {
         self.status = if report.healthy {
-            if matches!(&self.status, ServerStatus::Offline) {
-                info!(server = ?self.name, "Status changed to online.");
-            }
             ServerStatus::Online
         } else {
-            if matches!(&self.status, ServerStatus::Online) {
-                info!(server = ?self.name, "Status changed to offline.");
-            }
             ServerStatus::Offline
         };
-
-        if self.population != report.population {
-            info!(server = ?self.name, "Population changed from {} to {}.", &self.population, &report.population);
-        }
         self.population = report.population;
     }
 }
@@ -116,19 +120,46 @@ pub(crate) struct AgentServerManager {
     servers: Arc<RwLock<Vec<AgentServer>>>,
 }
 
+async fn fetch_servers(pool: PgPool) -> Vec<AgentServer> {
+    let servers = sqlx::query("SELECT id, name, region, address, port, rpc_port, token FROM servers")
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    servers
+        .into_iter()
+        .map(|row| {
+            let id: i32 = row.get(0);
+            let name: String = row.get(1);
+            let region: String = row.get(2);
+            let address: String = row.get(3);
+            let port: i16 = row.get(4);
+            let rpc_port: i16 = row.get(5);
+            let token: String = row.get(6);
+
+            let ip = address.parse().unwrap();
+            AgentServer::new(
+                id as u16,
+                name,
+                SocketAddr::new(ip, port as u16),
+                SocketAddr::new(ip, rpc_port as u16),
+                ServerRegion::from(region),
+                token,
+            )
+        })
+        .collect()
+}
+
 impl AgentServerManager {
-    pub(crate) fn new(poll_interval: Duration, farms: Vec<Farm>) -> Self {
+    pub(crate) fn new(poll_interval: Duration, farms: Vec<Farm>, db: PgPool) -> Self {
         let servers: Arc<RwLock<Vec<AgentServer>>> = Arc::new(RwLock::new(Vec::new()));
         let server_copy = servers.clone();
 
         tokio::spawn(async move {
             loop {
-                let servers = server_copy.read().await;
-                let mut server_list = servers.clone();
-                drop(servers);
-                for server in server_list.iter_mut() {
-                    let address = &format!("http://{}/status", server.address);
-                    let status = match reqwest::get(address).await {
+                let mut servers = fetch_servers(db.clone()).await;
+                for server in servers.iter_mut() {
+                    let address = format!("http://{}/status", server.rpc_address);
+                    let status = match reqwest::get(&address).await {
                         Ok(resp) => resp.json::<ServerStatusReport>().await.unwrap(),
                         Err(e) if e.is_request() || e.is_timeout() || e.is_connect() => {
                             debug!(server = ?server.name, error = %e, "Agent server was not accessible.");
@@ -146,9 +177,9 @@ impl AgentServerManager {
                     server.update(status);
                 }
 
-                let mut servers = server_copy.write().await;
-                servers.swap_with_slice(&mut server_list);
-                drop(servers);
+                let mut server_list = server_copy.write().await;
+                let _ = mem::replace(&mut *server_list, servers);
+                drop(server_list);
                 tokio::time::sleep(poll_interval).await;
             }
         });
@@ -156,25 +187,28 @@ impl AgentServerManager {
         AgentServerManager { servers, farms }
     }
 
-    pub(crate) async fn add_server(&self, server: AgentServer) {
-        let mut servers = self.servers.write().await;
-        debug!("Added {} at {} to the server list.", &server.name, &server.address);
-        servers.push(server);
-    }
-
     pub(crate) async fn servers(&self) -> Vec<AgentServer> {
         let servers = self.servers.read().await;
         servers.clone()
     }
 
+    pub(crate) async fn server_details(&self, server_id: u16) -> Option<SocketAddr> {
+        let servers = self.servers.read().await;
+        servers
+            .iter()
+            .find(|server| server.id == server_id)
+            .map(|server| server.address)
+    }
+
     pub(crate) async fn reserve(&self, user_id: u32, username: &str, server_id: u16) -> Option<ReserveResponse> {
         let servers = self.servers.read().await;
         let server = servers.iter().find(|server| server.id == server_id)?;
-        let address = server.address.clone();
+        let token = server.token.clone();
+        let address = server.rpc_address;
         drop(servers);
-        let client = Client::new();
-        return match client
+        return match Client::new()
             .post(&format!("http://{}/request", address))
+            .header("TOKEN", token)
             .json(&ReserveRequest {
                 user_id,
                 username: String::from(username),

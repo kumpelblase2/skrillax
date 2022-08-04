@@ -1,4 +1,5 @@
 listen-port = 15779
+agent-healthcheck-interval = 5
 
 [patch]
 remote-url = "localhost/"
@@ -12,9 +13,3 @@ host = "localhost"
 user = "skrillax"
 password = "skrillax"
 database = "skrillax"
-
-[servers]
-[servers.Testing]
-region = "EU"
-address = "localhost:1337"
-token = "abeetr98gae98rg7as9rbt"

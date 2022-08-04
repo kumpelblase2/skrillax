@@ -4,17 +4,8 @@ use log::LevelFilter;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{ConnectOptions, PgPool};
-use std::collections::HashMap;
 use std::fmt::Debug;
 use tracing::debug;
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "kebab-case")]
-pub(crate) struct GameServerConfig {
-    pub(crate) region: String,
-    pub(crate) address: String,
-    pub(crate) token: String,
-}
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -63,7 +54,6 @@ pub(crate) struct GatewayServerConfig {
     pub(crate) listen_port: u16,
     pub(crate) listen_address: Option<String>,
     pub(crate) patch: PatchConfig,
-    pub(crate) servers: HashMap<String, GameServerConfig>,
     pub(crate) database: DbOptions,
     pub(crate) news_cache_duration: Option<u64>,
     pub(crate) agent_healthcheck_interval: Option<u64>,
