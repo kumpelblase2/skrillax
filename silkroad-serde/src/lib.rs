@@ -33,7 +33,7 @@ pub trait Serialize: ByteSize {
     fn write_to(&self, writer: &mut BytesMut);
 }
 
-pub trait Deserialize: ByteSize {
+pub trait Deserialize {
     fn read_from<T: Read + ReadBytesExt>(reader: &mut T) -> Result<Self, SerializationError>
     where
         Self: Sized;
