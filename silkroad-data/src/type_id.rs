@@ -265,7 +265,7 @@ impl ObjectEquippable {
             )),
             13 => Some(ObjectEquippable::Avatar(ObjectAvatar::try_from(t3).ok()?)),
             14 => Some(ObjectEquippable::DevilSpirit),
-            id if id < 11 => Some(ObjectEquippable::Clothing(
+            id if id <= 11 => Some(ObjectEquippable::Clothing(
                 ObjectClothingType::try_from(id).ok()?,
                 ObjectClothingPart::try_from(t3).ok()?,
             )),
