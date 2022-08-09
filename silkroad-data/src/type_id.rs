@@ -288,7 +288,8 @@ pub enum ObjectClothingType {
 #[derive(IntoPrimitive, TryFromPrimitive, Copy, Clone, Eq, PartialOrd, PartialEq)]
 #[repr(u8)]
 pub enum ObjectClothingPart {
-    Head = 1,
+    Any = 0,
+    Head,
     Shoulder,
     Body,
     Leg,
@@ -314,7 +315,8 @@ pub enum ObjectJewelryType {
 #[derive(IntoPrimitive, TryFromPrimitive, Copy, Clone, Eq, PartialOrd, PartialEq)]
 #[repr(u8)]
 pub enum ObjectWeaponType {
-    Sword = 2,
+    None = 1,
+    Sword,
     Blade,
     Spear,
     Glavie,
