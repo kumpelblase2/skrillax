@@ -1,3 +1,4 @@
+use crate::num_ext::NumExt;
 use crate::type_id::TypeId;
 use crate::{list_files, parse_file, FileError, ParseError};
 use num_enum::TryFromPrimitive;
@@ -73,6 +74,7 @@ pub struct RefItemData {
     pub country: RefItemCountry,
     pub price: u64,
     pub max_stack_size: usize,
+    pub range: Option<u16>,
     pub params: [isize; 4],
 }
 
@@ -81,6 +83,7 @@ impl FromStr for RefItemData {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let elements = s.split('\t').collect::<Vec<&str>>();
+        let range: u16 = elements.get(94).ok_or(ParseError::MissingColumn(94))?.parse()?;
         Ok(Self {
             ref_id: elements.get(1).ok_or(ParseError::MissingColumn(1))?.parse()?,
             id: elements.get(2).ok_or(ParseError::MissingColumn(2))?.to_string(),
@@ -99,6 +102,7 @@ impl FromStr for RefItemData {
                 elements.get(122).ok_or(ParseError::MissingColumn(122))?.parse()?,
                 elements.get(124).ok_or(ParseError::MissingColumn(124))?.parse()?,
             ],
+            range: range.to_option(),
             max_stack_size: elements.get(57).ok_or(ParseError::MissingColumn(57))?.parse()?,
         })
     }

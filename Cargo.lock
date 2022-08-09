@@ -2208,6 +2208,7 @@ dependencies = [
 name = "silkroad-data"
 version = "0.1.0"
 dependencies = [
+ "bitflags",
  "encoding_rs",
  "num_enum",
  "num_enum_derive",
