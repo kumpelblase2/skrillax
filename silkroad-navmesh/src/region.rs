@@ -45,6 +45,10 @@ impl Region {
         regions.push(Region::from_xy(self.x() + 1, self.y() + 1));
         regions
     }
+
+    pub const fn new(id: u16) -> Region {
+        Region(id)
+    }
 }
 
 impl From<u16> for Region {
