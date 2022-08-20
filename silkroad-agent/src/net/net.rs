@@ -92,7 +92,8 @@ pub(crate) fn receive(
                         },
                         packet @ ClientPacket::LogoutRequest(_)
                         | packet @ ClientPacket::TargetEntity(_)
-                        | packet @ ClientPacket::UnTargetEntity(_) => {
+                        | packet @ ClientPacket::UnTargetEntity(_)
+                        | packet @ ClientPacket::PerformAction(_) => {
                             if let Some(input) = world_opt.as_mut() {
                                 input.inputs.push(packet);
                             }

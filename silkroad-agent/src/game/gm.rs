@@ -1,17 +1,16 @@
-use crate::comp::drop::{DropBundle, ItemDrop};
+use crate::comp::drop::{DropBundle, Item, ItemDrop};
 use crate::comp::monster::{Monster, MonsterBundle, RandomStroll, SpawnedBy};
 use crate::comp::net::GmInput;
 use crate::comp::player::Agent;
 use crate::comp::pos::Position;
 use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
-use crate::comp::{Client, EntityReference, GameEntity, Health};
-use crate::world::EntityLookup;
+use crate::comp::{Client, Despawn, EntityReference, GameEntity, Health};
+use crate::world::{EntityLookup, CHARACTERS, ITEMS};
 use bevy_core::Timer;
 use bevy_ecs::prelude::*;
 use id_pool::IdPool;
-use silkroad_data::characterdata::CharacterMap;
-use silkroad_data::itemdata::ItemMap;
+use silkroad_data::type_id::{ObjectConsumable, ObjectConsumableCurrency, ObjectItem, ObjectType};
 use silkroad_protocol::gm::{GmCommand, GmResponse};
 use silkroad_protocol::world::{BodyState, UpdatedState};
 use silkroad_protocol::ServerPacket;
@@ -21,8 +20,6 @@ use std::time::Duration;
 pub(crate) fn handle_gm_commands(
     mut query: Query<(Entity, &GameEntity, &Client, &Position, &mut GmInput, &mut Synchronize)>,
     mut commands: Commands,
-    characters: Res<CharacterMap>,
-    items: Res<ItemMap>,
     mut id_pool: ResMut<IdPool>,
     lookup: Res<EntityLookup>,
 ) {
@@ -32,7 +29,7 @@ pub(crate) fn handle_gm_commands(
             match command {
                 GmCommand::BanUser { .. } => {},
                 GmCommand::SpawnMonster { ref_id, amount, rarity } => {
-                    let character_def = characters.find_id(ref_id).unwrap();
+                    let character_def = CHARACTERS.get().unwrap().find_id(ref_id).unwrap();
                     for _ in 0..amount {
                         let unique_id = id_pool.request_id().unwrap();
                         // FIXME: `SpawnedBy` doesn't really make sense here.
@@ -50,17 +47,30 @@ pub(crate) fn handle_gm_commands(
                         commands.spawn().insert_bundle(bundle);
                     }
                 },
-                GmCommand::MakeItem { ref_id, amount } => {
-                    let item = items.find_id(ref_id).unwrap();
+                GmCommand::MakeItem { ref_id, upgrade } => {
+                    let item = ITEMS.get().unwrap().find_id(ref_id).unwrap();
                     let unique_id = id_pool.request_id().unwrap();
+                    let object_type = ObjectType::from_type_id(&item.type_id).unwrap();
+                    let item_type = if matches!(object_type, ObjectType::Item(ObjectItem::Equippable(_))) {
+                        Item::Equipment { upgrade }
+                    } else if matches!(
+                        object_type,
+                        ObjectType::Item(ObjectItem::Consumable(ObjectConsumable::Currency(
+                            ObjectConsumableCurrency::Gold
+                        )))
+                    ) {
+                        Item::Gold(1)
+                    } else {
+                        Item::Consumable(1)
+                    };
                     let bundle = DropBundle {
                         drop: ItemDrop {
-                            despawn_timer: Timer::new(item.despawn_time, false),
                             owner: Some(EntityReference(entity, *game_entity)),
-                            amount: amount as u32,
+                            item: item_type,
                         },
                         position: position.clone(),
                         game_entity: GameEntity { unique_id, ref_id },
+                        despawn: Despawn(Timer::new(item.despawn_time, false)),
                     };
                     commands.spawn().insert_bundle(bundle);
                 },
@@ -70,6 +80,7 @@ pub(crate) fn handle_gm_commands(
                 GmCommand::Invisible => {
                     sync.state.push(UpdatedState::Body(BodyState::GMInvisible));
                 },
+                GmCommand::KillMonster { unique_id, .. } => {},
             }
         }
     }

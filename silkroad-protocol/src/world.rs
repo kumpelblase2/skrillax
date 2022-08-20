@@ -166,15 +166,7 @@ pub enum DroppedItemSource {
 
 #[derive(Clone, Serialize, ByteSize)]
 #[silkroad(size = 0)]
-pub enum EntityTypeSpawnData {
-    Item {
-        unique_id: u32,
-        position: Position,
-        owner: Option<u32>,
-        rarity: u8,
-        source: DroppedItemSource,
-        source_id: u32,
-    },
+pub enum ItemSpawnData {
     Gold {
         amount: u32,
         unique_id: u32,
@@ -182,6 +174,29 @@ pub enum EntityTypeSpawnData {
         owner: Option<u32>,
         rarity: u8,
     },
+    Consumable {
+        unique_id: u32,
+        position: Position,
+        owner: Option<u32>,
+        rarity: u8,
+        source: DroppedItemSource,
+        source_id: u32,
+    },
+    Equipment {
+        upgrade: u8,
+        unique_id: u32,
+        position: Position,
+        owner: Option<u32>,
+        rarity: u8,
+        source: DroppedItemSource,
+        source_id: u32,
+    },
+}
+
+#[derive(Clone, Serialize, ByteSize)]
+#[silkroad(size = 0)]
+pub enum EntityTypeSpawnData {
+    Item(ItemSpawnData),
     Character {
         scale: u8,
         berserk_level: u8,
@@ -229,13 +244,13 @@ pub enum EntityTypeSpawnData {
 
 impl EntityTypeSpawnData {
     pub fn gold(amount: u32, unique_id: u32, position: Position, owner: Option<u32>, rarity: u8) -> Self {
-        EntityTypeSpawnData::Gold {
+        EntityTypeSpawnData::Item(ItemSpawnData::Gold {
             amount,
             unique_id,
             position,
             owner,
             rarity,
-        }
+        })
     }
 
     pub fn character(
@@ -490,6 +505,14 @@ impl Position {
             heading,
         }
     }
+}
+
+#[derive(Clone, Serialize, ByteSize)]
+pub struct Location {
+    pub region: u16,
+    pub pos_x: f32,
+    pub pos_y: f32,
+    pub pos_z: f32,
 }
 
 #[derive(Clone, Serialize, ByteSize)]

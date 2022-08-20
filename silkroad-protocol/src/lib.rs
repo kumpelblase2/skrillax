@@ -1,6 +1,7 @@
 use crate::auth::*;
 use crate::character::*;
 use crate::chat::*;
+use crate::combat::*;
 use crate::error::ProtocolError;
 use crate::general::*;
 use crate::gm::*;
@@ -11,6 +12,7 @@ use bytes::Bytes;
 pub mod auth;
 pub mod character;
 pub mod chat;
+pub mod combat;
 pub mod error;
 pub mod general;
 pub mod gm;
@@ -72,7 +74,8 @@ client_packets! {
     0x6103 => AuthRequest,
     0x7005 => LogoutRequest,
     0x7010 => GmCommand,
-    0x755D => OpenItemMall
+    0x755D => OpenItemMall,
+    0x7074 => PerformAction
 }
 
 macro_rules! server_packets {
@@ -147,7 +150,9 @@ server_packets! {
     0x3057 => EntityBarsUpdate,
     0xB034 => InventoryOperationResult,
     0xB010 => GmResponse,
-    0xB55D => OpenItemMallResponse
+    0xB55D => OpenItemMallResponse,
+    0xB074 => PerformActionResponse,
+    0xB070 => PerformActionUpdate
 }
 
 impl ServerPacket {

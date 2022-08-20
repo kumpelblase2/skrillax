@@ -1,40 +1,13 @@
-use crate::num_ext::NumExt;
 use crate::type_id::TypeId;
-use crate::{list_files, parse_file, FileError, ParseError};
+use crate::{DataEntry, DataMap, FileError, ParseError};
 use num_enum::TryFromPrimitive;
 use pk2::Pk2;
+use std::num::NonZeroU16;
 use std::str::FromStr;
 use std::time::Duration;
 
-pub struct ItemMap {
-    item_data: Vec<RefItemData>,
-}
-
-impl ItemMap {
-    pub fn from(pk2: &Pk2) -> Result<ItemMap, FileError> {
-        let mut file = pk2.open_file("/server_dep/silkroad/textdata/ItemData.txt")?;
-        let item_lines = list_files(&mut file)?;
-        let all_items: Vec<RefItemData> = item_lines
-            .into_iter()
-            .filter(|name| name.len() > 0)
-            .map(|filename| format!("/server_dep/silkroad/textdata/{}", filename))
-            .map(|filename| {
-                let mut file = pk2.open_file(&filename).unwrap();
-                parse_file(&mut file).unwrap()
-            })
-            .flatten()
-            .collect();
-
-        Ok(ItemMap::new(all_items))
-    }
-
-    pub fn new(item_data: Vec<RefItemData>) -> Self {
-        Self { item_data }
-    }
-
-    pub fn find_id(&self, id: u32) -> Option<&RefItemData> {
-        self.item_data.iter().find(|item| item.ref_id == id)
-    }
+pub fn load_item_map(pk2: &Pk2) -> Result<DataMap<RefItemData>, FileError> {
+    DataMap::from(pk2, "/server_dep/silkroad/textdata/ItemData.txt")
 }
 
 #[derive(TryFromPrimitive, Copy, Clone)]
@@ -74,8 +47,18 @@ pub struct RefItemData {
     pub country: RefItemCountry,
     pub price: u64,
     pub max_stack_size: usize,
-    pub range: Option<u16>,
+    pub range: Option<NonZeroU16>,
     pub params: [isize; 4],
+}
+
+impl DataEntry for RefItemData {
+    fn ref_id(&self) -> u32 {
+        self.ref_id
+    }
+
+    fn code(&self) -> &str {
+        &self.id
+    }
 }
 
 impl FromStr for RefItemData {
@@ -102,7 +85,7 @@ impl FromStr for RefItemData {
                 elements.get(122).ok_or(ParseError::MissingColumn(122))?.parse()?,
                 elements.get(124).ok_or(ParseError::MissingColumn(124))?.parse()?,
             ],
-            range: range.to_option(),
+            range: NonZeroU16::new(range),
             max_stack_size: elements.get(57).ok_or(ParseError::MissingColumn(57))?.parse()?,
         })
     }

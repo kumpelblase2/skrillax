@@ -1,4 +1,6 @@
+use cgmath::num_traits::real::Real;
 use cgmath::{Vector2, Vector3};
+use rand::random;
 use std::future::Future;
 use tokio::runtime::Runtime;
 use tokio::sync::oneshot::Receiver;
@@ -32,5 +34,29 @@ impl AsyncTaskCreate for Runtime {
             let _ = sender.send(result);
         });
         receiver
+    }
+}
+
+pub(crate) trait Vector2Ext<T> {
+    fn random_in_radius(&self, radius: T) -> Self;
+}
+
+impl Vector2Ext<f32> for Vector2<f32> {
+    fn random_in_radius(&self, radius: f32) -> Self {
+        let r = radius * random::<f32>().sqrt();
+        let theta = random::<f32>() * 2.0 * std::f32::consts::PI;
+        let x = self.x + r * theta.cos();
+        let y = self.y + r * theta.sin();
+        Vector2::new(x, y)
+    }
+}
+
+impl Vector2Ext<f64> for Vector2<f64> {
+    fn random_in_radius(&self, radius: f64) -> Self {
+        let r = radius * random::<f64>().sqrt();
+        let theta = random::<f64>() * 2.0 * std::f64::consts::PI;
+        let x = self.x + r * theta.cos();
+        let y = self.y + r * theta.sin();
+        Vector2::new(x, y)
     }
 }

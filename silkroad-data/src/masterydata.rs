@@ -1,10 +1,25 @@
-use crate::ParseError;
+use crate::{DataEntry, DataMap, FileError, ParseError};
+use pk2::Pk2;
 use std::str::FromStr;
+
+pub fn load_mastery_map(pk2: &Pk2) -> Result<DataMap<RefMasteryData>, FileError> {
+    DataMap::from(pk2, "")
+}
 
 pub struct RefMasteryData {
     ref_id: u16,
     id: String,
     weapons: Vec<u8>,
+}
+
+impl DataEntry for RefMasteryData {
+    fn ref_id(&self) -> u32 {
+        self.ref_id as u32
+    }
+
+    fn code(&self) -> &str {
+        &self.id
+    }
 }
 
 impl FromStr for RefMasteryData {

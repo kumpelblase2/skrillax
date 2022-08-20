@@ -1,21 +1,29 @@
 use crate::{parse_file, FileError, ParseError};
 use pk2::Pk2;
+use std::collections::HashMap;
+use std::ops::Deref;
 use std::str::FromStr;
 
-pub struct LevelMap {
-    levels: Vec<RefLevel>,
+pub fn load_level_map(pk2: &Pk2) -> Result<LevelMap, FileError> {
+    let mut file = pk2.open_file("/server_dep/silkroad/textdata/LevelData.txt")?;
+    let levels: Vec<RefLevel> = parse_file(&mut file)?;
+    let map = levels.into_iter().map(|level| (level.level, level)).collect();
+    Ok(LevelMap(map))
 }
 
-impl LevelMap {
-    pub fn from(pk2: &Pk2) -> Result<LevelMap, FileError> {
-        let mut file = pk2.open_file("/server_dep/silkroad/textdata/LevelData.txt")?;
-        let levels = parse_file(&mut file)?;
-        Ok(LevelMap { levels })
-    }
+pub struct LevelMap(HashMap<u8, RefLevel>);
 
+impl LevelMap {
     pub fn get_exp_for_level(&self, level: u8) -> Option<u64> {
-        let index = (level - 1) as usize;
-        self.levels.get(index).map(|level| level.exp)
+        self.get(&level).map(|level| level.exp)
+    }
+}
+
+impl Deref for LevelMap {
+    type Target = HashMap<u8, RefLevel>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 

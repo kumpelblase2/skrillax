@@ -4,7 +4,7 @@ use crate::game::drop::tick_drop;
 use crate::game::entity_sync::{clean_sync, sync_changes_others, update_client};
 use crate::game::join::load_finished;
 use crate::game::levelup::notify_levelup;
-use crate::game::movement::{movement, movement_input, movement_monster};
+use crate::game::movement::{movement, movement_input, movement_monster, update_attack_location};
 use crate::game::player_activity::{reset_player_activity, update_player_activity, PlayerActivity};
 use crate::game::unique::{unique_killed, unique_spawned};
 use crate::game::visibility::{clear_visibility, player_visibility_update, visibility_update};
@@ -37,6 +37,7 @@ impl Plugin for GamePlugin {
             .add_system(movement_input)
             .add_system(visibility_update)
             .add_system(movement)
+            .add_system(update_attack_location)
             .add_system(movement_monster)
             .add_system(tick_drop)
             .add_system(finish_logout)

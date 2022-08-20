@@ -1,37 +1,10 @@
 use crate::type_id::TypeId;
-use crate::{list_files, parse_file, FileError, ParseError};
+use crate::{DataEntry, DataMap, FileError, ParseError};
 use pk2::Pk2;
 use std::str::FromStr;
 
-pub struct CharacterMap {
-    character_data: Vec<RefCharacterData>,
-}
-
-impl CharacterMap {
-    pub fn from(pk2: &Pk2) -> Result<CharacterMap, FileError> {
-        let mut file = pk2.open_file("/server_dep/silkroad/textdata/CharacterData.txt")?;
-        let character_lines = list_files(&mut file)?;
-        let all_characters: Vec<RefCharacterData> = character_lines
-            .into_iter()
-            .filter(|name| name.len() > 0)
-            .map(|filename| format!("/server_dep/silkroad/textdata/{}", filename))
-            .map(|filename| {
-                let mut file = pk2.open_file(&filename).unwrap();
-                parse_file(&mut file).unwrap()
-            })
-            .flatten()
-            .collect();
-
-        Ok(CharacterMap::new(all_characters))
-    }
-
-    pub fn new(character_data: Vec<RefCharacterData>) -> Self {
-        Self { character_data }
-    }
-
-    pub fn find_id(&self, id: u32) -> Option<&RefCharacterData> {
-        self.character_data.iter().find(|data| data.ref_id == id)
-    }
+pub fn load_character_map(pk2: &Pk2) -> Result<DataMap<RefCharacterData>, FileError> {
+    DataMap::from(pk2, "/server_dep/silkroad/textdata/CharacterData.txt")
 }
 
 #[derive(Clone)]
@@ -59,6 +32,16 @@ pub struct RefCharacterData {
     pub aggressive: bool,
     // column 93,
     pub skills: Vec<u32>, // column 83-92
+}
+
+impl DataEntry for RefCharacterData {
+    fn ref_id(&self) -> u32 {
+        self.ref_id
+    }
+
+    fn code(&self) -> &str {
+        &self.id
+    }
 }
 
 impl FromStr for RefCharacterData {

@@ -11,6 +11,7 @@ pub(crate) mod visibility;
 use crate::db::user::ServerUser;
 use crate::login::character_loader::Character;
 use crate::population::capacity::PlayingToken;
+use bevy_core::Timer;
 use bevy_ecs::prelude::*;
 use silkroad_network::stream::Stream;
 use silkroad_protocol::ServerPacket;
@@ -72,3 +73,6 @@ impl Health {
 
 #[derive(Hash, Copy, Clone, Eq, PartialEq)]
 pub struct EntityReference(pub Entity, pub(crate) GameEntity);
+
+#[derive(Clone, Component)]
+pub struct Despawn(pub Timer);

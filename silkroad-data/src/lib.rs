@@ -1,12 +1,14 @@
 pub mod characterdata;
+pub mod datamap;
 pub mod gold;
 pub mod itemdata;
 pub mod level;
 pub mod masterydata;
 pub mod npc_pos;
-pub(crate) mod num_ext;
 pub mod skilldata;
 pub mod type_id;
+
+pub use datamap::*;
 
 use encoding_rs::WINDOWS_1252;
 use num_enum::{TryFromPrimitive, TryFromPrimitiveError};

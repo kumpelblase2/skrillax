@@ -6,13 +6,19 @@ use crate::comp::visibility::Visibility;
 use crate::comp::GameEntity;
 use crate::db::character::CharacterItem;
 use crate::db::user::ServerUser;
+use crate::world::ITEMS;
+use bevy_core::Timer;
 use bevy_ecs::prelude::*;
+use silkroad_data::itemdata::RefItemData;
+use silkroad_data::skilldata::RefSkillData;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::time::Instant;
 
+const WEAPON_SLOT: u8 = 6;
+
 pub(crate) struct Item {
-    pub ref_id: i32,
+    pub reference: &'static RefItemData,
     pub variance: Option<u64>,
     pub upgrade_level: u8,
     pub type_data: ItemTypeData,
@@ -36,13 +42,16 @@ impl Inventory {
     }
 
     pub fn from(items: &[CharacterItem], size: usize) -> Inventory {
+        let item_map = ITEMS.get().unwrap();
         let mut my_items = HashMap::new();
 
         for item in items {
+            let item_def = item_map.find_id(item.item_obj_id as u32).unwrap();
+
             my_items.insert(
                 item.slot as u8,
                 Item {
-                    ref_id: item.item_obj_id,
+                    reference: item_def,
                     variance: item.variance.map(|v| v as u64),
                     upgrade_level: item.upgrade_level as u8,
                     type_data: ItemTypeData::Default,
@@ -55,6 +64,10 @@ impl Inventory {
 
     pub fn items(&self) -> Iter<u8, Item> {
         self.items.iter()
+    }
+
+    pub fn weapon(&self) -> Option<&Item> {
+        self.items.get(&WEAPON_SLOT)
     }
 }
 
@@ -74,6 +87,7 @@ pub enum SpawningState {
     Finished,
 }
 
+#[derive(Copy, Clone)]
 pub(crate) enum Race {
     European,
     Chinese,
@@ -146,7 +160,6 @@ pub(crate) struct Player {
     pub character: Character,
     pub inventory: Inventory,
     pub logout: Option<Instant>,
-    pub target: Option<Entity>,
 }
 
 pub(crate) enum MovementTarget {
@@ -155,11 +168,44 @@ pub(crate) enum MovementTarget {
     Turn(Heading),
 }
 
+pub(crate) enum SkillState {
+    Before,
+    Prepare(Timer),
+    Cast(Timer),
+    Default(Timer),
+    Cooldown(Timer),
+}
+
+pub(crate) enum AgentAction {
+    // what about stunned, knockdown, etc. that prevent action?
+    Movement(MovementTarget),
+    Skill {
+        reference: &'static RefSkillData,
+        target: Option<Entity>,
+        state: SkillState,
+    },
+    Attack {
+        target: Entity,
+        range: f32,
+        reference: &'static RefSkillData,
+        current_destination: GlobalPosition,
+        refresh_timer: Timer,
+    },
+}
+
+impl AgentAction {
+    pub(crate) fn can_cancel(&self) -> bool {
+        matches!(self, AgentAction::Movement(_))
+    }
+}
+
 #[derive(Component)]
 pub(crate) struct Agent {
     pub movement_speed: f32,
     pub movement_state: MovementState,
-    pub movement_target: Option<MovementTarget>,
+    pub current_action: Option<AgentAction>,
+    pub next_action: Option<AgentAction>,
+    pub target: Option<Entity>,
 }
 
 impl Agent {
@@ -167,8 +213,33 @@ impl Agent {
         Self {
             movement_speed,
             movement_state: MovementState::Standing,
-            movement_target: None,
+            current_action: None,
+            next_action: None,
+            target: None,
         }
+    }
+
+    pub fn move_to<T: Into<GlobalPosition>>(&mut self, position: T) {
+        self.next_action = Some(AgentAction::Movement(MovementTarget::Location(position.into())));
+    }
+
+    pub fn move_in_direction(&mut self, direction: Heading) {
+        self.next_action = Some(AgentAction::Movement(MovementTarget::Direction(direction)));
+    }
+
+    pub fn turn(&mut self, heading: Heading) {
+        if self.current_action.is_none() {
+            self.next_action = Some(AgentAction::Movement(MovementTarget::Turn(heading)));
+        }
+    }
+
+    pub fn is_in_action(&self) -> bool {
+        self.current_action.is_some()
+    }
+
+    pub fn finish_current_action(&mut self) {
+        self.current_action = None;
+        self.movement_state = MovementState::Standing;
     }
 }
 

@@ -1,8 +1,9 @@
 use crate::comp::player::Player;
-use crate::comp::sync::{MovementUpdate, Synchronize};
+use crate::comp::sync::{MovementUpdate, SkillUse, Synchronize};
 use crate::comp::visibility::Visibility;
 use crate::comp::{Client, GameEntity};
 use bevy_ecs::prelude::*;
+use silkroad_protocol::combat::{ActionType, PerformActionUpdate};
 use silkroad_protocol::world::{
     EntityUpdateState, MovementDestination, MovementSource, PlayerMovementResponse, UpdatedState,
 };
@@ -27,8 +28,22 @@ pub(crate) fn sync_changes_others(
             for state in synchronize.state.iter() {
                 update_state(client, entity, *state);
             }
+
+            if let Some(skill_use) = &synchronize.skill {
+                use_skill_by(client, entity, skill_use);
+            }
         }
     }
+}
+
+fn use_skill_by(client: &Client, entity: &GameEntity, skill: &SkillUse) {
+    client.send(ServerPacket::PerformActionUpdate(PerformActionUpdate::success(
+        skill.used.ref_id,
+        entity.ref_id,
+        0,
+        ActionType::None,
+        None,
+    )));
 }
 
 fn update_movement_for(client: &Client, entity: &GameEntity, movement: &MovementUpdate) {

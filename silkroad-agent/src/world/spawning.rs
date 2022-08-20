@@ -1,19 +1,19 @@
 use crate::comp::monster::{Monster, MonsterBundle, RandomStroll, SpawnedBy, Spawner};
 use crate::comp::npc::NpcBundle;
-use crate::comp::player::{Agent, MovementState};
+use crate::comp::player::Agent;
 use crate::comp::pos::{GlobalLocation, Heading, LocalPosition, Position};
 use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
+use crate::ext::Vector2Ext;
 use crate::game::player_activity::PlayerActivity;
-use crate::math::random_point_in_circle;
+use crate::world::CHARACTERS;
 use crate::GameSettings;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
 use id_pool::IdPool;
 use pk2::Pk2;
 use rand::{random, Rng};
-use silkroad_data::characterdata::CharacterMap;
 use silkroad_data::npc_pos::NpcPosition;
 use silkroad_data::type_id::{ObjectEntity, ObjectMonster, ObjectNonPlayer, ObjectType};
 use silkroad_navmesh::region::Region;
@@ -25,13 +25,14 @@ use tracing::trace;
 
 pub(crate) fn spawn_npcs(
     npc_spawns: Res<Vec<NpcPosition>>,
-    character_data: Res<CharacterMap>,
     settings: Res<GameSettings>,
     mut commands: Commands,
     mut id_pool: ResMut<IdPool>,
 ) {
     for spawn in npc_spawns.iter() {
-        let character_data = character_data
+        let character_data = CHARACTERS
+            .get()
+            .unwrap()
             .find_id(spawn.npc_id)
             .expect("Could not find character data for NPC to spawn.");
         let type_id =
@@ -182,7 +183,7 @@ fn deactivate_spawner(
 }
 
 fn generate_position(source_position: &Position, radius: f32) -> GlobalLocation {
-    let vec = random_point_in_circle(source_position.location.to_location().0, radius);
+    let vec = source_position.location.to_location().0.random_in_radius(radius);
     GlobalLocation(vec)
 }
 
@@ -223,11 +224,7 @@ fn spawn_monster(
         entity: GameEntity { ref_id, unique_id },
         visibility: Visibility::with_radius(100.0),
         spawner: SpawnedBy { spawner },
-        navigation: Agent {
-            movement_speed: 16.0,
-            movement_state: MovementState::Standing,
-            movement_target: None,
-        },
+        navigation: Agent::new(16.0),
         sync: Synchronize::default(),
         stroll: RandomStroll::new(spawn_center, 100.0, Duration::from_secs(2)),
     }

@@ -5,7 +5,6 @@ mod event;
 mod ext;
 mod game;
 mod login;
-mod math;
 mod net;
 mod population;
 mod server_plugin;

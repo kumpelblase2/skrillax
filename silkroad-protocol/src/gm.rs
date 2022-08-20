@@ -18,7 +18,9 @@ pub enum GmCommand {
     #[silkroad(value = 0x0F)]
     Invincible,
     #[silkroad(value = 0x07)]
-    MakeItem { ref_id: u32, amount: u8 },
+    MakeItem { ref_id: u32, upgrade: u8 },
+    #[silkroad(value = 0x0B)]
+    KillMonster { unique_id: u32, unknown: u8 },
 }
 
 #[derive(Serialize, ByteSize)]

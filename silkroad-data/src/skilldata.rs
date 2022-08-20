@@ -1,41 +1,14 @@
-use crate::num_ext::NumExt;
 use crate::type_id::{ObjectConsumable, ObjectEquippable, ObjectWeaponType};
-use crate::{list_files, parse_file, FileError, ParseError};
+use crate::{DataEntry, DataMap, FileError, ParseError};
 use bitflags::bitflags;
 use num_enum::TryFromPrimitive;
 use pk2::Pk2;
+use std::num::{NonZeroU16, NonZeroU32, NonZeroU8};
 use std::ops::Deref;
 use std::str::FromStr;
 
-pub struct SkillMap {
-    skills: Vec<RefSkillData>,
-}
-
-impl SkillMap {
-    pub fn from(pk2: &Pk2) -> Result<SkillMap, FileError> {
-        let mut file = pk2.open_file("/server_dep/silkroad/textdata/SkillData.txt")?;
-        let skill_lines = list_files(&mut file)?;
-        let all_skills: Vec<RefSkillData> = skill_lines
-            .into_iter()
-            .filter(|name| name.len() > 0)
-            .map(|filename| format!("/server_dep/silkroad/textdata/{}", filename))
-            .map(|filename| {
-                let mut file = pk2.open_file(&filename).unwrap();
-                parse_file(&mut file).unwrap()
-            })
-            .flatten()
-            .collect();
-
-        Ok(SkillMap::new(all_skills))
-    }
-
-    pub fn new(skills: Vec<RefSkillData>) -> Self {
-        Self { skills }
-    }
-
-    pub fn find_id(&self, id: u32) -> Option<&RefSkillData> {
-        self.skills.iter().find(|skill| skill.ref_id == id)
-    }
+pub fn load_skill_map(pk2: &Pk2) -> Result<DataMap<RefSkillData>, FileError> {
+    DataMap::from(pk2, "/server_dep/silkroad/textdata/SkillData.txt")
 }
 
 bitflags! {
@@ -104,20 +77,20 @@ pub struct RefSkillData {
     pub ref_id: u32,
     pub group: u32,
     pub id: String,
-    pub original: Option<u32>,
+    pub original: Option<NonZeroU32>,
     pub level: u8,
     pub type_: SkillType,
-    pub next_in_chain: Option<u32>,
+    pub next_in_chain: Option<NonZeroU32>,
     pub timings: SkillTimings,
     pub projectile_speed: u32,
-    pub buff_interference: u32,
     // Bitflags with created buffs that might interfere with another
+    pub buff_interference: u32,
     pub auto_attack: AutoAttack,
     pub range: u16,
     pub requires_target: bool,
     pub target: TargetOption,
-    pub mastery: Option<u16>,
-    pub mastery_level: Option<u8>,
+    pub mastery: Option<NonZeroU16>,
+    pub mastery_level: Option<NonZeroU8>,
     pub required_skills: Vec<LearnedSkill>,
     pub sp: u32,
     pub race: u8,
@@ -127,6 +100,16 @@ pub struct RefSkillData {
     pub usage_chance: u8,
     pub usage_type: u8,
     pub params: Vec<SkillParam>,
+}
+
+impl DataEntry for RefSkillData {
+    fn ref_id(&self) -> u32 {
+        self.ref_id
+    }
+
+    fn code(&self) -> &str {
+        &self.id
+    }
 }
 
 impl FromStr for RefSkillData {
@@ -220,10 +203,10 @@ impl FromStr for RefSkillData {
             ref_id: elements.get(1).ok_or(ParseError::MissingColumn(1))?.parse()?,
             group: elements.get(2).ok_or(ParseError::MissingColumn(2))?.parse()?,
             id: elements.get(3).ok_or(ParseError::MissingColumn(3))?.to_string(),
-            original: original.to_option(),
+            original: NonZeroU32::new(original),
             level: elements.get(7).ok_or(ParseError::MissingColumn(7))?.parse()?,
             type_: elements.get(8).ok_or(ParseError::MissingColumn(8))?.parse()?,
-            next_in_chain: next.to_option(),
+            next_in_chain: NonZeroU32::new(next),
             timings: SkillTimings {
                 preparation_time: elements.get(11).ok_or(ParseError::MissingColumn(11))?.parse()?,
                 cast_time: elements.get(12).ok_or(ParseError::MissingColumn(12))?.parse()?,
@@ -237,8 +220,8 @@ impl FromStr for RefSkillData {
             range: elements.get(21).ok_or(ParseError::MissingColumn(21))?.parse()?,
             requires_target: required_target != 0,
             target: target_options,
-            mastery: mastery.to_option(),
-            mastery_level: mastery_level.to_option(),
+            mastery: NonZeroU16::new(mastery),
+            mastery_level: NonZeroU8::new(mastery_level),
             required_skills: skills,
             sp: elements.get(46).ok_or(ParseError::MissingColumn(46))?.parse()?,
             race: elements.get(47).ok_or(ParseError::MissingColumn(47))?.parse()?,
@@ -465,7 +448,7 @@ pub enum SkillParam {
     Linked {
         level: u8,
         // unclear
-        distance: Option<u32>,
+        distance: Option<NonZeroU32>,
         max_links: u8,
         damage_share: bool,
     },
@@ -1050,7 +1033,7 @@ fn parse_param(params: &[u32]) -> Option<(&[u32], SkillParam)> {
                 remaining,
                 SkillParam::Linked {
                     level: param_data[0] as u8,
-                    distance: param_data[1].to_option(),
+                    distance: NonZeroU32::new(param_data[1]),
                     max_links: param_data[2] as u8,
                     damage_share: param_data[3] == 1,
                 },

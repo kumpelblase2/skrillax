@@ -1,4 +1,4 @@
-use crate::comp::drop::ItemDrop;
+use crate::comp::drop::{Item, ItemDrop};
 use crate::comp::monster::Monster;
 use crate::comp::npc::NPC;
 use crate::comp::player::Player;
@@ -14,7 +14,7 @@ use silkroad_protocol::inventory::CharacterSpawnItemData;
 use silkroad_protocol::world::{
     ActionState, ActiveScroll, AliveState, BodyState, DroppedItemSource, EntityState, EntityTypeSpawnData,
     GroupEntitySpawnData, GroupEntitySpawnEnd, GroupEntitySpawnStart, GroupSpawnDataContent, GroupSpawnType,
-    GuildInformation, InteractOptions, JobType, PlayerKillState, PvpCape,
+    GuildInformation, InteractOptions, ItemSpawnData, JobType, PlayerKillState, PvpCape,
 };
 use silkroad_protocol::ServerPacket;
 use std::collections::{BTreeMap, HashSet};
@@ -101,7 +101,7 @@ pub(crate) fn player_visibility_update(
                         .inventory
                         .items()
                         .map(|(_, item)| CharacterSpawnItemData {
-                            item_id: item.ref_id as u32,
+                            item_id: item.reference.ref_id,
                             upgrade_level: item.upgrade_level,
                         })
                         .collect();
@@ -178,26 +178,35 @@ pub(crate) fn player_visibility_update(
                         },
                     ));
                 } else if let Some(item) = item_opt {
-                    // spawns.push(GroupSpawnDataContent::spawn(
-                    //     entity.ref_id,
-                    //     EntityTypeSpawnData::Gold {
-                    //         amount: item.amount,
-                    //         unique_id: entity.unique_id,
-                    //         position: pos.as_protocol(),
-                    //         owner: None,
-                    //         rarity: 0,
-                    //     },
-                    // ));
-                    spawns.push(GroupSpawnDataContent::Spawn {
-                        object_id: entity.ref_id,
-                        data: EntityTypeSpawnData::Item {
+                    let spawn_data = match &item.item {
+                        Item::Gold(amount) => ItemSpawnData::Gold {
+                            amount: *amount,
                             unique_id: entity.unique_id,
                             position: pos.as_protocol(),
+                            owner: item.owner.map(|owner| owner.1.unique_id),
                             rarity: 0,
-                            owner: None,
+                        },
+                        Item::Consumable(_) => ItemSpawnData::Consumable {
+                            unique_id: entity.unique_id,
+                            position: pos.as_protocol(),
+                            owner: item.owner.map(|owner| owner.1.unique_id),
+                            rarity: 0,
                             source: DroppedItemSource::None,
                             source_id: 0,
                         },
+                        Item::Equipment { upgrade } => ItemSpawnData::Equipment {
+                            upgrade: *upgrade,
+                            unique_id: entity.unique_id,
+                            position: pos.as_protocol(),
+                            owner: item.owner.map(|owner| owner.1.unique_id),
+                            rarity: 0,
+                            source: DroppedItemSource::None,
+                            source_id: 0,
+                        },
+                    };
+                    spawns.push(GroupSpawnDataContent::Spawn {
+                        object_id: entity.ref_id,
+                        data: EntityTypeSpawnData::Item(spawn_data),
                     });
                 } else if let Some(_) = npc_opt {
                     spawns.push(GroupSpawnDataContent::spawn(

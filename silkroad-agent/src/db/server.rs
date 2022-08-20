@@ -1,4 +1,3 @@
-use axum::Server;
 use sqlx::PgPool;
 use std::net::SocketAddr;
 
