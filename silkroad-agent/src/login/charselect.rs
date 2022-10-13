@@ -160,7 +160,6 @@ pub(crate) fn charselect(
                                 character: crate::comp::player::Character::from_db_character(&character.character_data),
                                 inventory: Inventory::from(&character.items, 45),
                                 logout: None,
-                                target: None,
                             };
 
                             let data = &character.character_data;
@@ -174,11 +173,7 @@ pub(crate) fn charselect(
                                 rotation: Heading::from(data.rotation as u16),
                             };
 
-                            let agent = Agent {
-                                movement_speed: 50.0,
-                                movement_state: MovementState::Standing,
-                                movement_target: None,
-                            };
+                            let agent = Agent::new(50.0);
 
                             let game_entity = GameEntity {
                                 ref_id: data.character_type as u32,
@@ -415,7 +410,7 @@ fn send_spawn(client: &Client, entity: &GameEntity, player: &Player, position: &
         .map(|(slot, item)| InventoryItemData {
             slot: *slot,
             rent_data: RentInfo::Empty,
-            item_id: item.ref_id as u32,
+            item_id: item.reference.ref_id,
             content_data: InventoryItemContentData::Equipment {
                 plus_level: item.upgrade_level,
                 variance: item.variance.unwrap_or_default(),
