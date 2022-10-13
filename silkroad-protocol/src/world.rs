@@ -507,7 +507,7 @@ impl Position {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize)]
 pub struct Location {
     pub region: u16,
     pub pos_x: f32,
