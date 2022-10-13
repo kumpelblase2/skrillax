@@ -42,7 +42,10 @@ impl LoginQueue {
     }
 
     pub(crate) fn reserve_spot(&self, content: ServerUser) -> Result<(u32, Duration), ReservationError> {
-        let mut reservations = self.reservations.lock().unwrap();
+        let mut reservations = self
+            .reservations
+            .lock()
+            .expect("Reservation mutex should not be poisoned");
         Self::cleanup_registrations(&mut reservations);
 
         if reservations.iter().any(|reservation| reservation.content == content) {
@@ -80,7 +83,10 @@ impl LoginQueue {
     }
 
     pub(crate) fn hand_in_reservation(&self, token: u32) -> Result<(PlayingToken, ServerUser), ReservationError> {
-        let mut reservations = self.reservations.lock().unwrap();
+        let mut reservations = self
+            .reservations
+            .lock()
+            .expect("Reservation mutex should not be poisoned");
         Self::cleanup_registrations(&mut reservations);
 
         return match reservations.iter().position(|reservation| reservation.token == token) {

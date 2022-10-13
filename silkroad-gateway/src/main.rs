@@ -13,8 +13,7 @@ use crate::news::NewsCacheAsync;
 use crate::patch::Patcher;
 use crate::server::GatewayServer;
 use silkroad_protocol::login::Farm;
-use std::net::SocketAddr;
-use std::str::FromStr;
+use std::net::{Ipv4Addr, SocketAddr};
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error};
@@ -29,7 +28,11 @@ async fn main() {
 
     debug!(patch = ?configuration.patch, "patch information");
 
-    let db_pool = configuration.database.create_pool().await.unwrap();
+    let db_pool = configuration
+        .database
+        .create_pool()
+        .await
+        .expect("Should be able to access database");
     let news = NewsCacheAsync::new(
         db_pool.clone(),
         Duration::from_secs(configuration.news_cache_duration.unwrap_or(120)),
@@ -39,12 +42,12 @@ async fn main() {
     let farms = configuration
         .farms
         .clone()
-        .unwrap_or(vec![DEFAULT_FARM.to_string()])
+        .unwrap_or_else(|| vec![DEFAULT_FARM.to_string()])
         .into_iter()
         .enumerate()
         .map(|(i, name)| Farm {
             id: (i + 1) as u8,
-            name: name.clone(),
+            name,
         })
         .collect();
 
@@ -58,15 +61,16 @@ async fn main() {
         db_pool.clone(),
     );
 
-    let listen_addr = SocketAddr::from_str(&format!(
-        "{}:{}",
-        configuration
-            .listen_address
-            .as_ref()
-            .unwrap_or(&String::from("0.0.0.0")),
-        configuration.listen_port
-    ))
-    .expect("Should be a valid listen address.");
+    let listen_addr = match configuration.listen_address.as_ref() {
+        Some(addr) => {
+            let port = configuration.listen_port;
+            format!("{addr}:{port}")
+                .parse()
+                .expect("Listen address should be a valid ip address and port")
+        },
+        None => SocketAddr::new(Ipv4Addr::new(0, 0, 0, 0).into(), configuration.listen_port),
+    };
+
     let cancellation = CancellationToken::new();
     let server = GatewayServer::new(
         listen_addr,

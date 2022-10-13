@@ -127,7 +127,7 @@ impl Client {
                             published: news.date,
                         })
                         .collect();
-                    let _ = writer
+                    writer
                         .send(ServerPacket::GatewayNoticeResponse(GatewayNoticeResponse::new(news)))
                         .await?;
                 },
@@ -146,14 +146,14 @@ impl Client {
                             Self::try_reserve_spot(&mut writer, &agent_servers, id as u32, creds).await?
                         },
                         LoginResult::MissingPasscode => {
-                            let _ = writer
+                            writer
                                 .send(ServerPacket::PasscodeRequiredResponse(PasscodeRequiredResponse::new(
                                     PasscodeRequiredCode::PasscodeRequired,
                                 )))
                                 .await?;
                         },
                         LoginResult::InvalidCredentials => {
-                            let _ = writer
+                            writer
                                 .send(ServerPacket::LoginResponse(LoginResponse {
                                     result: silkroad_protocol::login::LoginResult::Error {
                                         error: SecurityError::InvalidCredentials {
@@ -173,7 +173,7 @@ impl Client {
                                     },
                                 },
                             });
-                            let _ = writer.send(ServerPacket::LoginResponse(response)).await?;
+                            writer.send(ServerPacket::LoginResponse(response)).await?;
                         },
                     }
                 },
@@ -186,9 +186,9 @@ impl Client {
                                 Err(_) => {
                                     // Maybe this should return a more fitting response code?
                                     // Or should the client just be ditched?
-                                    let _ = writer
+                                    writer
                                         .send(ServerPacket::PasscodeResponse(PasscodeResponse::new(2, 1)))
-                                        .await;
+                                        .await?;
                                     continue;
                                 },
                             };
@@ -234,7 +234,7 @@ impl Client {
                     let farms = agent_servers.farms().clone();
 
                     let response = ServerPacket::ShardListResponse(ShardListResponse { farms, shards });
-                    let _ = writer.send(response).await?;
+                    writer.send(response).await?;
                 },
                 ClientPacket::PingServerRequest(_) => {
                     let ping_response = PingServerResponse {
@@ -245,7 +245,7 @@ impl Client {
                             unknown_2: 0xbd,
                         }],
                     };
-                    let _ = writer.send(ServerPacket::PingServerResponse(ping_response)).await?;
+                    writer.send(ServerPacket::PingServerResponse(ping_response)).await?;
                 },
                 _ => {},
             }
@@ -263,7 +263,7 @@ impl Client {
         let server = match agent_servers.server_details(last_credentials.shard).await {
             Some(addr) => addr,
             None => {
-                let _ = writer
+                writer
                     .send(ServerPacket::LoginResponse(LoginResponse {
                         result: silkroad_protocol::login::LoginResult::Error {
                             error: SecurityError::Inspection,
@@ -279,42 +279,51 @@ impl Client {
             .await;
 
         match result {
-            None => {
-                let _ = writer
+            Err(e) => {
+                debug!(client = ?writer.id(), error = %e, "Error when reserving a spot");
+                writer
                     .send(ServerPacket::LoginResponse(LoginResponse {
                         result: silkroad_protocol::login::LoginResult::Error {
                             error: SecurityError::Inspection,
                         },
                     }))
-                    .await?;
+                    .await?
             },
-            Some(result) => {
-                let _ = match result {
-                    ReserveResponse::Success { token, .. } => {
-                        let ip = server.ip();
-                        let port = server.port();
-                        debug!("Got a spot at {}:{}: {}", ip, port, token);
-                        writer
-                            .send(ServerPacket::LoginResponse(LoginResponse {
-                                result: silkroad_protocol::login::LoginResult::Success {
-                                    session_id: token,
-                                    agent_ip: ip.to_string(),
-                                    agent_port: port,
-                                    unknown: 1,
-                                },
-                            }))
-                            .await?
-                    },
-                    _ => {
-                        writer
-                            .send(ServerPacket::LoginResponse(LoginResponse {
-                                result: silkroad_protocol::login::LoginResult::Error {
-                                    error: SecurityError::ServerFull,
-                                },
-                            }))
-                            .await?
-                    },
-                };
+            Ok(result) => match result {
+                ReserveResponse::Success { token, .. } => {
+                    let ip = server.ip();
+                    let port = server.port();
+                    debug!(client = ?writer.id(), "Got a spot at {ip}:{port}: {token}");
+                    writer
+                        .send(ServerPacket::LoginResponse(LoginResponse {
+                            result: silkroad_protocol::login::LoginResult::Success {
+                                session_id: token,
+                                agent_ip: ip.to_string(),
+                                agent_port: port,
+                                unknown: 1,
+                            },
+                        }))
+                        .await?
+                },
+                ReserveResponse::NotFound => {
+                    writer
+                        .send(ServerPacket::LoginResponse(LoginResponse {
+                            result: silkroad_protocol::login::LoginResult::Error {
+                                error: SecurityError::Inspection,
+                            },
+                        }))
+                        .await?
+                },
+                ReserveResponse::Error(message) => {
+                    debug!(client = ?writer.id(), "Could not reserve spot: {message}");
+                    writer
+                        .send(ServerPacket::LoginResponse(LoginResponse {
+                            result: silkroad_protocol::login::LoginResult::Error {
+                                error: SecurityError::ServerFull,
+                            },
+                        }))
+                        .await?
+                },
             },
         }
         Ok(())

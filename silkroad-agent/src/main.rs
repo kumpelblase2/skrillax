@@ -51,13 +51,15 @@ fn main() {
         .worker_threads(4)
         .thread_name("async-worker")
         .build()
-        .unwrap();
+        .expect("Should be able to create tokio runtime");
     let runtime = Arc::new(runtime);
 
     let capacity_manager = Arc::new(CapacityController::new(configuration.max_player_count));
     let queue = LoginQueue::new(capacity_manager.clone(), 30);
 
-    let db_pool = runtime.block_on(configuration.database.create_pool()).unwrap();
+    let db_pool = runtime
+        .block_on(configuration.database.create_pool())
+        .expect("Should be able to create db pool");
 
     let token: String = thread_rng()
         .sample_iter(&Alphanumeric)
@@ -93,7 +95,7 @@ fn main() {
         .unwrap_or(DEFAULT_LISTEN_ADDRESS);
     let listen_addr = format!("{}:{}", listen_address, configuration.listen_port)
         .parse()
-        .unwrap();
+        .expect("Just created address should be in a valid format");
     let network = SilkroadServer::new(runtime.clone(), listen_addr).unwrap();
 
     info!("Listening for clients");

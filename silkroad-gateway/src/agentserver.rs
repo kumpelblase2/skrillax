@@ -8,7 +8,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 
 #[derive(Copy, Clone)]
 pub(crate) enum ServerRegion {
@@ -32,6 +32,7 @@ where
 }
 
 impl From<ServerRegion> for char {
+    #[allow(clippy::let_and_return)]
     fn from(region: ServerRegion) -> Self {
         let ch = match region {
             ServerRegion::US => 0x32u8,
@@ -121,10 +122,16 @@ pub(crate) struct AgentServerManager {
 }
 
 async fn fetch_servers(pool: PgPool) -> Vec<AgentServer> {
-    let servers = sqlx::query("SELECT id, name, region, address, port, rpc_port, token FROM servers")
+    let servers = match sqlx::query("SELECT id, name, region, address, port, rpc_port, token FROM servers")
         .fetch_all(&pool)
         .await
-        .unwrap();
+    {
+        Ok(servers) => servers,
+        Err(ref e) => {
+            error!(error = %e, "Could not load servers from database.");
+            Vec::default()
+        },
+    };
     servers
         .into_iter()
         .map(|row| {
@@ -136,7 +143,9 @@ async fn fetch_servers(pool: PgPool) -> Vec<AgentServer> {
             let rpc_port: i16 = row.get(5);
             let token: String = row.get(6);
 
-            let ip = address.parse().unwrap();
+            let ip = address
+                .parse()
+                .expect("Address in database should be a valid ip address");
             AgentServer::new(
                 id as u16,
                 name,
@@ -158,9 +167,8 @@ impl AgentServerManager {
             loop {
                 let mut servers = fetch_servers(db.clone()).await;
                 for server in servers.iter_mut() {
-                    let address = format!("http://{}/status", server.rpc_address);
-                    let status = match reqwest::get(&address).await {
-                        Ok(resp) => resp.json::<ServerStatusReport>().await.unwrap(),
+                    let status = match Self::request_server_status(server).await {
+                        Ok(resp) => resp,
                         Err(e) if e.is_request() || e.is_timeout() || e.is_connect() => {
                             debug!(server = ?server.name, error = %e, "Agent server was not accessible.");
                             ServerStatusReport {
@@ -187,6 +195,12 @@ impl AgentServerManager {
         AgentServerManager { servers, farms }
     }
 
+    async fn request_server_status(server: &AgentServer) -> Result<ServerStatusReport, reqwest::Error> {
+        let address = format!("http://{}/status", server.rpc_address);
+        let response = reqwest::get(&address).await?;
+        response.json::<ServerStatusReport>().await
+    }
+
     pub(crate) async fn servers(&self) -> Vec<AgentServer> {
         let servers = self.servers.read().await;
         servers.clone()
@@ -200,13 +214,21 @@ impl AgentServerManager {
             .map(|server| server.address)
     }
 
-    pub(crate) async fn reserve(&self, user_id: u32, username: &str, server_id: u16) -> Option<ReserveResponse> {
+    pub(crate) async fn reserve(
+        &self,
+        user_id: u32,
+        username: &str,
+        server_id: u16,
+    ) -> Result<ReserveResponse, reqwest::Error> {
         let servers = self.servers.read().await;
-        let server = servers.iter().find(|server| server.id == server_id)?;
+        let server = match servers.iter().find(|server| server.id == server_id) {
+            Some(s) => s,
+            _ => return Ok(ReserveResponse::NotFound),
+        };
         let token = server.token.clone();
         let address = server.rpc_address;
         drop(servers);
-        return match Client::new()
+        let request = Client::new()
             .post(&format!("http://{}/request", address))
             .header("TOKEN", token)
             .json(&ReserveRequest {
@@ -214,11 +236,8 @@ impl AgentServerManager {
                 username: String::from(username),
             })
             .send()
-            .await
-        {
-            Ok(response) => Some(response.json().await.unwrap()),
-            _ => None,
-        };
+            .await?;
+        request.json().await
     }
 
     pub(crate) fn farms(&self) -> &Vec<Farm> {

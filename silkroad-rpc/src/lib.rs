@@ -60,5 +60,6 @@ pub struct ReserveRequest {
 #[derive(Deserialize, Serialize)]
 pub enum ReserveResponse {
     Success { token: u32, alive: u64 },
+    NotFound,
     Error(String),
 }
