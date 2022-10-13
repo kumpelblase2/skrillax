@@ -147,6 +147,10 @@ impl StreamWriter {
 
         Ok(())
     }
+
+    pub fn id(&self) -> &StreamId {
+        &self.id
+    }
 }
 
 pub struct Stream {
