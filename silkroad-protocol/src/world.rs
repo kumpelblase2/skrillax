@@ -1093,24 +1093,21 @@ impl FriendListInfo {
 }
 
 #[derive(Clone, Serialize, ByteSize)]
+#[silkroad(size = 2)]
 pub enum GameNotification {
-    #[silkroad(value = 0x05)]
-    UniqueSpawned { unknown: u8, ref_id: u32 },
-    #[silkroad(value = 0x06)]
-    UniqueKilled { unknown: u8, ref_id: u32, player: String },
+    #[silkroad(value = 0xc05)]
+    UniqueSpawned { ref_id: u32 },
+    #[silkroad(value = 0xc06)]
+    UniqueKilled { ref_id: u32, player: String },
 }
 
 impl GameNotification {
     pub fn uniquespawned(ref_id: u32) -> Self {
-        GameNotification::UniqueSpawned { unknown: 0x0C, ref_id }
+        GameNotification::UniqueSpawned { ref_id }
     }
 
     pub fn uniquekilled(ref_id: u32, killer: String) -> Self {
-        GameNotification::UniqueKilled {
-            unknown: 0x0C,
-            ref_id,
-            player: killer,
-        }
+        GameNotification::UniqueKilled { ref_id, player: killer }
     }
 }
 
