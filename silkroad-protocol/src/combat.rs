@@ -22,6 +22,8 @@ impl ActionTarget {
 pub enum DoActionType {
     #[silkroad(value = 1)]
     Attack { target: ActionTarget },
+    #[silkroad(value = 2)]
+    PickupItem { target: ActionTarget },
     #[silkroad(value = 4)]
     UseSkill { ref_id: u32, target: ActionTarget },
     #[silkroad(value = 5)]
