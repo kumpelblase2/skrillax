@@ -73,13 +73,11 @@ pub(crate) struct GameServerConfig {
 
 impl GameServerConfig {
     pub(crate) fn load() -> Result<Self, ConfigError> {
-        let mut config = ::config::Config::new();
-        config
-            .merge(config::File::with_name("configs/agent_server"))
-            .unwrap()
-            .merge(config::Environment::with_prefix("SKRILLAX_AGENT"))
-            .unwrap();
-        config.try_into()
+        config::Config::builder()
+            .add_source(config::File::with_name("configs/agent_server"))
+            .add_source(config::Environment::with_prefix("SKRILLAX_AGENT"))
+            .build()
+            .and_then(|c| c.try_deserialize())
     }
 }
 
@@ -87,4 +85,4 @@ pub(crate) fn get_config() -> &'static GameServerConfig {
     &CONFIG
 }
 
-static CONFIG: Lazy<GameServerConfig> = Lazy::new(|| GameServerConfig::load().expect("Could not load config."));
+static CONFIG: Lazy<GameServerConfig> = Lazy::new(|| GameServerConfig::load().expect("Should be able to load config"));

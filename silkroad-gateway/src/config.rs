@@ -1,6 +1,6 @@
 use config::ConfigError;
-use lazy_static::lazy_static;
 use log::LevelFilter;
+use once_cell::sync::Lazy;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{ConnectOptions, PgPool};
@@ -62,20 +62,16 @@ pub(crate) struct GatewayServerConfig {
 
 impl GatewayServerConfig {
     pub(crate) fn load() -> Result<Self, ConfigError> {
-        let mut config = config::Config::new();
-        config
-            .merge(config::File::with_name("configs/gateway_server"))
-            .expect("Newly instantiated config should not be frozen.")
-            .merge(config::Environment::with_prefix("SKRILLAX_GATEWAY"))
-            .expect("Just merged config should not be frozen.");
-        config.try_into()
+        config::Config::builder()
+            .add_source(config::File::with_name("configs/gateway_server"))
+            .add_source(config::Environment::with_prefix("SKRILLAX_GATEWAY"))
+            .build()
+            .and_then(|c| c.try_deserialize())
     }
 }
 
+static CONFIG: Lazy<GatewayServerConfig> = Lazy::new(|| GatewayServerConfig::load().expect("Could not load config."));
+
 pub(crate) fn get_config() -> &'static GatewayServerConfig {
     &CONFIG
-}
-
-lazy_static! {
-    static ref CONFIG: GatewayServerConfig = GatewayServerConfig::load().expect("Could not load config.");
 }
