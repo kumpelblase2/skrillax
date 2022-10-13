@@ -7,11 +7,13 @@ edition = "2021"
 
 [dependencies]
 silkroad-security = { path = "../silkroad-security" }
+silkroad-network = { path = "../silkroad-network" }
+silkroad-protocol = { path = "../silkroad-protocol" }
 pcap-file = "1.1.1"
 pktparse = "0.7.1"
-byteorder = "1.4.3"
-bytes = "1.1.0"
+byteorder = { workspace = true }
+bytes = { workspace = true }
 clap = "3.2.8"
 env_logger = "0.9"
-log = "0.4"
+log = { workspace = true }
 num_cpus = "1"

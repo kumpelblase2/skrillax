@@ -7,9 +7,9 @@ edition = "2021"
 
 [dependencies]
 cgmath = "0.18.0"
-byteorder = "1.4"
-bytes = "1.0"
-thiserror = "1"
+byteorder = { workspace = true }
+bytes = { workspace = true }
+thiserror = { workspace = true }
 encoding_rs = "0.8"
 sr_formats = { git = "https://github.com/Veykril/sr_formats" }
 nom = "7"

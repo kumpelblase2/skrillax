@@ -7,9 +7,9 @@ edition = "2021"
 
 [dependencies]
 blowfish-compat = { path = "../blowfish-compat.rs" }
-bytes = "*"
-rand = "*"
-tracing = "*"
-thiserror = "*"
-byteorder = "*"
-once_cell = "*"
+bytes = { workspace = true }
+rand = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+byteorder = { workspace = true }
+once_cell = { workspace = true }

@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-byteorder = "1.4.3"
-chrono = "0.4.19"
-bytes = "1.1.0"
-thiserror = "1.0.30"
+byteorder = { workspace = true }
+chrono = { workspace = true }
+bytes = { workspace = true }
+thiserror = { workspace = true }
 silkroad-serde = { path = "../silkroad-serde" }
 silkroad-serde-derive = { path = "../silkroad-serde-derive" }

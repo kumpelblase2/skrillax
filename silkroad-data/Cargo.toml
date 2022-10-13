@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 pk2 = "0.1.0"
-thiserror = "1.0.31"
+thiserror = { workspace = true }
 encoding_rs = "0.8"
 num_enum = "0.5.7"
 num_enum_derive = "0.5.7"
