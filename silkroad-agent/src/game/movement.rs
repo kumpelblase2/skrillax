@@ -11,7 +11,6 @@ use cgmath::num_traits::Pow;
 use cgmath::{Deg, InnerSpace, MetricSpace, Quaternion, Rotation3, Vector2, Vector3};
 use pk2::Pk2;
 use rand::random;
-use silkroad_data::skilldata::RefSkillData;
 use silkroad_navmesh::NavmeshLoader;
 use silkroad_protocol::world::{PlayerMovementRequest, Rotation};
 use silkroad_protocol::ClientPacket;
@@ -30,14 +29,11 @@ pub(crate) fn movement_input(mut query: Query<(&Client, &mut MovementInput, &mut
                         let local_position = position.location.to_local();
                         let target_pos = LocalPosition(region.into(), Vector3::new(x as f32, y as f32, z as f32));
                         debug!(id = ?client.0.id(), "Movement: {} -> {}", local_position, target_pos);
-                        sync.movement = Some(MovementUpdate::StartMove(local_position, target_pos.clone()));
                         agent.move_to(target_pos);
                     },
                     silkroad_protocol::world::MovementTarget::Direction { unknown, angle } => {
                         let direction = Heading::from(angle);
                         debug!(id = ?client.0.id(), "Movement: {} / {}({})", unknown, direction.0, angle);
-                        let local_position = position.location.to_local();
-                        sync.movement = Some(MovementUpdate::StartMoveTowards(local_position, direction.clone()));
                         agent.move_in_direction(direction);
                     },
                 },
