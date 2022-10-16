@@ -2,6 +2,7 @@ use crate::inventory::{CharacterSpawnItemData, InventoryAvatarItemData, Inventor
 use chrono::{DateTime, Utc};
 use silkroad_serde::*;
 use silkroad_serde_derive::*;
+use std::fmt::{Display, Formatter};
 
 #[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, Deserialize, ByteSize)]
 pub enum PvpCape {
@@ -513,6 +514,12 @@ pub struct Location {
     pub pos_x: f32,
     pub pos_y: f32,
     pub pos_z: f32,
+}
+
+impl Display for Location {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} @ ({}|{}|{})", self.region, self.pos_x, self.pos_y, self.pos_z)
+    }
 }
 
 #[derive(Clone, Serialize, ByteSize)]
@@ -1275,4 +1282,14 @@ impl EntityBarsUpdate {
             updates: EntityBarUpdates::HP { amount: hp },
         }
     }
+}
+
+#[derive(Serialize, ByteSize)]
+pub enum CharacterPointsUpdate {
+    #[silkroad(value = 1)]
+    Gold(u64, u8),
+    #[silkroad(value = 2)]
+    SP(u32),
+    #[silkroad(value = 4)]
+    Berserk(u8),
 }

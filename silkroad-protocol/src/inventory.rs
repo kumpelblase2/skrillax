@@ -3,10 +3,12 @@ use silkroad_serde_derive::*;
 
 #[derive(Clone, Deserialize, ByteSize)]
 pub enum InventoryOperationRequest {
+    #[silkroad(value = 0x00)]
+    Move { source: u8, target: u8, amount: u16 },
     #[silkroad(value = 0x0A)]
     DropGold { amount: u64 },
     #[silkroad(value = 0x06)]
-    PickupItem,
+    PickupItem { unique_id: u32 },
 }
 
 impl InventoryOperationRequest {
@@ -114,13 +116,6 @@ impl InventoryOperationResponseData {
 
     pub fn pickupitem(slot: u8, item: ItemPickupData) -> Self {
         InventoryOperationResponseData::PickupItem { slot, item }
-    }
-
-    pub fn pickup_gold(amount: u32) -> Self {
-        InventoryOperationResponseData::PickupItem {
-            slot: 0xFE,
-            item: ItemPickupData::Gold { amount },
-        }
     }
 
     pub fn move_item(source: u8, dest: u8, amount: u16) -> Self {

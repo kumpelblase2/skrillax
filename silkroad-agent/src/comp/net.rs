@@ -13,6 +13,11 @@ pub struct MovementInput {
 }
 
 #[derive(Component, Default)]
+pub struct InventoryInput {
+    pub inputs: Vec<ClientPacket>,
+}
+
+#[derive(Component, Default)]
 pub struct ChatInput {
     pub inputs: Vec<ClientPacket>,
 }
@@ -32,4 +37,5 @@ pub struct InputBundle {
     movement: MovementInput,
     chat: ChatInput,
     world: WorldInput,
+    inventory: InventoryInput,
 }

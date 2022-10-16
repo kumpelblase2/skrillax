@@ -360,15 +360,22 @@ impl CharacterStatsMessage {
 
 #[derive(Clone, Serialize, ByteSize)]
 pub struct UnknownPacket {
-    pub unknown_2: u32,
     pub unknown_1: u8,
+    #[silkroad(size = 4)]
+    pub unknown_2: Vec<UnknownPacketInner>,
+}
+
+#[derive(Clone, Serialize, ByteSize)]
+pub struct UnknownPacketInner {
+    unknown: u32,
+    unknown_2: Option<u32>,
 }
 
 impl UnknownPacket {
     pub fn new() -> Self {
         UnknownPacket {
-            unknown_2: 4,
-            unknown_1: 0,
+            unknown_1: 4,
+            unknown_2: Vec::new(),
         }
     }
 }
@@ -390,5 +397,8 @@ impl UnknownPacket2 {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Deserialize)]
 pub struct FinishLoading;
+
+#[derive(Deserialize)]
+pub struct UpdateGameGuide(u64);

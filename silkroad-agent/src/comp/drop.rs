@@ -2,6 +2,7 @@ use crate::comp::pos::Position;
 use crate::comp::{Despawn, EntityReference, GameEntity};
 use bevy_ecs::prelude::*;
 
+#[derive(Copy, Clone)]
 pub enum Item {
     Gold(u32),
     Consumable(u32),

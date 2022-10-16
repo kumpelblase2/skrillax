@@ -2,6 +2,7 @@ use crate::event::{LoadingFinishedEvent, PlayerLevelUp, UniqueKilledEvent};
 use crate::game::chat::ChatPlugin;
 use crate::game::drop::tick_drop;
 use crate::game::entity_sync::{clean_sync, sync_changes_others, update_client};
+use crate::game::inventory::handle_inventory_input;
 use crate::game::join::load_finished;
 use crate::game::levelup::notify_levelup;
 use crate::game::movement::{movement, movement_input, movement_monster, update_attack_location};
@@ -15,6 +16,8 @@ mod chat;
 mod drop;
 mod entity_sync;
 mod gm;
+mod gold;
+mod inventory;
 mod join;
 mod levelup;
 mod movement;
@@ -35,6 +38,7 @@ impl Plugin for GamePlugin {
             .add_system_to_stage(CoreStage::PreUpdate, update_player_activity)
             .add_system(handle_world_input)
             .add_system(movement_input)
+            .add_system(handle_inventory_input)
             .add_system(visibility_update)
             .add_system(movement)
             .add_system(update_attack_location)

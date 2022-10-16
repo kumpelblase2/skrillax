@@ -1,6 +1,7 @@
 use crate::Location;
 use silkroad_serde::*;
 use silkroad_serde_derive::*;
+use std::fmt::{Display, Formatter};
 
 #[derive(Deserialize)]
 pub enum ActionTarget {
@@ -10,6 +11,16 @@ pub enum ActionTarget {
     Entity(u32),
     #[silkroad(value = 2)]
     Area(Location),
+}
+
+impl Display for ActionTarget {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ActionTarget::None => write!(f, "None"),
+            ActionTarget::Entity(id) => write!(f, "Entity({id})"),
+            ActionTarget::Area(loc) => write!(f, "Location({loc})"),
+        }
+    }
 }
 
 impl ActionTarget {
@@ -43,7 +54,7 @@ pub enum PerformActionResponse {
     #[silkroad(value = 1)]
     Do(u8),
     #[silkroad(value = 2)]
-    Stop(u8),
+    Stop(PerformActionError),
 }
 
 #[derive(Serialize, ByteSize)]
@@ -94,16 +105,20 @@ pub enum SkillPartDamage {
 
 #[derive(Serialize, ByteSize)]
 pub enum PerformActionError {
-    #[silkroad(value = 0x06)]
-    InvalidTarget,
+    #[silkroad(value = 0x00)]
+    Completed,
+    #[silkroad(value = 0x01)]
+    Obstacle,
     #[silkroad(value = 0x05)]
     Cooldown,
-    #[silkroad(value = 0x1)]
-    Obstacle,
-    #[silkroad(value = 0x0E)]
-    InsufficientAmmunition,
+    #[silkroad(value = 0x06)]
+    InvalidTarget,
     #[silkroad(value = 0x0C)]
     BuffsIntersect,
+    #[silkroad(value = 0x0D)]
+    InvalidWeapon,
+    #[silkroad(value = 0x0E)]
+    InsufficientAmmunition,
 }
 
 #[derive(Serialize, ByteSize)]

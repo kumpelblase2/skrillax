@@ -1,10 +1,12 @@
+use crate::comp::drop::ItemDrop;
 use crate::comp::monster::Monster;
 use crate::comp::net::WorldInput;
 use crate::comp::npc::NPC;
 use crate::comp::player::{Agent, AgentAction, Item, Player};
 use crate::comp::pos::{GlobalPosition, Position};
-use crate::comp::{Client, GameEntity, Health};
+use crate::comp::{drop, Client, GameEntity, Health};
 use crate::event::ClientDisconnectedEvent;
+use crate::game::inventory::GOLD_SLOT;
 use crate::world::{EntityLookup, CHARACTERS, SKILLS};
 use crate::GameSettings;
 use bevy_core::{Time, Timer};
@@ -15,14 +17,18 @@ use silkroad_data::skilldata::RefSkillData;
 use silkroad_data::type_id::{ObjectEquippable, ObjectItem, ObjectType, ObjectWeaponType};
 use silkroad_data::DataMap;
 use silkroad_protocol::auth::{LogoutFinished, LogoutResponse, LogoutResult};
-use silkroad_protocol::combat::{ActionTarget, DoActionType, PerformAction, PerformActionResponse};
+use silkroad_protocol::combat::{ActionTarget, DoActionType, PerformAction, PerformActionError, PerformActionResponse};
+use silkroad_protocol::inventory::InventoryOperationResponseData::AddedByServer;
+use silkroad_protocol::inventory::{InventoryOperationResult, ItemPickupData};
 use silkroad_protocol::world::{
-    TargetEntity, TargetEntityError, TargetEntityResponse, TargetEntityResult, UnTargetEntityResponse,
+    CharacterPointsUpdate, TargetEntity, TargetEntityError, TargetEntityResponse, TargetEntityResult,
+    UnTargetEntityResponse,
 };
 use silkroad_protocol::{ClientPacket, ServerPacket};
 use std::mem::take;
 use std::ops::Add;
 use std::time::Duration;
+use tracing::info;
 
 const PUNCH_SKILL_ID: u32 = 1;
 const MAX_TARGET_DISTANCE: f32 = 500. * 500.;
@@ -45,9 +51,11 @@ pub(crate) fn handle_world_input(
             Option<&Player>,
         )>,
         Query<(&mut Player, &mut Agent)>,
+        Query<(&GameEntity, &ItemDrop)>,
     )>,
     settings: Res<GameSettings>,
     lookup: Res<EntityLookup>,
+    mut cmd: Commands,
 ) {
     // This kinda works, but is quite horrible workaround.
     // The main problem is that in the case of a logout or a successful target, we need to modify the player.
@@ -86,22 +94,26 @@ pub(crate) fn handle_world_input(
                         },
                     };
 
+                    let distance = target.1.location.0.distance2(player_pos.location.0);
+                    if distance >= MAX_TARGET_DISTANCE {
+                        // Is this an adequate response?
+                        client.send(ServerPacket::TargetEntityResponse(TargetEntityResponse::new(
+                            TargetEntityResult::failure(TargetEntityError::InvalidTarget),
+                        )));
+                        continue;
+                    }
+
                     match target {
-                        (_, pos, Some(health), Some(_mob), _, _) => {
-                            let distance = pos.location.0.distance2(player_pos.location.0);
-                            if distance < MAX_TARGET_DISTANCE {
-                                client.send(ServerPacket::TargetEntityResponse(TargetEntityResponse::new(
-                                    TargetEntityResult::success_monster(unique_id, health.current_health),
-                                )));
-                            } else {
-                                // Is this an adequate response?
-                                client.send(ServerPacket::TargetEntityResponse(TargetEntityResponse::new(
-                                    TargetEntityResult::failure(TargetEntityError::InvalidTarget),
-                                )));
-                                continue;
-                            }
+                        (_, _, Some(health), Some(_mob), _, _) => {
+                            client.send(ServerPacket::TargetEntityResponse(TargetEntityResponse::new(
+                                TargetEntityResult::success_monster(unique_id, health.current_health),
+                            )));
                         },
-                        (_entity, _, _, _, Some(npc), _) => {},
+                        (_, _, _, _, Some(npc), _) => {
+                            client.send(ServerPacket::TargetEntityResponse(TargetEntityResponse::new(
+                                TargetEntityResult::success_npc(unique_id),
+                            )));
+                        },
                         (_entity, _, _, _, _, Some(player)) => {},
                         _ => {
                             client.send(ServerPacket::TargetEntityResponse(TargetEntityResponse::new(
@@ -185,6 +197,66 @@ pub(crate) fn handle_world_input(
                         let mut player_lookup = target_lookup.p1();
                         let (_, mut agent) = player_lookup.get_mut(entity).unwrap();
                         agent.next_action = Some(next);
+                    },
+                    PerformAction::Do(DoActionType::PickupItem { target }) => {
+                        info!("Picking up item with target: {}", target);
+                        // TODO: check if in range
+                        let item_entity = match target {
+                            ActionTarget::Entity(id) => {
+                                if let Some(entity) = lookup.get_entity_for_id(id) {
+                                    entity
+                                } else {
+                                    client.send(ServerPacket::PerformActionResponse(PerformActionResponse::Stop(
+                                        PerformActionError::InvalidTarget,
+                                    )));
+                                    continue;
+                                }
+                            },
+                            _ => {
+                                client.send(ServerPacket::PerformActionResponse(PerformActionResponse::Stop(
+                                    PerformActionError::InvalidTarget,
+                                )));
+                                continue;
+                            },
+                        };
+                        let item = {
+                            let item_query = target_lookup.p2();
+                            let (_, item) = match item_query.get(item_entity) {
+                                Ok((entity, item)) => (entity, item),
+                                _ => {
+                                    client.send(ServerPacket::PerformActionResponse(PerformActionResponse::Stop(
+                                        PerformActionError::InvalidTarget,
+                                    )));
+                                    continue;
+                                },
+                            };
+                            item.item
+                        };
+
+                        match item {
+                            drop::Item::Gold(amount) => {
+                                let mut player_lookup = target_lookup.p1();
+                                let (mut player, _) = player_lookup.get_mut(entity).unwrap();
+                                player.character.gold += amount as u64;
+                                client.send(ServerPacket::InventoryOperationResult(
+                                    InventoryOperationResult::Success(AddedByServer {
+                                        slot: GOLD_SLOT,
+                                        unknown: 0,
+                                        data: ItemPickupData::Gold { amount },
+                                    }),
+                                ));
+                                client.send(ServerPacket::CharacterPointsUpdate(CharacterPointsUpdate::Gold(
+                                    player.character.gold,
+                                    0,
+                                )));
+                                client.send(ServerPacket::PerformActionResponse(PerformActionResponse::Stop(
+                                    PerformActionError::Completed,
+                                )));
+                                cmd.entity(item_entity).despawn();
+                            },
+                            drop::Item::Consumable(_) => {},
+                            drop::Item::Equipment { .. } => {},
+                        }
                     },
                     _ => {},
                 },

@@ -75,7 +75,8 @@ client_packets! {
     0x7005 => LogoutRequest,
     0x7010 => GmCommand,
     0x755D => OpenItemMall,
-    0x7074 => PerformAction
+    0x7074 => PerformAction,
+    0x70EA => UpdateGameGuide
 }
 
 macro_rules! server_packets {
@@ -152,7 +153,8 @@ server_packets! {
     0xB010 => GmResponse,
     0xB55D => OpenItemMallResponse,
     0xB074 => PerformActionResponse,
-    0xB070 => PerformActionUpdate
+    0xB070 => PerformActionUpdate,
+    0x304E => CharacterPointsUpdate
 }
 
 impl ServerPacket {

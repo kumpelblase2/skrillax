@@ -1,4 +1,4 @@
-use crate::comp::net::{CharselectInput, ChatInput, GmInput, MovementInput, WorldInput};
+use crate::comp::net::{CharselectInput, ChatInput, GmInput, InventoryInput, MovementInput, WorldInput};
 use crate::comp::player::Player;
 use crate::comp::{Client, LastAction, Login};
 use crate::db::character::update_last_played_of;
@@ -8,7 +8,8 @@ use bevy_core::Time;
 use bevy_ecs::prelude::*;
 use silkroad_network::server::SilkroadServer;
 use silkroad_network::stream::StreamError;
-use silkroad_protocol::ClientPacket;
+use silkroad_protocol::inventory::{OpenItemMallResponse, OpenItemMallResult};
+use silkroad_protocol::{ClientPacket, ServerPacket};
 use sqlx::PgPool;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
@@ -46,6 +47,7 @@ pub(crate) fn receive(
             &mut LastAction,
             Option<&mut CharselectInput>,
             Option<&mut MovementInput>,
+            Option<&mut InventoryInput>,
             Option<&mut ChatInput>,
             Option<&mut WorldInput>,
             Option<&mut GmInput>,
@@ -59,6 +61,7 @@ pub(crate) fn receive(
         mut last_action,
         mut charselect_opt,
         mut movement_opt,
+        mut inventory_opt,
         mut chat_opt,
         mut world_opt,
         mut gm_opt,
@@ -103,11 +106,23 @@ pub(crate) fn receive(
                                 input.inputs.push(command);
                             }
                         },
+                        ClientPacket::OpenItemMall(_) => {
+                            client.send(ServerPacket::OpenItemMallResponse(OpenItemMallResponse(
+                                OpenItemMallResult::Success {
+                                    jid: 123,
+                                    token: "123".to_string(),
+                                },
+                            )));
+                        },
+                        packet @ ClientPacket::InventoryOperation(_) => {
+                            if let Some(input) = inventory_opt.as_mut() {
+                                input.inputs.push(packet);
+                            }
+                        },
                         ClientPacket::ConsignmentList(_) => {},
                         ClientPacket::AddFriend(_) => {},
                         ClientPacket::CreateFriendGroup(_) => {},
                         ClientPacket::DeleteFriend(_) => {},
-                        ClientPacket::InventoryOperation(_) => {},
                         _ => {},
                     }
                 },

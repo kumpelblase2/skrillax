@@ -1,4 +1,3 @@
-use cgmath::num_traits::real::Real;
 use cgmath::{Vector2, Vector3};
 use rand::random;
 use std::future::Future;
@@ -39,6 +38,7 @@ impl AsyncTaskCreate for Runtime {
 
 pub(crate) trait Vector2Ext<T> {
     fn random_in_radius(&self, radius: T) -> Self;
+    fn with_height(&self, height: T) -> Vector3<T>;
 }
 
 impl Vector2Ext<f32> for Vector2<f32> {
@@ -49,6 +49,10 @@ impl Vector2Ext<f32> for Vector2<f32> {
         let y = self.y + r * theta.sin();
         Vector2::new(x, y)
     }
+
+    fn with_height(&self, height: f32) -> Vector3<f32> {
+        Vector3::new(self.x, height, self.y)
+    }
 }
 
 impl Vector2Ext<f64> for Vector2<f64> {
@@ -58,5 +62,9 @@ impl Vector2Ext<f64> for Vector2<f64> {
         let x = self.x + r * theta.cos();
         let y = self.y + r * theta.sin();
         Vector2::new(x, y)
+    }
+
+    fn with_height(&self, height: f64) -> Vector3<f64> {
+        Vector3::new(self.x, height, self.y)
     }
 }

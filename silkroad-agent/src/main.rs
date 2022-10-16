@@ -44,7 +44,7 @@ fn main() {
         Some(addr) => SocketAddr::from_str(addr),
         None => format!("127.0.0.1:{}", configuration.listen_port).parse(),
     }
-    .unwrap();
+    .expect("External address should be 'ip:port'.");
 
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()

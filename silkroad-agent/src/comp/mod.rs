@@ -15,7 +15,7 @@ use bevy_core::Timer;
 use bevy_ecs::prelude::*;
 use silkroad_network::stream::Stream;
 use silkroad_protocol::ServerPacket;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use tokio::sync::oneshot::Receiver;
 
 #[derive(Component)]
@@ -76,3 +76,15 @@ pub struct EntityReference(pub Entity, pub(crate) GameEntity);
 
 #[derive(Clone, Component)]
 pub struct Despawn(pub Timer);
+
+impl Despawn {
+    pub fn despawn_after_seconds(seconds: u64) -> Despawn {
+        Despawn(Timer::from_seconds(seconds as f32, false))
+    }
+}
+
+impl From<Duration> for Despawn {
+    fn from(duration: Duration) -> Self {
+        Despawn(Timer::new(duration, false))
+    }
+}
