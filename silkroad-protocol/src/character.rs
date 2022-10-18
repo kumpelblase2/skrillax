@@ -402,3 +402,9 @@ pub struct FinishLoading;
 
 #[derive(Deserialize)]
 pub struct UpdateGameGuide(u64);
+
+#[derive(Serialize, ByteSize)]
+pub enum GameGuideResponse {
+    #[silkroad(value = 1)]
+    Success(u64),
+}

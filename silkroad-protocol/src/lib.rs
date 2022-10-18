@@ -154,7 +154,8 @@ server_packets! {
     0xB55D => OpenItemMallResponse,
     0xB074 => PerformActionResponse,
     0xB070 => PerformActionUpdate,
-    0x304E => CharacterPointsUpdate
+    0x304E => CharacterPointsUpdate,
+    0xB0EA => GameGuideResponse
 }
 
 impl ServerPacket {
