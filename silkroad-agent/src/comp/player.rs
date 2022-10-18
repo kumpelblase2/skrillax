@@ -22,6 +22,7 @@ pub(crate) struct Item {
     pub variance: Option<u64>,
     pub upgrade_level: u8,
     pub type_data: ItemTypeData,
+    pub amount: u16,
 }
 
 pub(crate) enum ItemTypeData {
@@ -34,6 +35,11 @@ pub(crate) enum ItemTypeData {
 pub(crate) struct Inventory {
     size: usize,
     items: HashMap<u8, Item>,
+}
+
+pub enum MoveError {
+    ItemDoesNotExist,
+    Impossible,
 }
 
 impl Inventory {
@@ -55,11 +61,22 @@ impl Inventory {
                     variance: item.variance.map(|v| v as u64),
                     upgrade_level: item.upgrade_level as u8,
                     type_data: ItemTypeData::Default,
+                    amount: item.amount as u16,
                 },
             );
         }
 
         Inventory { items: my_items, size }
+    }
+
+    pub fn get_item_at(&self, slot: u8) -> Option<&Item> {
+        self.items.get(&slot)
+    }
+
+    pub fn equipment_items(&self) -> impl Iterator<Item = (&u8, &Item)> {
+        self.items
+            .iter()
+            .filter(|(index, item)| Self::is_equipment_slot(**index))
     }
 
     pub fn items(&self) -> Iter<u8, Item> {
@@ -68,6 +85,46 @@ impl Inventory {
 
     pub fn weapon(&self) -> Option<&Item> {
         self.items.get(&WEAPON_SLOT)
+    }
+
+    pub(crate) fn move_item(&mut self, source: u8, target: u8, amount: u16) -> Result<u16, MoveError> {
+        if let Some(mut source_item) = self.items.remove(&source) {
+            if let Some(mut target_item) = self.items.remove(&target) {
+                if source_item.reference.ref_id == target_item.reference.ref_id
+                    && source_item.reference.max_stack_size > 1
+                {
+                    let available_on_target_stack = target_item.reference.max_stack_size - target_item.amount;
+                    if available_on_target_stack == 0 {
+                        return Ok(0);
+                    }
+
+                    if available_on_target_stack >= amount {
+                        target_item.amount += amount;
+                        self.items.insert(target, target_item);
+                    } else {
+                        target_item.amount += available_on_target_stack;
+                        source_item.amount -= available_on_target_stack;
+
+                        self.items.insert(source, source_item);
+                        self.items.insert(target, target_item);
+                        return Ok(available_on_target_stack);
+                    }
+                } else {
+                    self.items.insert(target, source_item);
+                    self.items.insert(source, target_item);
+                }
+            } else {
+                self.items.insert(target, source_item);
+            }
+        } else {
+            return Err(MoveError::ItemDoesNotExist);
+        }
+
+        Ok(amount)
+    }
+
+    pub fn is_equipment_slot(slot: u8) -> bool {
+        return slot <= 0xCu8;
     }
 }
 
@@ -87,7 +144,7 @@ pub enum SpawningState {
     Finished,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub(crate) enum Race {
     European,
     Chinese,
