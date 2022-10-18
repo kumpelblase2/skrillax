@@ -26,13 +26,15 @@ impl LoginProvider {
     }
 
     pub async fn try_login(&self, username: &str, password: &str) -> LoginResult {
-        let result: Option<LoginDbResult> =
-            sqlx::query_as("SELECT id, passcode FROM users WHERE username = $1 and password = $2")
-                .bind(username)
-                .bind(password)
-                .fetch_optional(&self.pool)
-                .await
-                .unwrap();
+        let result: Option<LoginDbResult> = sqlx::query_as!(
+            LoginDbResult,
+            "SELECT id, passcode FROM users WHERE username = $1 and password = $2",
+            username,
+            password
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .unwrap();
 
         match result {
             Some(result) => {
@@ -47,17 +49,18 @@ impl LoginProvider {
     }
 
     pub async fn try_login_passcode(&self, username: &str, password: &str, passcode: &str) -> LoginResult {
-        let result: Option<IdResult> =
-            sqlx::query_as("SELECT id FROM users WHERE username = $1 and password = $2 and passcode = $3")
-                .bind(username)
-                .bind(password)
-                .bind(passcode)
-                .fetch_optional(&self.pool)
-                .await
-                .unwrap();
+        let result = sqlx::query!(
+            "SELECT id FROM users WHERE username = $1 and password = $2 and passcode = $3",
+            username,
+            password,
+            passcode
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .unwrap();
 
         match result {
-            Some(IdResult(id)) => LoginResult::Success(id),
+            Some(r) => LoginResult::Success(r.id),
             None => LoginResult::InvalidCredentials,
         }
     }

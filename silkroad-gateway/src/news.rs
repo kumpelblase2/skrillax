@@ -41,9 +41,12 @@ impl NewsCacheAsync {
     }
 
     pub async fn load_available_news(pool: &PgPool) -> Vec<News> {
-        sqlx::query_as("SELECT title, body, date FROM news WHERE visible = true ORDER BY date ASC")
-            .fetch_all(pool)
-            .await
-            .unwrap()
+        sqlx::query_as!(
+            News,
+            "SELECT title, body, date FROM news WHERE visible = true ORDER BY date ASC"
+        )
+        .fetch_all(pool)
+        .await
+        .unwrap()
     }
 }

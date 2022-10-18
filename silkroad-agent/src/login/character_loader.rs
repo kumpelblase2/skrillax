@@ -31,15 +31,16 @@ pub(crate) async fn load_characters_sparse(pool: PgPool, user_id: i32, server_id
 }
 
 pub(crate) async fn check_name_available(pool: PgPool, name: String, server_id: u16) -> bool {
-    let result = sqlx::query("SELECT COUNT(*) FROM characters WHERE LOWER(charname) = LOWER($1) and server_id = $2")
-        .bind(name)
-        .bind(server_id as i16)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+    let result = sqlx::query!(
+        "SELECT COUNT(*) as \"count!\" FROM characters WHERE LOWER(charname) = LOWER($1) and server_id = $2",
+        name,
+        server_id as i16
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
 
-    let count: i64 = result.get(0);
-    count == 0
+    result.count == 0
 }
 
 pub(crate) async fn start_delete_character(
@@ -49,24 +50,27 @@ pub(crate) async fn start_delete_character(
     server_id: u16,
     deletion_duration: u32,
 ) -> bool {
-    let result =
-            sqlx::query("UPDATE characters SET deletion_end = CURRENT_TIMESTAMP + ($4 * INTERVAL '1 minute') WHERE user_id = $1 AND server_id = $2 AND charname = $3")
-                    .bind(user_id)
-                    .bind(server_id as i16)
-                    .bind(name)
-                    .bind(deletion_duration as i32)
-                    .execute(&pool)
-                    .await
-                    .unwrap();
+    let result = sqlx::query!(
+        "UPDATE characters SET deletion_end = CURRENT_TIMESTAMP + ($4 * INTERVAL '1 minute') WHERE user_id = $1 AND server_id = $2 AND charname = $3",
+        user_id,
+        server_id as i16,
+        name,
+        deletion_duration as i32
+    )
+            .execute(&pool)
+            .await
+            .unwrap();
     return result.rows_affected() == 1;
 }
 
 pub(crate) async fn restore_character(pool: PgPool, user_id: i32, name: String, server_id: u16) -> bool {
     let result =
-            sqlx::query("UPDATE characters SET deletion_end = NULL WHERE user_id = $1 AND server_id = $2 AND charname = $3 AND deletion_end > CURRENT_TIMESTAMP")
-                    .bind(user_id)
-                    .bind(server_id as i16)
-                    .bind(name)
+            sqlx::query!(
+                "UPDATE characters SET deletion_end = NULL WHERE user_id = $1 AND server_id = $2 AND charname = $3 AND deletion_end > CURRENT_TIMESTAMP",
+                user_id,
+                server_id as i16,
+                name
+            )
                     .execute(&pool)
                     .await
                     .unwrap();
@@ -74,36 +78,39 @@ pub(crate) async fn restore_character(pool: PgPool, user_id: i32, name: String, 
 }
 
 pub(crate) async fn create_character(pool: PgPool, character: Character) {
-    let result = sqlx::query("INSERT INTO characters(user_id, server_id, charname, character_type, scale, level, max_level, strength, intelligence, stat_points, current_hp, current_mp, x, y, z, region, beginner_mark) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id")
-            .bind(character.character_data.user_id)
-            .bind(character.character_data.server_id)
-            .bind(character.character_data.charname)
-            .bind(character.character_data.character_type)
-            .bind(character.character_data.scale)
-            .bind(character.character_data.level)
-            .bind(character.character_data.max_level)
-            .bind(character.character_data.strength)
-            .bind(character.character_data.intelligence)
-            .bind(character.character_data.stat_points)
-            .bind(character.character_data.current_hp)
-            .bind(character.character_data.current_mp)
-            .bind(character.character_data.x)
-            .bind(character.character_data.y)
-            .bind(character.character_data.z)
-            .bind(character.character_data.region)
-            .bind(character.character_data.beginner_mark)
+    let result = sqlx::query!(
+        "INSERT INTO characters(user_id, server_id, charname, character_type, scale, level, max_level, strength, intelligence, stat_points, current_hp, current_mp, x, y, z, region, beginner_mark) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id",
+        character.character_data.user_id,
+        character.character_data.server_id,
+        character.character_data.charname,
+        character.character_data.character_type,
+        character.character_data.scale,
+        character.character_data.level,
+        character.character_data.max_level,
+        character.character_data.strength,
+        character.character_data.intelligence,
+        character.character_data.stat_points,
+        character.character_data.current_hp,
+        character.character_data.current_mp,
+        character.character_data.x,
+        character.character_data.y,
+        character.character_data.z,
+        character.character_data.region,
+        character.character_data.beginner_mark
+    )
             .fetch_one(&pool)
-            .await.unwrap();
+            .await
+            .unwrap();
 
-    let id: i32 = result.get(0);
+    let id: i32 = result.id;
     for item in character.items.iter() {
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO character_items(character_id, item_obj_id, upgrade_level, slot) VALUES($1, $2, $3, $4)",
+            id,
+            item.item_obj_id,
+            item.upgrade_level,
+            item.slot
         )
-        .bind(id)
-        .bind(item.item_obj_id)
-        .bind(item.upgrade_level)
-        .bind(item.slot)
         .execute(&pool)
         .await
         .unwrap();

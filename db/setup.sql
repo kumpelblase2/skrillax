@@ -2,21 +2,21 @@ create type "FriendStatus" as enum ('REQUESTED', 'ACCEPTED', 'DECLINED');
 
 create table users (
     id serial primary key,
-    username varchar,
-    password varchar,
+    username varchar not null,
+    password varchar not null,
     passcode varchar,
-    invalid_passcode_count integer default 0
+    invalid_passcode_count integer default 0 not null
 );
 
 create table characters (
     id serial constraint characters_pk primary key,
     user_id integer not null constraint characters_users_id_fk references users on delete cascade,
-    server_id integer,
+    server_id integer not null,
     charname varchar not null,
     character_type integer not null,
     scale smallint not null,
     level smallint default 1 not null,
-    max_level smallint default 1,
+    max_level smallint default 1 not null,
     exp bigint default 0 not null,
     strength smallint default 20 not null,
     intelligence smallint default 20 not null,
@@ -24,18 +24,18 @@ create table characters (
     current_hp integer default 200 not null,
     current_mp integer default 200 not null,
     deletion_end timestamp with time zone,
-    sp integer default 0,
-    x real default 0,
-    y real default 0,
-    z real default 0,
-    region smallint,
-    berserk_points smallint default 0,
+    sp integer default 0 not null,
+    x real default 0 not null,
+    y real default 0 not null,
+    z real default 0 not null,
+    region smallint default 0 not null,
+    berserk_points smallint default 0 not null,
     gold bigint default 0 not null,
-    sp_exp integer default 0,
+    sp_exp integer default 0 not null,
     beginner_mark boolean default true not null,
     gm boolean default false not null,
     last_logout timestamp with time zone,
-    rotation smallint default 0
+    rotation smallint default 0 not null
 );
 
 create index characters_user_id_server_id_charname_index on characters (user_id, server_id, charname);
@@ -44,9 +44,9 @@ create table character_items (
     id serial constraint character_items_pk primary key,
     character_id integer not null constraint character_items_characters_id_fk references characters on delete cascade,
     item_obj_id integer not null,
-    upgrade_level smallint,
-    slot smallint,
-    variance bigint default 0
+    upgrade_level smallint default 0 not null,
+    slot smallint not null,
+    variance bigint
 );
 
 create index character_items_character_id_index on character_items (character_id);

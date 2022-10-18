@@ -49,38 +49,44 @@ pub struct CharacterItem {
 pub struct CharacterMastery {}
 
 pub(crate) async fn fetch_characters(pool: &PgPool, user: i32, shard: u16) -> Result<Vec<CharacterData>, Error> {
-    sqlx::query_as(
+    sqlx::query_as!(
+        CharacterData,
         "SELECT * FROM characters WHERE user_id = $1 AND server_id = $2 AND (deletion_end > NOW() OR deletion_end is null) ORDER BY id ASC",
-    )
-            .bind(user)
-            .bind(shard as i32)
-            .fetch_all(pool)
-            .await
+        user,
+        shard as i32
+    ).fetch_all(pool).await
 }
 
 pub(crate) async fn fetch_character_items(pool: &PgPool, character_id: i32) -> Result<Vec<CharacterItem>, Error> {
-    sqlx::query_as("SELECT * FROM character_items WHERE character_id = $1")
-        .bind(character_id)
-        .fetch_all(pool)
-        .await
+    sqlx::query_as!(
+        CharacterItem,
+        "SELECT * FROM character_items WHERE character_id = $1",
+        character_id
+    )
+    .fetch_all(pool)
+    .await
 }
 
 pub(crate) async fn fetch_characters_items(
     pool: &PgPool,
     character_ids: Vec<i32>,
 ) -> Result<HashMap<i32, Vec<CharacterItem>>, Error> {
-    let all_items: Vec<CharacterItem> =
-        sqlx::query_as("SELECT * FROM character_items WHERE character_id in (SELECT * FROM UNNEST($1))")
-            .bind(character_ids)
-            .fetch_all(pool)
-            .await?;
+    let all_items: Vec<CharacterItem> = sqlx::query_as!(
+        CharacterItem,
+        "SELECT * FROM character_items WHERE character_id in (SELECT * FROM UNNEST($1::INTEGER[]))",
+        &character_ids
+    )
+    .fetch_all(pool)
+    .await?;
 
     let character_item_map = all_items.into_iter().into_group_map_by(|item| item.character_id);
     Ok(character_item_map)
 }
 
 pub(crate) async fn update_last_played_of(pool: &PgPool, character_id: u32) {
-    let _ = sqlx::query("UPDATE characters SET last_logout = CURRENT_TIMESTAMP")
-        .bind(character_id as i32)
-        .execute(pool);
+    let _ = sqlx::query!(
+        "UPDATE characters SET last_logout = CURRENT_TIMESTAMP WHERE id = $1",
+        character_id as i32
+    )
+    .execute(pool);
 }

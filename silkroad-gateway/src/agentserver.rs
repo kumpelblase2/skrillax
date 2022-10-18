@@ -122,7 +122,7 @@ pub(crate) struct AgentServerManager {
 }
 
 async fn fetch_servers(pool: PgPool) -> Vec<AgentServer> {
-    let servers = match sqlx::query("SELECT id, name, region, address, port, rpc_port, token FROM servers")
+    let servers = match sqlx::query!("SELECT id, name, region, address, port, rpc_port, token FROM servers")
         .fetch_all(&pool)
         .await
     {
@@ -135,24 +135,18 @@ async fn fetch_servers(pool: PgPool) -> Vec<AgentServer> {
     servers
         .into_iter()
         .map(|row| {
-            let id: i32 = row.get(0);
-            let name: String = row.get(1);
-            let region: String = row.get(2);
-            let address: String = row.get(3);
-            let port: i16 = row.get(4);
-            let rpc_port: i16 = row.get(5);
-            let token: String = row.get(6);
+            let address: String = row.address;
 
             let ip = address
                 .parse()
                 .expect("Address in database should be a valid ip address");
             AgentServer::new(
-                id as u16,
-                name,
-                SocketAddr::new(ip, port as u16),
-                SocketAddr::new(ip, rpc_port as u16),
-                ServerRegion::from(region),
-                token,
+                row.id as u16,
+                row.name,
+                SocketAddr::new(ip, row.port as u16),
+                SocketAddr::new(ip, row.rpc_port as u16),
+                ServerRegion::from(row.region),
+                row.token,
             )
         })
         .collect()

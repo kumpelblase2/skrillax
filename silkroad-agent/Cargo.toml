@@ -21,7 +21,7 @@ rand = { workspace = true }
 crossbeam-channel = "0.5.2"
 tracing = { workspace = true }
 config = { workspace = true }
-sqlx = { version = "0.5", default-features = false, features = ["runtime-tokio-native-tls", "postgres", "macros", "uuid", "chrono"] }
+sqlx = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true }
 serde_derive = { workspace = true }

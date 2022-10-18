@@ -5,7 +5,8 @@ use sqlx::{Error, PgPool};
 pub(crate) struct User {
     pub id: i32,
     pub username: String,
-    pub passcode: String,
+    pub password: String,
+    pub passcode: Option<String>,
     pub invalid_passcode_count: i32,
 }
 
@@ -25,16 +26,18 @@ impl PartialEq for ServerUser {
 }
 
 pub(crate) async fn fetch_user(pool: &PgPool, id: u32) -> Result<Option<User>, Error> {
-    sqlx::query_as("SELECT * FROM users WHERE id = $1")
-        .bind(id)
+    sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", id as i32)
         .fetch_optional(pool)
         .await
 }
 
 pub(crate) async fn fetch_server_user(pool: &PgPool, id: u32, server: u16) -> Result<Option<ServerUser>, Error> {
-    sqlx::query_as("SELECT users.id, users.username, user_servers.job, user_servers.premium_type, user_servers.premium_end FROM users LEFT JOIN user_servers on users.id = user_servers.user_id WHERE id = $1 and server_id = $2")
-            .bind(id)
-            .bind(server as i32)
+    sqlx::query_as!(
+        ServerUser,
+        "SELECT users.id, users.username, user_servers.job, user_servers.premium_type, user_servers.premium_end FROM users LEFT JOIN user_servers on users.id = user_servers.user_id WHERE id = $1 and server_id = $2",
+        id as i32,
+        server as i32
+    )
             .fetch_optional(pool)
             .await
 }
