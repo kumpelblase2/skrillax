@@ -99,7 +99,7 @@ pub(crate) fn player_visibility_update(
                 if let Some(player) = player_opt {
                     let items = player
                         .inventory
-                        .items()
+                        .equipment_items()
                         .map(|(_, item)| CharacterSpawnItemData {
                             item_id: item.reference.ref_id,
                             upgrade_level: item.upgrade_level,
