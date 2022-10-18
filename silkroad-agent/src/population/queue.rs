@@ -58,8 +58,8 @@ impl LoginQueue {
             None => return Err(ReservationError::NoSpotsAvailable),
         };
 
-        let curren_time = Instant::now();
-        let timeout = curren_time.add(Duration::from_secs(self.reservation_valid_time));
+        let current_time = Instant::now();
+        let timeout = current_time.add(Duration::from_secs(self.reservation_valid_time));
         let mut id = thread_rng().gen_range(u16::MIN..u16::MAX) as u32;
         let mut tries = 0u8;
         while reservations.iter().any(|reservation| reservation.token == id) {
@@ -68,7 +68,7 @@ impl LoginQueue {
                 return Err(ReservationError::AllTokensTaken);
             }
 
-            id = thread_rng().gen_range(u16::MIN..u16::MAX) as u32;
+            id = thread_rng().gen_range(u32::MIN..u32::MAX);
             tries += 1;
         }
 
