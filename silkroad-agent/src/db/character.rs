@@ -42,6 +42,7 @@ pub struct CharacterItem {
     pub upgrade_level: i16,
     pub variance: Option<i64>,
     pub slot: i16,
+    pub amount: i16,
 }
 
 #[derive(sqlx::FromRow)]

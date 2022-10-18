@@ -534,6 +534,7 @@ pub(crate) fn create_character_from(
             upgrade_level: 0,
             variance: None,
             slot: 1,
+            amount: 1,
         },
         CharacterItem {
             id: 0,
@@ -542,6 +543,7 @@ pub(crate) fn create_character_from(
             upgrade_level: 0,
             variance: None,
             slot: 4,
+            amount: 1,
         },
         CharacterItem {
             id: 0,
@@ -550,6 +552,7 @@ pub(crate) fn create_character_from(
             upgrade_level: 0,
             variance: None,
             slot: 5,
+            amount: 1,
         },
         CharacterItem {
             id: 0,
@@ -558,6 +561,7 @@ pub(crate) fn create_character_from(
             upgrade_level: 0,
             variance: None,
             slot: 6,
+            amount: 1,
         },
     ];
     Character {
