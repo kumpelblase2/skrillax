@@ -1,7 +1,6 @@
 use crate::db::user::fetch_server_user;
 use crate::{CapacityController, LoginQueue};
-use axum::http::header::ToStrError;
-use axum::http::{HeaderMap, HeaderValue};
+use axum::http::HeaderMap;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Extension, Json, Router, Server};
