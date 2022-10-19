@@ -1,4 +1,3 @@
-listen-port = 15779
 agent-healthcheck-interval = 5
 
 [patch]

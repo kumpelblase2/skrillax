@@ -20,6 +20,7 @@ use tracing::{debug, error};
 
 const DEFAULT_FARM: &str = "Skrillax_TestBed";
 const DEFAULT_HEALTHCHECK_INTERVAL: u64 = 60;
+const DEFAULT_LISTEN_PORT: u16 = 15779;
 
 #[tokio::main]
 async fn main() {
@@ -63,12 +64,15 @@ async fn main() {
 
     let listen_addr = match configuration.listen_address.as_ref() {
         Some(addr) => {
-            let port = configuration.listen_port;
+            let port = configuration.listen_port.unwrap_or(DEFAULT_LISTEN_PORT);
             format!("{addr}:{port}")
                 .parse()
                 .expect("Listen address should be a valid ip address and port")
         },
-        None => SocketAddr::new(Ipv4Addr::new(0, 0, 0, 0).into(), configuration.listen_port),
+        None => SocketAddr::new(
+            Ipv4Addr::new(0, 0, 0, 0).into(),
+            configuration.listen_port.unwrap_or(DEFAULT_LISTEN_PORT),
+        ),
     };
 
     let cancellation = CancellationToken::new();

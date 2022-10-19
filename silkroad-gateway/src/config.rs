@@ -51,7 +51,7 @@ impl DbOptions {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct GatewayServerConfig {
-    pub(crate) listen_port: u16,
+    pub(crate) listen_port: Option<u16>,
     pub(crate) listen_address: Option<String>,
     pub(crate) patch: PatchConfig,
     pub(crate) database: DbOptions,
