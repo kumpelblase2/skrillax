@@ -75,12 +75,18 @@ async fn main() {
         ),
     };
 
+    let patcher = configuration
+        .patch
+        .clone()
+        .map(|patch| Patcher::new(patch))
+        .unwrap_or_else(Patcher::allow_all);
+
     let cancellation = CancellationToken::new();
     let server = GatewayServer::new(
         listen_addr,
         cancellation.clone(),
         news,
-        Patcher::new(configuration.patch.clone()),
+        patcher,
         LoginProvider::new(db_pool),
         agent_server_manager,
     );

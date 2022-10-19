@@ -12,7 +12,6 @@ use tracing::debug;
 pub(crate) struct PatchConfig {
     pub(crate) remote_url: String,
     pub(crate) dir: String,
-    pub(crate) accept_all: bool,
     pub(crate) expected_client_version: u32,
     pub(crate) minimum_client_version: u32,
 }
@@ -53,7 +52,7 @@ impl DbOptions {
 pub(crate) struct GatewayServerConfig {
     pub(crate) listen_port: Option<u16>,
     pub(crate) listen_address: Option<String>,
-    pub(crate) patch: PatchConfig,
+    pub(crate) patch: Option<PatchConfig>,
     pub(crate) database: DbOptions,
     pub(crate) news_cache_duration: Option<u64>,
     pub(crate) agent_healthcheck_interval: Option<u64>,

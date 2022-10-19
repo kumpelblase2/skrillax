@@ -81,14 +81,18 @@ impl Client {
                             })))
                             .await?;
                     },
-                    PatchInformation::RequiredFiles(files) => {
+                    PatchInformation::RequiresUpdate {
+                        files,
+                        target_version,
+                        host,
+                    } => {
                         let response = PatchResponse::new(PatchResult::Problem {
                             error: PatchError::Update {
                                 server_ip: "localhost".to_string(),
                                 server_port: 80,
-                                current_version: patcher.current_version(),
+                                current_version: target_version,
                                 patch_files: files,
-                                http_server: patcher.patch_host(),
+                                http_server: host,
                             },
                         });
                         writer.send(ServerPacket::PatchResponse(response)).await?;
@@ -108,10 +112,11 @@ impl Client {
                             locality: 0,
                         }))
                         .await?;
+                    // TODO: need to figure out what this value actually represents.
+                    //   This seems like "server version", maybe expose a setting for it.
                     writer
                         .send(ServerPacket::ServerInfoSeed(ServerInfoSeed::new(0x1056)))
-                        .await?; // TODO: need to figure out what this value actually represents.
-                                 //   This seems like "server version", maybe expose a setting for it.
+                        .await?;
                     writer
                         .send(ServerPacket::ServerStateSeed(ServerStateSeed::new()))
                         .await?;
