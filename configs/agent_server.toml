@@ -1,9 +1,4 @@
-name = "Testing"
-listen-port = 15780
-server-id = 1
-max-player-count = 2
-external-address = "10.0.2.2:15780"
-region = "EU"
+external-address = "127.0.0.1:15780"
 
 [database]
 host = "localhost"

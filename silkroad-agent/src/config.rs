@@ -59,16 +59,16 @@ pub(crate) struct SpawnOptions {
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct GameServerConfig {
-    pub(crate) listen_port: u16,
+    pub(crate) listen_port: Option<u16>,
     pub(crate) listen_address: Option<String>,
     pub(crate) external_address: Option<String>,
-    pub(crate) server_id: u16,
+    pub(crate) server_id: Option<u16>,
     pub(crate) rpc_port: Option<u16>,
-    pub(crate) max_player_count: u16,
+    pub(crate) max_player_count: Option<u16>,
     pub(crate) database: DbOptions,
     pub(crate) game: GameConfig,
     pub(crate) region: Option<String>,
-    pub(crate) name: String,
+    pub(crate) name: Option<String>,
 }
 
 impl GameServerConfig {
