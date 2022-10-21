@@ -48,7 +48,6 @@ impl SilkroadServer {
                                 error!(?addr, "Error in handshake: {:?}", err);
                             },
                         }
-                        debug!("Client disconnected")
                     });
                 }
             }

@@ -1,7 +1,7 @@
 use reqwest::Client;
 use silkroad_protocol::login::{Farm, Shard};
 use silkroad_rpc::{ReserveRequest, ReserveResponse, ServerPopulation, ServerStatusReport};
-use sqlx::{PgPool, Row};
+use sqlx::PgPool;
 use std::fmt::Display;
 use std::mem;
 use std::net::SocketAddr;

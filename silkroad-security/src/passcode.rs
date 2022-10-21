@@ -3,7 +3,7 @@ use bytes::BytesMut;
 use once_cell::sync::Lazy;
 use std::string::FromUtf8Error;
 
-static INSTANCE: Lazy<PassCodeDecoder> = Lazy::new(|| PassCodeDecoder::default());
+static INSTANCE: Lazy<PassCodeDecoder> = Lazy::new(PassCodeDecoder::default);
 
 /// Decode/Decrypt the password input received by a server from a client when they are logging in. This is a
 /// convenience wrapper around [BlowfishCompat] which automatically uses the correct key. One can use the instance
