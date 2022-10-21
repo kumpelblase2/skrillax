@@ -1000,14 +1000,24 @@ impl CharacterSpawn {
 #[derive(Clone, Serialize, ByteSize)]
 pub struct CharacterSpawnEnd;
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Serialize, ByteSize)]
+pub struct CooldownInfo {
+    pub ref_id: u32,
+    pub cooldown: u32,
+}
+
+#[derive(Serialize, ByteSize)]
 pub struct CharacterFinished {
-    pub unknown: u16,
+    pub item_cooldowns: Vec<CooldownInfo>,
+    pub skill_cooldowns: Vec<CooldownInfo>,
 }
 
 impl CharacterFinished {
     pub fn new() -> Self {
-        CharacterFinished { unknown: 0 }
+        CharacterFinished {
+            item_cooldowns: Vec::new(),
+            skill_cooldowns: Vec::new(),
+        }
     }
 }
 
