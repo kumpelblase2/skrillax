@@ -87,8 +87,11 @@ impl Deserialize for bool {
 }
 
 implement_primitive!(u16, read_u16);
+implement_primitive!(i16, read_i16);
 implement_primitive!(u32, read_u32);
+implement_primitive!(i32, read_i32);
 implement_primitive!(u64, read_u64);
+implement_primitive!(i64, read_i64);
 implement_primitive!(f32, read_f32);
 implement_primitive!(f64, read_f64);
 
