@@ -397,6 +397,18 @@ impl UnknownPacket2 {
     }
 }
 
+pub const MACRO_POTION: u8 = 1;
+pub const MACRO_SKILL: u8 = 2;
+pub const MACRO_HUNT: u8 = 4;
+
+#[derive(Serialize, ByteSize)]
+pub enum MacroStatus {
+    #[silkroad(value = 0)]
+    Possible(u8, u8),
+    #[silkroad(value = 1)]
+    Disabled(String, String, u8),
+}
+
 #[derive(Clone, Deserialize)]
 pub struct FinishLoading;
 

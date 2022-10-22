@@ -20,7 +20,8 @@ use id_pool::IdPool;
 use silkroad_protocol::character::{
     CharacterJoinRequest, CharacterJoinResponse, CharacterJoinResult, CharacterListAction, CharacterListContent,
     CharacterListEntry, CharacterListEquippedItem, CharacterListError, CharacterListRequest,
-    CharacterListRequestAction, CharacterListResponse, CharacterListResult, TimeInformation,
+    CharacterListRequestAction, CharacterListResponse, CharacterListResult, MacroStatus, TimeInformation, MACRO_HUNT,
+    MACRO_POTION, MACRO_SKILL,
 };
 use silkroad_protocol::inventory::{InventoryItemBindingData, InventoryItemContentData, InventoryItemData, RentInfo};
 use silkroad_protocol::world::{
@@ -183,6 +184,8 @@ pub(crate) fn charselect(
                             client.send(CharacterJoinResponse::new(CharacterJoinResult::Success));
 
                             send_spawn(&client, &game_entity, &player, &position, settings.max_level);
+
+                            client.send(MacroStatus::Possible(MACRO_POTION | MACRO_HUNT | MACRO_SKILL, 0));
 
                             let is_gm = player.character.gm;
 

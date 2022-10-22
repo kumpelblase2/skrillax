@@ -6,7 +6,7 @@ use crate::GameSettings;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::chat::{ChatSource, ChatUpdate, TextCharacterInitialization};
-use silkroad_protocol::world::{AliveState, CelestialUpdate, UpdatedState};
+use silkroad_protocol::world::{AliveState, CelestialUpdate, CharacterFinished, UpdatedState};
 use tracing::debug;
 
 pub(crate) fn load_finished(
@@ -26,6 +26,7 @@ pub(crate) fn load_finished(
         send_celestial_status(&client, game_entity.unique_id);
         send_character_stats(&client, &player.character);
         send_text_initialization(&client);
+        client.send(CharacterFinished::new());
 
         if let Some(notice) = &settings.join_notice {
             client.send(ChatUpdate::new(ChatSource::Notice, notice.clone()));

@@ -129,6 +129,7 @@ server_packets! {
     0xB045 => TargetEntityResponse,
     0xB04B => UnTargetEntityResponse,
     0x3535 => TextCharacterInitialization,
+    0x3555 => MacroStatus,
     0x3026 => ChatUpdate,
     0xB025 => ChatMessageResponse,
     0xA100 => PatchResponse,
