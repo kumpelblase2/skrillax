@@ -155,7 +155,8 @@ server_packets! {
     0xB074 => PerformActionResponse,
     0xB070 => PerformActionUpdate,
     0x304E => CharacterPointsUpdate,
-    0xB0EA => GameGuideResponse
+    0xB0EA => GameGuideResponse,
+    0xB023 => EntityMovementInterrupt
 }
 
 impl ServerPacket {

@@ -1150,6 +1150,12 @@ impl PlayerMovementResponse {
     }
 }
 
+#[derive(Serialize, ByteSize)]
+pub struct EntityMovementInterrupt {
+    pub entity_id: u32,
+    pub position: Position,
+}
+
 #[derive(Clone, Deserialize, ByteSize)]
 pub struct AddFriend {
     pub name: String,
