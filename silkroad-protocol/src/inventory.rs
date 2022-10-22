@@ -333,6 +333,12 @@ impl ConsignmentResponse {
     pub fn new(result: ConsignmentResult) -> Self {
         ConsignmentResponse { result }
     }
+
+    pub fn success_empty() -> Self {
+        ConsignmentResponse {
+            result: ConsignmentResult::Success { items: vec![] },
+        }
+    }
 }
 
 #[derive(Clone, Deserialize, ByteSize)]

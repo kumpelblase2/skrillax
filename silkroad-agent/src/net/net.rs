@@ -8,7 +8,8 @@ use bevy_core::Time;
 use bevy_ecs::prelude::*;
 use silkroad_network::server::SilkroadServer;
 use silkroad_network::stream::StreamError;
-use silkroad_protocol::inventory::{OpenItemMallResponse, OpenItemMallResult};
+use silkroad_protocol::character::{GameGuideResponse, UpdateGameGuide};
+use silkroad_protocol::inventory::{ConsignmentResponse, OpenItemMallResponse, OpenItemMallResult};
 use silkroad_protocol::{ClientPacket, ServerPacket};
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -119,10 +120,15 @@ pub(crate) fn receive(
                                 input.inputs.push(packet);
                             }
                         },
-                        ClientPacket::ConsignmentList(_) => {},
+                        ClientPacket::ConsignmentList(_) => {
+                            client.send(ConsignmentResponse::success_empty());
+                        },
                         ClientPacket::AddFriend(_) => {},
                         ClientPacket::CreateFriendGroup(_) => {},
                         ClientPacket::DeleteFriend(_) => {},
+                        ClientPacket::UpdateGameGuide(UpdateGameGuide(val)) => {
+                            client.send(GameGuideResponse::Success(val));
+                        },
                         _ => {},
                     }
                 },

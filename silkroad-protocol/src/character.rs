@@ -401,7 +401,7 @@ impl UnknownPacket2 {
 pub struct FinishLoading;
 
 #[derive(Deserialize)]
-pub struct UpdateGameGuide(u64);
+pub struct UpdateGameGuide(pub u64);
 
 #[derive(Serialize, ByteSize)]
 pub enum GameGuideResponse {
