@@ -9,6 +9,8 @@ pub enum InventoryOperationRequest {
     DropGold { amount: u64 },
     #[silkroad(value = 0x06)]
     PickupItem { unique_id: u32 },
+    #[silkroad(value = 0x07)]
+    DropItem { slot: u8 },
 }
 
 impl InventoryOperationRequest {
@@ -200,29 +202,20 @@ impl InventoryItemContentData {
 }
 
 #[derive(Copy, Clone, Serialize, ByteSize)]
+#[silkroad(size = 2)]
 pub enum InventoryOperationError {
-    #[silkroad(value = 0x38)]
+    #[silkroad(value = 0x1838)]
     Indisposable,
-    #[silkroad(value = 0xDC)]
+    #[silkroad(value = 0x18DC)]
     RequiresSpecialtyBag,
 }
 
 #[derive(Clone, Serialize, ByteSize)]
 pub enum InventoryOperationResult {
     #[silkroad(value = 2)]
-    Error { error: InventoryOperationError, slot: u8 },
+    Error(InventoryOperationError),
     #[silkroad(value = 1)]
     Success(InventoryOperationResponseData),
-}
-
-impl InventoryOperationResult {
-    pub fn success(operation: InventoryOperationResponseData) -> Self {
-        InventoryOperationResult::Success(operation)
-    }
-
-    pub fn error(error: InventoryOperationError, slot: u8) -> Self {
-        InventoryOperationResult::Error { error, slot }
-    }
 }
 
 #[derive(Clone, Serialize, ByteSize)]
