@@ -245,10 +245,10 @@ pub(crate) fn handle_world_input(
                                         data: ItemPickupData::Gold { amount },
                                     }),
                                 ));
-                                client.send(ServerPacket::CharacterPointsUpdate(CharacterPointsUpdate::Gold(
-                                    player.character.gold,
-                                    0,
-                                )));
+                                client.send(ServerPacket::CharacterPointsUpdate(CharacterPointsUpdate::Gold {
+                                    amount: player.character.gold,
+                                    display: true,
+                                }));
                                 client.send(ServerPacket::PerformActionResponse(PerformActionResponse::Stop(
                                     PerformActionError::Completed,
                                 )));

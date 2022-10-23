@@ -1303,9 +1303,11 @@ impl EntityBarsUpdate {
 #[derive(Serialize, ByteSize)]
 pub enum CharacterPointsUpdate {
     #[silkroad(value = 1)]
-    Gold(u64, u8),
+    Gold { amount: u64, display: bool },
     #[silkroad(value = 2)]
-    SP(u32),
+    SP { amount: u32, display: bool },
+    #[silkroad(value = 3)]
+    StatPoints(u16),
     #[silkroad(value = 4)]
-    Berserk(u8),
+    Berserk { amount: u8, source: u32 },
 }
