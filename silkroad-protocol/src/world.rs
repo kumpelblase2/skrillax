@@ -687,6 +687,10 @@ impl FriendListGroup {
     pub fn new(id: u16, name: String) -> Self {
         FriendListGroup { id, name }
     }
+
+    pub fn not_assigned() -> Self {
+        Self::new(0, "N/A".to_string())
+    }
 }
 
 #[derive(Clone, Serialize, ByteSize)]

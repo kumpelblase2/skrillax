@@ -7,7 +7,9 @@ use crate::GameSettings;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::chat::{ChatSource, ChatUpdate, TextCharacterInitialization};
-use silkroad_protocol::world::{AliveState, CelestialUpdate, CharacterFinished, UpdatedState};
+use silkroad_protocol::world::{
+    AliveState, CelestialUpdate, CharacterFinished, FriendListGroup, FriendListInfo, UpdatedState,
+};
 use tracing::debug;
 
 pub(crate) fn load_finished(
@@ -35,6 +37,10 @@ pub(crate) fn load_finished(
             minute,
         });
         client.send(CharacterFinished::new());
+        client.send(FriendListInfo {
+            groups: vec![FriendListGroup::not_assigned()],
+            friends: vec![],
+        });
 
         if let Some(notice) = &settings.join_notice {
             client.send(ChatUpdate::new(ChatSource::Notice, notice.clone()));
