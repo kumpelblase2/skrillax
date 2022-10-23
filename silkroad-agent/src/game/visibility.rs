@@ -44,7 +44,7 @@ pub(crate) fn visibility_update(
                 let entities_in_range: HashSet<EntityReference> = close_regions
                         .iter()
                         .flat_map(|region| {
-                            grouped.get(region).unwrap_or_else(|| &EMPTY_VEC)
+                            grouped.get(region).unwrap_or(&EMPTY_VEC)
                         })
                         .filter(|(other_entity, _, _)| other_entity.id() != entity.id())
                         .filter(|(_, other_position, _)| {

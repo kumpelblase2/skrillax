@@ -33,17 +33,17 @@ impl Region {
     }
 
     pub fn neighbours(&self) -> Vec<Region> {
-        let mut regions = Vec::new();
-        regions.push(Region::from_xy(self.x() - 1, self.y()));
-        regions.push(Region::from_xy(self.x(), self.y()));
-        regions.push(Region::from_xy(self.x() + 1, self.y()));
-        regions.push(Region::from_xy(self.x() - 1, self.y() - 1));
-        regions.push(Region::from_xy(self.x(), self.y() - 1));
-        regions.push(Region::from_xy(self.x() + 1, self.y() - 1));
-        regions.push(Region::from_xy(self.x() - 1, self.y() + 1));
-        regions.push(Region::from_xy(self.x(), self.y() + 1));
-        regions.push(Region::from_xy(self.x() + 1, self.y() + 1));
-        regions
+        vec![
+            Region::from_xy(self.x() - 1, self.y()),
+            Region::from_xy(self.x(), self.y()),
+            Region::from_xy(self.x() + 1, self.y()),
+            Region::from_xy(self.x() - 1, self.y() - 1),
+            Region::from_xy(self.x(), self.y() - 1),
+            Region::from_xy(self.x() + 1, self.y() - 1),
+            Region::from_xy(self.x() - 1, self.y() + 1),
+            Region::from_xy(self.x(), self.y() + 1),
+            Region::from_xy(self.x() + 1, self.y() + 1),
+        ]
     }
 
     pub const fn new(id: u16) -> Region {

@@ -1,7 +1,7 @@
 use silkroad_serde::*;
 use silkroad_serde_derive::*;
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize)]
 pub enum ChatTarget {
     #[silkroad(value = 1)]
     All,

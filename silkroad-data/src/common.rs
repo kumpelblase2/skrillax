@@ -18,7 +18,7 @@ pub struct RefCommon {
 }
 
 impl RefCommon {
-    pub fn from_columns(elements: &Vec<&str>) -> Result<Self, ParseError> {
+    pub fn from_columns(elements: &[&str]) -> Result<Self, ParseError> {
         Ok(Self {
             ref_id: elements.get(1).ok_or(ParseError::MissingColumn(1))?.parse()?,
             id: elements.get(2).ok_or(ParseError::MissingColumn(2))?.to_string(),

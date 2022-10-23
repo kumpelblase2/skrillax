@@ -143,7 +143,7 @@ pub(crate) fn receive(
 
         let last_tick_time = time.last_update().unwrap();
         if has_activity {
-            last_action.0 = last_tick_time.clone();
+            last_action.0 = last_tick_time;
         }
 
         if last_tick_time.duration_since(last_action.0).as_secs() > settings.client_timeout as u64 {

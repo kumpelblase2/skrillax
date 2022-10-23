@@ -94,7 +94,7 @@ fn main() {
             configuration.server_id.unwrap_or(DEFAULT_SERVER_ID),
             db_pool.clone(),
             queue.clone(),
-            capacity_manager.clone(),
+            capacity_manager,
             token,
             configuration.rpc_port.unwrap_or(DEFAULT_RPC_PORT),
         )

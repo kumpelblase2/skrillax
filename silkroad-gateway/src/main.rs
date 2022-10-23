@@ -78,7 +78,7 @@ async fn main() {
     let patcher = configuration
         .patch
         .clone()
-        .map(|patch| Patcher::new(patch))
+        .map(Patcher::new)
         .unwrap_or_else(Patcher::allow_all);
 
     let cancellation = CancellationToken::new();

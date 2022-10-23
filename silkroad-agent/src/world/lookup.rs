@@ -13,7 +13,7 @@ pub struct EntityLookup {
 
 impl EntityLookup {
     pub fn add_player(&mut self, name: String, entity: Entity, id: u32) {
-        self.player_map.insert(name.clone(), entity);
+        self.player_map.insert(name, entity);
         self.id_map.insert(id, entity);
     }
 

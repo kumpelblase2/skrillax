@@ -127,7 +127,7 @@ pub(crate) fn spawn_monsters(
 fn spawn_n_monsters(
     spawner_entity: Entity,
     commands: &mut Commands,
-    mut navmesh: &mut NavmeshLoader<Pk2>,
+    navmesh: &mut NavmeshLoader<Pk2>,
     id_pool: &mut IdPool,
     spawner: &mut Spawner,
     position: &Position,
@@ -135,7 +135,7 @@ fn spawn_n_monsters(
 ) -> usize {
     let spawned = (0..to_spawn)
         .map(|_| generate_position(position, spawner.radius))
-        .filter_map(|loc| to_position(loc, &mut navmesh))
+        .filter_map(|loc| to_position(loc, navmesh))
         .map(|pos| spawn_monster(spawner_entity, spawner.ref_id, id_pool.request_id().unwrap(), 54, pos))
         .collect::<Vec<MonsterBundle>>();
 

@@ -88,7 +88,7 @@ fn update_movement_for(client: &Client, entity: &GameEntity, movement: &Movement
         MovementUpdate::Turn(heading) => {
             client.send(PlayerMovementResponse::new(
                 entity.unique_id,
-                MovementDestination::direction(false, heading.clone().into()),
+                MovementDestination::direction(false, (*heading).into()),
                 None,
             ));
         },

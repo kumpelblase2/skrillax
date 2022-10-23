@@ -32,10 +32,10 @@ impl DaylightCycle {
     }
 
     pub fn advance(&mut self, amount: Duration) {
-        self.time = self.time + amount;
+        self.time += amount;
         if self.time >= self.full_day {
             self.moon = self.moon.wrapping_add(1);
-            self.time = self.time - self.full_day;
+            self.time -= self.full_day;
         }
     }
 

@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use silkroad_serde::*;
 use silkroad_serde_derive::*;
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize, Deserialize)]
 pub enum SecurityCodeAction {
     #[silkroad(value = 1)]
     Define,
@@ -12,7 +12,7 @@ pub enum SecurityCodeAction {
     Unknown,
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize)]
 pub enum PasscodeRequiredCode {
     #[silkroad(value = 0)]
     DefinePasscode,
@@ -81,7 +81,7 @@ impl PatchResult {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize)]
 pub enum PasscodeAccountStatus {
     #[silkroad(value = 4)]
     Ok,

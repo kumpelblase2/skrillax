@@ -141,8 +141,8 @@ pub(crate) fn handle_inventory_input(
 }
 
 fn does_object_type_match_race(user_race: Race, obj_type: ObjectType) -> bool {
-    match obj_type {
-        ObjectType::Item(item) => match item {
+    if let ObjectType::Item(item) = obj_type {
+        match item {
             ObjectItem::Equippable(equipment) => match equipment {
                 ObjectEquippable::Clothing(kind, _) => {
                     return match kind {
@@ -181,25 +181,21 @@ fn does_object_type_match_race(user_race: Race, obj_type: ObjectType) -> bool {
                 },
                 _ => {},
             },
-            ObjectItem::Consumable(consumable) => match consumable {
-                ObjectConsumable::Ammo(kind) => {
-                    return match kind {
-                        ObjectConsumableAmmo::Arrows => user_race == Race::Chinese,
-                        ObjectConsumableAmmo::Bolts => user_race == Race::European,
-                    }
-                },
-                _ => {},
+            ObjectItem::Consumable(ObjectConsumable::Ammo(kind)) => {
+                return match kind {
+                    ObjectConsumableAmmo::Arrows => user_race == Race::Chinese,
+                    ObjectConsumableAmmo::Bolts => user_race == Race::European,
+                }
             },
             _ => {},
-        },
-        _ => {},
+        }
     }
     false
 }
 
 fn does_object_type_match_slot(slot: u8, obj_type: ObjectType) -> bool {
-    match obj_type {
-        ObjectType::Item(item) => match item {
+    if let ObjectType::Item(item) = obj_type {
+        match item {
             ObjectItem::Equippable(equipment) => match equipment {
                 ObjectEquippable::Clothing(_, part) => {
                     return match part {
@@ -227,15 +223,11 @@ fn does_object_type_match_slot(slot: u8, obj_type: ObjectType) -> bool {
                 },
                 _ => {},
             },
-            ObjectItem::Consumable(consumable) => match consumable {
-                ObjectConsumable::Ammo(_) => {
-                    return slot == 7;
-                },
-                _ => {},
+            ObjectItem::Consumable(ObjectConsumable::Ammo(_)) => {
+                return slot == 7;
             },
             _ => {},
-        },
-        _ => {},
+        }
     }
     false
 }

@@ -75,9 +75,7 @@ impl Inventory {
     }
 
     pub fn equipment_items(&self) -> impl Iterator<Item = (&u8, &Item)> {
-        self.items
-            .iter()
-            .filter(|(index, item)| Self::is_equipment_slot(**index))
+        self.items.iter().filter(|(index, _)| Self::is_equipment_slot(**index))
     }
 
     pub fn items(&self) -> Iter<u8, Item> {
@@ -125,7 +123,7 @@ impl Inventory {
     }
 
     pub fn is_equipment_slot(slot: u8) -> bool {
-        return slot <= 0xCu8;
+        slot <= 0xCu8
     }
 }
 

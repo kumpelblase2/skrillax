@@ -1,7 +1,7 @@
 use silkroad_serde::*;
 use silkroad_serde_derive::{ByteSize, Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize)]
 pub enum LogoutMode {
     #[silkroad(value = 1)]
     Logout,
@@ -34,7 +34,7 @@ impl LogoutResult {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
 pub enum AuthResultError {
     #[silkroad(value = 2)]
     InvalidData,

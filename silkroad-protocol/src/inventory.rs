@@ -130,7 +130,7 @@ impl InventoryOperationResponseData {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize)]
 #[silkroad(size = 2)]
 pub enum ConsignmentErrorCode {
     #[silkroad(value = 0x700D)]

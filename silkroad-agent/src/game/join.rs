@@ -27,8 +27,8 @@ pub(crate) fn load_finished(
         debug!(id = ?client.0.id(), "Finished loading.");
         player.character.state = SpawningState::Finished;
         sync.state.push(UpdatedState::Life(AliveState::Alive));
-        send_character_stats(&client, &player.character);
-        send_text_initialization(&client);
+        send_character_stats(client, &player.character);
+        send_text_initialization(client);
         let (hour, minute) = daycycle.time();
         client.send(CelestialUpdate {
             unique_id: game_entity.unique_id,

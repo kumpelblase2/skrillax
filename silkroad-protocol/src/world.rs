@@ -4,7 +4,7 @@ use silkroad_serde::*;
 use silkroad_serde_derive::*;
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, Deserialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, Copy, Serialize, Deserialize, ByteSize)]
 pub enum PvpCape {
     #[silkroad(value = 0)]
     None,
@@ -20,7 +20,7 @@ pub enum PvpCape {
     Yellow,
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
 pub enum AliveState {
     #[silkroad(value = 0)]
     Spawning,
@@ -30,7 +30,7 @@ pub enum AliveState {
     Dead,
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize)]
 pub enum JobType {
     #[silkroad(value = 0)]
     None,
@@ -42,7 +42,7 @@ pub enum JobType {
     Hunter,
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
 pub enum PlayerKillState {
     #[silkroad(value = 0xFF)]
     None,
@@ -52,7 +52,7 @@ pub enum PlayerKillState {
     Red,
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize)]
 pub enum ActiveScroll {
     #[silkroad(value = 0)]
     None,
@@ -76,7 +76,7 @@ impl InteractOptions {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
 pub enum BodyState {
     #[silkroad(value = 0)]
     None,
@@ -96,7 +96,7 @@ pub enum BodyState {
     Invisible,
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize)]
 pub enum GroupSpawnType {
     #[silkroad(value = 1)]
     Spawn,
@@ -104,7 +104,7 @@ pub enum GroupSpawnType {
     Despawn,
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Deserialize, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Deserialize, Serialize, ByteSize)]
 pub enum EntityRarity {
     #[silkroad(value = 0)]
     Normal,
@@ -329,7 +329,7 @@ impl EntityTypeSpawnData {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
 pub enum WeatherType {
     #[silkroad(value = 1)]
     Clear,
@@ -339,7 +339,7 @@ pub enum WeatherType {
     Snow,
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
 pub enum MovementType {
     #[silkroad(value = 0)]
     Running,
@@ -347,7 +347,7 @@ pub enum MovementType {
     Walking,
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
 pub enum ActionState {
     #[silkroad(value = 0)]
     None,
@@ -433,7 +433,7 @@ impl MovementDestination {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
 #[silkroad(size = 2)]
 pub enum TargetEntityError {
     // FIXME: this is not quite right.

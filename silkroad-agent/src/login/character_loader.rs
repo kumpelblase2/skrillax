@@ -1,5 +1,5 @@
 use crate::db::character::{fetch_characters, fetch_characters_items, CharacterData, CharacterItem};
-use sqlx::{PgPool, Row};
+use sqlx::PgPool;
 use tracing::trace_span;
 
 #[derive(Clone)]
@@ -60,7 +60,7 @@ pub(crate) async fn start_delete_character(
             .execute(&pool)
             .await
             .unwrap();
-    return result.rows_affected() == 1;
+    result.rows_affected() == 1
 }
 
 pub(crate) async fn restore_character(pool: PgPool, user_id: i32, name: String, server_id: u16) -> bool {
@@ -74,7 +74,7 @@ pub(crate) async fn restore_character(pool: PgPool, user_id: i32, name: String, 
                     .execute(&pool)
                     .await
                     .unwrap();
-    return result.rows_affected() == 1;
+    result.rows_affected() == 1
 }
 
 pub(crate) async fn create_character(pool: PgPool, character: Character) {

@@ -17,11 +17,8 @@ pub(crate) fn login(
     mut query: Query<(Entity, &Client), With<Login>>,
 ) {
     for (entity, client) in query.iter_mut() {
-        match handle_packets(entity, client, &login_queue, &mut buffer) {
-            Err(_) => {
-                events.send(ClientDisconnectedEvent(entity));
-            },
-            _ => {},
+        if handle_packets(entity, client, &login_queue, &mut buffer).is_err() {
+            events.send(ClientDisconnectedEvent(entity));
         }
     }
 }

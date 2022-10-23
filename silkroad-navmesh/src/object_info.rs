@@ -39,8 +39,8 @@ pub struct ObjectInfo {
 
 impl ObjectInfo {
     pub fn from(data: &[u8]) -> Result<Self, ObjectInfoError> {
-        let (content, _enc, _bool) = WINDOWS_1252.decode(&data);
-        let mut lines = content.split("\n");
+        let (content, _enc, _bool) = WINDOWS_1252.decode(data);
+        let mut lines = content.split('\n');
         let magic = lines.next().unwrap();
         if magic != OBJ_MAGIC {
             return Err(ObjectInfoError::InvalidMagic);

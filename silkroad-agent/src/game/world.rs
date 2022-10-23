@@ -260,7 +260,7 @@ fn get_default_attack_range(
     player: &Player,
 ) -> Result<(&'static RefSkillData, f32), AttackSkillError> {
     let weapon = player.inventory.weapon();
-    let attack_skill = get_attack_skill(&SKILLS.get().unwrap(), weapon)?;
+    let attack_skill = get_attack_skill(SKILLS.get().unwrap(), weapon)?;
     let character_data = CHARACTERS.get().unwrap().find_id(player_entity.ref_id).unwrap();
     let weapon_data = weapon.map(|weapon| weapon.reference);
     let range = vec![
@@ -308,27 +308,24 @@ fn get_attack_skill<'a>(
             _ => return Err(AttackSkillError::NotAWeapon),
         };
         match item_type {
-            ObjectItem::Equippable(equipment) => match equipment {
-                ObjectEquippable::Weapon(weapon_type) => match weapon_type {
-                    ObjectWeaponType::Sword | ObjectWeaponType::Blade => {
-                        skills.find_id(2).ok_or(AttackSkillError::SkillNotFound)?
-                    },
-                    ObjectWeaponType::Spear | ObjectWeaponType::Glavie => {
-                        skills.find_id(40).ok_or(AttackSkillError::SkillNotFound)?
-                    },
-                    ObjectWeaponType::Bow => skills.find_id(70).ok_or(AttackSkillError::SkillNotFound)?,
-                    ObjectWeaponType::OneHandSword => skills.find_id(7127).ok_or(AttackSkillError::SkillNotFound)?,
-                    ObjectWeaponType::TwoHandSword => skills.find_id(7128).ok_or(AttackSkillError::SkillNotFound)?,
-                    ObjectWeaponType::Axe => skills.find_id(7129).ok_or(AttackSkillError::SkillNotFound)?,
-                    ObjectWeaponType::WarlockStaff => skills.find_id(9069).ok_or(AttackSkillError::SkillNotFound)?,
-                    ObjectWeaponType::Staff => skills.find_id(8454).ok_or(AttackSkillError::SkillNotFound)?,
-                    ObjectWeaponType::Crossbow => skills.find_id(7909).ok_or(AttackSkillError::SkillNotFound)?,
-                    ObjectWeaponType::Dagger => skills.find_id(7910).ok_or(AttackSkillError::SkillNotFound)?,
-                    ObjectWeaponType::Harp => skills.find_id(9606).ok_or(AttackSkillError::SkillNotFound)?,
-                    ObjectWeaponType::ClericRod => skills.find_id(9970).ok_or(AttackSkillError::SkillNotFound)?,
-                    _ => return Err(AttackSkillError::UnknownWeapon),
+            ObjectItem::Equippable(ObjectEquippable::Weapon(weapon_type)) => match weapon_type {
+                ObjectWeaponType::Sword | ObjectWeaponType::Blade => {
+                    skills.find_id(2).ok_or(AttackSkillError::SkillNotFound)?
                 },
-                _ => return Err(AttackSkillError::NotAWeapon),
+                ObjectWeaponType::Spear | ObjectWeaponType::Glavie => {
+                    skills.find_id(40).ok_or(AttackSkillError::SkillNotFound)?
+                },
+                ObjectWeaponType::Bow => skills.find_id(70).ok_or(AttackSkillError::SkillNotFound)?,
+                ObjectWeaponType::OneHandSword => skills.find_id(7127).ok_or(AttackSkillError::SkillNotFound)?,
+                ObjectWeaponType::TwoHandSword => skills.find_id(7128).ok_or(AttackSkillError::SkillNotFound)?,
+                ObjectWeaponType::Axe => skills.find_id(7129).ok_or(AttackSkillError::SkillNotFound)?,
+                ObjectWeaponType::WarlockStaff => skills.find_id(9069).ok_or(AttackSkillError::SkillNotFound)?,
+                ObjectWeaponType::Staff => skills.find_id(8454).ok_or(AttackSkillError::SkillNotFound)?,
+                ObjectWeaponType::Crossbow => skills.find_id(7909).ok_or(AttackSkillError::SkillNotFound)?,
+                ObjectWeaponType::Dagger => skills.find_id(7910).ok_or(AttackSkillError::SkillNotFound)?,
+                ObjectWeaponType::Harp => skills.find_id(9606).ok_or(AttackSkillError::SkillNotFound)?,
+                ObjectWeaponType::ClericRod => skills.find_id(9970).ok_or(AttackSkillError::SkillNotFound)?,
+                _ => return Err(AttackSkillError::UnknownWeapon),
             },
             _ => return Err(AttackSkillError::NotAWeapon),
         }

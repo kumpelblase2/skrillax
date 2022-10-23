@@ -31,7 +31,7 @@ impl JobDistribution {
 
     pub fn spread(&self) -> (u8, u8) {
         let total = self.hunters + self.thieves;
-        return if total == 0 {
+        if total == 0 {
             (50, 50)
         } else if self.thieves == 0 {
             (100, 0)
@@ -41,7 +41,7 @@ impl JobDistribution {
             let hunter_percentage = (self.hunters / total) as u8;
             let thieves_percentage = 100 - hunter_percentage;
             (hunter_percentage, thieves_percentage)
-        };
+        }
     }
 }
 

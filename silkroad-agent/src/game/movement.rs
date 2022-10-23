@@ -20,8 +20,8 @@ use tracing::debug;
 
 const EPSYLON: f32 = 1.0;
 
-pub(crate) fn movement_input(mut query: Query<(&Client, &mut MovementInput, &mut Agent, &Position, &mut Synchronize)>) {
-    for (client, mut input, mut agent, position, mut sync) in query.iter_mut() {
+pub(crate) fn movement_input(mut query: Query<(&Client, &mut MovementInput, &mut Agent, &Position)>) {
+    for (client, mut input, mut agent, position) in query.iter_mut() {
         for packet in mem::take(&mut input.inputs) {
             match packet {
                 ClientPacket::PlayerMovementRequest(PlayerMovementRequest { kind }) => match kind {
@@ -53,11 +53,11 @@ pub(crate) fn movement(
     delta: Res<Time>,
 ) {
     for (mut agent, mut position, mut sync) in query.iter_mut() {
-        if let Some(mut action) = agent.current_action.as_mut() {
+        if let Some(action) = agent.current_action.as_mut() {
             match action {
                 AgentAction::Movement(target) => match target {
                     MovementTarget::Direction(direction) => {
-                        let old_position = position.location.clone();
+                        let old_position = position.location;
                         let current_location_2d = old_position.0.to_flat_vec2();
                         let direction_vec = Quaternion::from_angle_y(Deg(direction.0)) * Vector3::unit_x();
                         let direction_vec = direction_vec.to_flat_vec2().normalize();
@@ -73,11 +73,11 @@ pub(crate) fn movement(
                         position.location = target_location.to_global().with_y(height);
                     },
                     MovementTarget::Turn(heading) => {
-                        position.rotation = heading.clone();
+                        position.rotation = *heading;
                         agent.finish_current_action();
                     },
                     MovementTarget::Location(location) => {
-                        let old_position = position.location.clone();
+                        let old_position = position.location;
                         let current_location_2d = old_position.0.to_flat_vec2();
                         let to_target = location.0.to_flat_vec2() - current_location_2d;
                         let direction = to_target.normalize();
@@ -105,7 +105,7 @@ pub(crate) fn movement(
                         if finished {
                             agent.finish_current_action();
                             let local = new_pos.to_local();
-                            sync.movement = Some(MovementUpdate::StopMove(local, position.rotation.clone()));
+                            sync.movement = Some(MovementUpdate::StopMove(local, position.rotation));
                         }
 
                         let angle = Deg::from(direction.angle(Vector2::unit_x()));
@@ -180,7 +180,7 @@ pub(crate) fn movement(
                     let reference = *reference;
                     let target = *target;
                     let location = current_destination;
-                    let old_position = position.location.clone();
+                    let old_position = position.location;
                     let current_location_2d = old_position.0.to_flat_vec2();
                     let to_target = location.0.to_flat_vec2() - current_location_2d;
                     let direction = to_target.normalize();
@@ -213,7 +213,7 @@ pub(crate) fn movement(
                             state: SkillState::Before,
                         });
                         let local = new_pos.to_local();
-                        sync.movement = Some(MovementUpdate::StopMove(local, position.rotation.clone()));
+                        sync.movement = Some(MovementUpdate::StopMove(local, position.rotation));
                     }
 
                     let angle = Deg::from(direction.angle(Vector2::unit_x()));
@@ -251,7 +251,7 @@ pub(crate) fn movement(
                                 position.rotation = *dir;
                                 MovementUpdate::StartMoveTowards(position.location.to_local(), *dir)
                             },
-                            MovementTarget::Turn(heading) => MovementUpdate::Turn(heading.clone()),
+                            MovementTarget::Turn(heading) => MovementUpdate::Turn(*heading),
                         };
                         sync.movement = Some(update);
                     },

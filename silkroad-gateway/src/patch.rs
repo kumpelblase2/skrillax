@@ -36,23 +36,24 @@ impl Patcher {
     }
 
     pub fn get_patch_information(&self, version: u32) -> PatchInformation {
-        return match &self {
+        match &self {
             Patcher::AcceptAll => PatchInformation::UpToDate,
             Patcher::AcceptMatching {
                 min, current, remote, ..
             } => {
                 if version == *current {
-                    return PatchInformation::UpToDate;
+                    PatchInformation::UpToDate
                 } else if version < *current && version >= *min {
-                    return PatchInformation::RequiresUpdate {
+                    PatchInformation::RequiresUpdate {
                         files: self.get_patches_for(version),
                         target_version: *current,
                         host: remote.clone(),
-                    };
+                    }
+                } else {
+                    PatchInformation::Outdated
                 }
-                PatchInformation::Outdated
             },
-        };
+        }
     }
 
     fn get_patches_for(&self, version: u32) -> Vec<PatchFile> {

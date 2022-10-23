@@ -131,35 +131,35 @@ impl FromStr for RefSkillData {
         let target_dead: u8 = elements.get(33).ok_or(ParseError::MissingColumn(33))?.parse()?;
         let mut target_options = TargetOption::NONE;
         if target_self != 0 {
-            target_options = target_options | TargetOption::SELF;
+            target_options |= TargetOption::SELF;
         }
 
         if target_ally != 0 {
-            target_options = target_options | TargetOption::ALLY;
+            target_options |= TargetOption::ALLY;
         }
 
         if target_party != 0 {
-            target_options = target_options | TargetOption::PARTY;
+            target_options |= TargetOption::PARTY;
         }
 
         if target_enemy_monster != 0 {
-            target_options = target_options | TargetOption::ENEMY_MONSTER;
+            target_options |= TargetOption::ENEMY_MONSTER;
         }
 
         if target_enemy_player != 0 {
-            target_options = target_options | TargetOption::ENEMY_PLAYER;
+            target_options |= TargetOption::ENEMY_PLAYER;
         }
 
         if target_neutral != 0 {
-            target_options = target_options | TargetOption::NETRAL;
+            target_options |= TargetOption::NETRAL;
         }
 
         if target_any != 0 {
-            target_options = target_options | TargetOption::ANY;
+            target_options |= TargetOption::ANY;
         }
 
         if target_dead != 0 {
-            target_options = target_options | TargetOption::DEAD;
+            target_options |= TargetOption::DEAD;
         }
 
         let mastery: u16 = elements.get(34).ok_or(ParseError::MissingColumn(34))?.parse()?;
@@ -547,7 +547,7 @@ pub struct MonsterSummon {
 }
 
 fn parse_param(params: &[u32]) -> Option<(&[u32], SkillParam)> {
-    if params.len() == 0 || params[0] == 0 {
+    if params.is_empty() || params[0] == 0 {
         return None;
     }
 
@@ -591,11 +591,11 @@ fn parse_param(params: &[u32]) -> Option<(&[u32], SkillParam)> {
                 value: param_data[1],
                 value_2: param_data[2],
             };
-            return if remaining.len() > 0 && remaining[0] == 0 {
+            if !remaining.is_empty() && remaining[0] == 0 {
                 Some((&remaining[1..], result))
             } else {
                 Some((remaining, result))
-            };
+            }
         },
         "dura" => {
             let (param_data, remaining) = data.split_at(1);
@@ -950,7 +950,7 @@ fn parse_param(params: &[u32]) -> Option<(&[u32], SkillParam)> {
         "ssou" => {
             let mut summons = Vec::new();
             let mut remaining = data;
-            while remaining[0] != 0 || summons.len() == 0 {
+            while remaining[0] != 0 || summons.is_empty() {
                 let (current, next) = remaining.split_at(4);
                 let summon = MonsterSummon {
                     ref_id: current[0],

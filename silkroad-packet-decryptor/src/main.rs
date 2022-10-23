@@ -21,10 +21,10 @@ fn g_pow_x_mod_p(p: i64, mut x: u32, g: u32) -> u32 {
         if (x & 1) > 0 {
             current = (mult * current) % p;
         }
-        x = x >> 1;
+        x >>= 1;
         mult = (mult * mult) % p;
     }
-    return current as u32;
+    current as u32
 }
 
 struct DecryptionOrchestrator(u8);
@@ -57,7 +57,7 @@ impl DecryptionOrchestrator {
             options.len()
         );
 
-        return None;
+        None
     }
 
     fn find_x(&self, value_p: u32, value_g: u32, value_a: u32) -> Vec<u32> {
@@ -71,21 +71,15 @@ impl DecryptionOrchestrator {
             threads.push(std::thread::spawn(move || {
                 let start = (thread * steps) as u32;
                 let end = ((thread + 1) * steps) as u32;
-                for i in (start..end).rev() {
-                    if g_pow_x_mod_p(value_p as i64, i, value_g) == value_a {
-                        return Some(i); // what if there are more for this range?!
-                    }
-                }
-                None
+                (start..end)
+                    .rev()
+                    .find(|&i| g_pow_x_mod_p(value_p as i64, i, value_g) == value_a)
             }));
         }
 
         for thread in threads {
-            match thread.join().unwrap() {
-                Some(number) => {
-                    results.push(number);
-                },
-                _ => {},
+            if let Some(number) = thread.join().unwrap() {
+                results.push(number);
             }
         }
 
@@ -212,7 +206,7 @@ impl Rewriter {
                 security
                     .decrypt_mut(&mut data[2..])
                     .expect("Security should have been initialized.");
-                data[1] = data[1] & !0x80
+                data[1] &= !0x80
             }
         } else {
             self.handle_unencrypted(tcp, data.as_slice());
@@ -235,7 +229,7 @@ impl Rewriter {
             let packet = packet?;
             if let Some((tcp, data)) = Self::get_tcp_data(&packet) {
                 if self.should_handle_packet(&tcp) {
-                    if tcp.flag_psh && data.len() > 0 {
+                    if tcp.flag_psh && !data.is_empty() {
                         // How to deal with packets that are split?
                         // We currently can't turn headers back into their bytes
                         // so combining two packets is not feasible.

@@ -1,7 +1,7 @@
 use silkroad_serde::*;
 use silkroad_serde_derive::*;
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, Deserialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, Deserialize, ByteSize)]
 pub enum CharacterListAction {
     #[silkroad(value = 1)]
     Create,
@@ -19,7 +19,7 @@ pub enum CharacterListAction {
     AssignJob,
 }
 
-#[derive(Clone, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
 #[silkroad(size = 1)]
 pub enum CharacterListError {
     #[silkroad(value = 0x403)]

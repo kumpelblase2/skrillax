@@ -138,7 +138,7 @@ pub(crate) fn charselect(
                     },
                     CharacterListRequestAction::ShowJobSpread => {
                         let (hunter_perc, thief_perc) = job_distribution.spread();
-                        send_job_spread(&client, hunter_perc, thief_perc);
+                        send_job_spread(client, hunter_perc, thief_perc);
                     },
                     CharacterListRequestAction::AssignJob { .. } => {},
                 },
@@ -184,7 +184,7 @@ pub(crate) fn charselect(
 
                             client.send(CharacterJoinResponse::new(CharacterJoinResult::Success));
 
-                            send_spawn(&client, &game_entity, &player, &position, settings.max_level);
+                            send_spawn(client, &game_entity, &player, &position, settings.max_level);
 
                             client.send(MacroStatus::Possible(MACRO_POTION | MACRO_HUNT | MACRO_SKILL, 0));
 
@@ -220,7 +220,7 @@ pub(crate) fn charselect(
         if let Some(receiver) = character_list.character_receiver.as_mut() {
             match receiver.try_recv() {
                 Ok(characters) => {
-                    send_character_list(&client, &characters);
+                    send_character_list(client, &characters);
                     character_list.characters = Some(characters);
                     character_list.character_receiver = None;
                 },
@@ -325,18 +325,18 @@ fn has_user_character_with_name(charselect: &CharacterSelect, character_name: &s
 }
 
 fn can_create_character_with_name(charselect: &CharacterSelect, name: &str) -> bool {
-    return if let Some(ref checked_name) = charselect.checked_name {
+    if let Some(ref checked_name) = charselect.checked_name {
         if charselect.character_name_check.is_some() || checked_name != name {
             return false;
         }
         true
     } else {
         false
-    };
+    }
 }
 
-fn send_character_list(client: &Client, character_list: &Vec<Character>) {
-    let characters = character_list.iter().map(|chara| from_character(chara)).collect();
+fn send_character_list(client: &Client, character_list: &[Character]) {
+    let characters = character_list.iter().map(from_character).collect();
     let response = CharacterListResponse::new(
         CharacterListAction::List,
         CharacterListResult::ok(CharacterListContent::characters(characters, 0)),
@@ -372,7 +372,7 @@ fn from_character(character: &Character) -> CharacterListEntry {
         guild_member_class: 0,
         guild_rename_required: None,
         academy_member_class: 0,
-        equipped_items: character.items.iter().map(|item| from_item(item)).collect(),
+        equipped_items: character.items.iter().map(from_item).collect(),
         avatar_items: Vec::new(),
     }
 }

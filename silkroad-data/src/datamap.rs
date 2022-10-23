@@ -32,7 +32,7 @@ impl<T: FromStr<Err = ParseError>> DataMap<T> {
         let lines = list_files(&mut file)?;
         let all_entries: Result<Vec<Vec<T>>, FileError> = lines
             .into_iter()
-            .filter(|name| name.len() > 0)
+            .filter(|name| !name.is_empty())
             .map(|filename| format!("/server_dep/silkroad/textdata/{}", filename))
             .map(|filename| {
                 let res: Result<Vec<T>, FileError> = pk2
