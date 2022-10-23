@@ -1,5 +1,6 @@
 use crate::event::{LoadingFinishedEvent, PlayerLevelUp, UniqueKilledEvent};
 use crate::game::chat::ChatPlugin;
+use crate::game::daylight::{advance_daylight, DaylightCycle};
 use crate::game::drop::tick_drop;
 use crate::game::entity_sync::{clean_sync, sync_changes_others, update_client};
 use crate::game::inventory::handle_inventory_input;
@@ -13,6 +14,7 @@ use crate::game::world::{finish_logout, handle_world_input};
 use bevy_app::{App, CoreStage, Plugin};
 
 mod chat;
+mod daylight;
 mod drop;
 mod entity_sync;
 mod gm;
@@ -32,6 +34,7 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(ChatPlugin)
             .insert_resource(PlayerActivity::default())
+            .insert_resource(DaylightCycle::official())
             .add_event::<PlayerLevelUp>()
             .add_event::<LoadingFinishedEvent>()
             .add_event::<UniqueKilledEvent>()
@@ -53,6 +56,7 @@ impl Plugin for GamePlugin {
             .add_system_to_stage(CoreStage::PostUpdate, load_finished)
             .add_system_to_stage(CoreStage::PostUpdate, unique_spawned)
             .add_system_to_stage(CoreStage::PostUpdate, unique_killed)
+            .add_system_to_stage(CoreStage::PostUpdate, advance_daylight)
             .add_system_to_stage(CoreStage::Last, clean_sync)
             .add_system_to_stage(CoreStage::Last, reset_player_activity);
     }

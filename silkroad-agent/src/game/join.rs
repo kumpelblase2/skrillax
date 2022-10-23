@@ -2,6 +2,7 @@ use crate::comp::player::{Character, Player, SpawningState};
 use crate::comp::sync::Synchronize;
 use crate::comp::{Client, GameEntity};
 use crate::event::LoadingFinishedEvent;
+use crate::game::daylight::DaylightCycle;
 use crate::GameSettings;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::character::CharacterStatsMessage;
@@ -12,6 +13,7 @@ use tracing::debug;
 pub(crate) fn load_finished(
     mut reader: EventReader<LoadingFinishedEvent>,
     settings: Res<GameSettings>,
+    daycycle: Res<DaylightCycle>,
     mut query: Query<(&Client, &GameEntity, &mut Player, &mut Synchronize)>,
 ) {
     for event in reader.iter() {
@@ -23,19 +25,21 @@ pub(crate) fn load_finished(
         debug!(id = ?client.0.id(), "Finished loading.");
         player.character.state = SpawningState::Finished;
         sync.state.push(UpdatedState::Life(AliveState::Alive));
-        send_celestial_status(&client, game_entity.unique_id);
         send_character_stats(&client, &player.character);
         send_text_initialization(&client);
+        let (hour, minute) = daycycle.time();
+        client.send(CelestialUpdate {
+            unique_id: game_entity.unique_id,
+            moon_position: daycycle.moon(),
+            hour,
+            minute,
+        });
         client.send(CharacterFinished::new());
 
         if let Some(notice) = &settings.join_notice {
             client.send(ChatUpdate::new(ChatSource::Notice, notice.clone()));
         }
     }
-}
-
-fn send_celestial_status(client: &Client, my_id: u32) {
-    client.send(CelestialUpdate::new(my_id, 0x75, 0x13, 0x1c));
 }
 
 fn send_character_stats(client: &Client, character: &Character) {
