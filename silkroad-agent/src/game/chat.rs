@@ -9,7 +9,7 @@ use bevy_ecs::prelude::*;
 use silkroad_protocol::chat::{
     ChatErrorCode, ChatMessageResponse, ChatMessageResult, ChatSource, ChatTarget, ChatUpdate,
 };
-use silkroad_protocol::{ClientPacket, ServerPacket};
+use silkroad_protocol::ClientPacket;
 use std::mem::take;
 use tracing::debug;
 
@@ -35,10 +35,10 @@ fn handle_chat(
                         ChatTarget::All => {
                             visibility.entities_in_radius.iter().for_each(|e| {
                                 if let Ok((client, _)) = others.get(e.0) {
-                                    client.send(ServerPacket::ChatUpdate(ChatUpdate::new(
+                                    client.send(ChatUpdate::new(
                                         ChatSource::all(game_entity.unique_id),
                                         message.message.clone(),
-                                    )));
+                                    ));
                                 }
                             });
                             client.send(ChatMessageResponse::new(
@@ -54,10 +54,10 @@ fn handle_chat(
                                     .filter(|(_, player)| player.character.gm)
                                     .filter(|(_, other)| other.user.id != player.user.id)
                                     .for_each(|(client, _)| {
-                                        client.send(ServerPacket::ChatUpdate(ChatUpdate::new(
+                                        client.send(ChatUpdate::new(
                                             ChatSource::allgm(game_entity.unique_id),
                                             message.message.clone(),
-                                        )));
+                                        ));
                                     });
                                 client.send(ChatMessageResponse::new(
                                     ChatMessageResult::Success,
@@ -79,10 +79,10 @@ fn handle_chat(
                                 .and_then(|entity| others.get(entity).ok())
                             {
                                 Some((other, _)) => {
-                                    other.send(ServerPacket::ChatUpdate(ChatUpdate::new(
+                                    other.send(ChatUpdate::new(
                                         ChatSource::privatemessage(player.character.name.clone()),
                                         message.message.clone(),
-                                    )));
+                                    ));
                                     client.send(ChatMessageResponse::new(
                                         ChatMessageResult::Success,
                                         message.target,

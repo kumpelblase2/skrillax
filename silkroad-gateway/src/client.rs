@@ -10,7 +10,7 @@ use silkroad_protocol::login::{
     PasscodeRequiredResponse, PasscodeResponse, PatchError, PatchResponse, PatchResult, PingServer, PingServerResponse,
     SecurityCodeResponse, SecurityError, ShardListResponse,
 };
-use silkroad_protocol::{ClientPacket, ServerPacket};
+use silkroad_protocol::ClientPacket;
 use silkroad_rpc::ReserveResponse;
 use silkroad_security::passcode::PassCodeDecoder;
 use std::sync::Arc;
@@ -76,9 +76,7 @@ impl Client {
                 ClientPacket::PatchRequest(patch) => match patcher.get_patch_information(patch.version) {
                     PatchInformation::UpToDate => {
                         writer
-                            .send(ServerPacket::PatchResponse(PatchResponse::new(PatchResult::UpToDate {
-                                unknown: 0,
-                            })))
+                            .send(PatchResponse::new(PatchResult::UpToDate { unknown: 0 }))
                             .await?;
                     },
                     PatchInformation::RequiresUpdate {
@@ -95,31 +93,28 @@ impl Client {
                                 http_server: host,
                             },
                         });
-                        writer.send(ServerPacket::PatchResponse(response)).await?;
+                        writer.send(response).await?;
                     },
                     PatchInformation::Outdated => {
-                        let response = PatchResponse::new(PatchResult::Problem {
-                            error: PatchError::InvalidVersion,
-                        });
-                        writer.send(ServerPacket::PatchResponse(response)).await?;
+                        writer
+                            .send(PatchResponse::new(PatchResult::Problem {
+                                error: PatchError::InvalidVersion,
+                            }))
+                            .await?;
                     },
                 },
                 ClientPacket::IdentityInformation(identity) => {
                     debug!(?id, module = ?identity.module_name, local = identity.locality, "Client application identity");
                     writer
-                        .send(ServerPacket::IdentityInformation(IdentityInformation {
+                        .send(IdentityInformation {
                             module_name: "GatewayServer".to_string(),
                             locality: 0,
-                        }))
+                        })
                         .await?;
                     // TODO: need to figure out what this value actually represents.
                     //   This seems like "server version", maybe expose a setting for it.
-                    writer
-                        .send(ServerPacket::ServerInfoSeed(ServerInfoSeed::new(0x1056)))
-                        .await?;
-                    writer
-                        .send(ServerPacket::ServerStateSeed(ServerStateSeed::new()))
-                        .await?;
+                    writer.send(ServerInfoSeed::new(0x1056)).await?;
+                    writer.send(ServerStateSeed::new()).await?;
                 },
                 ClientPacket::GatewayNoticeRequest(_) => {
                     let mut news = news.lock().await;
@@ -132,9 +127,7 @@ impl Client {
                             published: news.date,
                         })
                         .collect();
-                    writer
-                        .send(ServerPacket::GatewayNoticeResponse(GatewayNoticeResponse::new(news)))
-                        .await?;
+                    writer.send(GatewayNoticeResponse::new(news)).await?;
                 },
                 ClientPacket::LoginRequest(login) => {
                     last_credentials = Some(LastCredentials {
@@ -152,21 +145,19 @@ impl Client {
                         },
                         LoginResult::MissingPasscode => {
                             writer
-                                .send(ServerPacket::PasscodeRequiredResponse(PasscodeRequiredResponse::new(
-                                    PasscodeRequiredCode::PasscodeRequired,
-                                )))
+                                .send(PasscodeRequiredResponse::new(PasscodeRequiredCode::PasscodeRequired))
                                 .await?;
                         },
                         LoginResult::InvalidCredentials => {
                             writer
-                                .send(ServerPacket::LoginResponse(LoginResponse {
+                                .send(LoginResponse {
                                     result: silkroad_protocol::login::LoginResult::Error {
                                         error: SecurityError::InvalidCredentials {
                                             max_attempts: 5,
                                             current_attempts: 1,
                                         },
                                     },
-                                }))
+                                })
                                 .await?;
                         },
                         LoginResult::Blocked => {
@@ -178,7 +169,7 @@ impl Client {
                                     },
                                 },
                             });
-                            writer.send(ServerPacket::LoginResponse(response)).await?;
+                            writer.send(response).await?;
                         },
                     }
                 },
@@ -191,9 +182,7 @@ impl Client {
                                 Err(_) => {
                                     // Maybe this should return a more fitting response code?
                                     // Or should the client just be ditched?
-                                    writer
-                                        .send(ServerPacket::PasscodeResponse(PasscodeResponse::new(2, 1)))
-                                        .await?;
+                                    writer.send(PasscodeResponse::new(2, 1)).await?;
                                     continue;
                                 },
                             };
@@ -205,11 +194,11 @@ impl Client {
                         match result {
                             LoginResult::Success(id) => {
                                 writer
-                                    .send(ServerPacket::SecurityCodeResponse(SecurityCodeResponse {
+                                    .send(SecurityCodeResponse {
                                         account_status: PasscodeAccountStatus::Ok,
                                         result: 1,
                                         invalid_attempts: 3,
-                                    }))
+                                    })
                                     .await?;
                                 Self::try_reserve_spot(&mut writer, &agent_servers, id as u32, previous).await?
                             },
@@ -218,16 +207,16 @@ impl Client {
                             },
                             LoginResult::InvalidCredentials => {
                                 writer
-                                    .send(ServerPacket::PasscodeRequiredResponse(PasscodeRequiredResponse {
+                                    .send(PasscodeRequiredResponse {
                                         result: PasscodeRequiredCode::PasscodeInvalid,
-                                    }))
+                                    })
                                     .await?;
                             },
                             LoginResult::Blocked => {
                                 writer
-                                    .send(ServerPacket::PasscodeRequiredResponse(PasscodeRequiredResponse {
+                                    .send(PasscodeRequiredResponse {
                                         result: PasscodeRequiredCode::PasscodeBlocked,
-                                    }))
+                                    })
                                     .await?;
                             },
                         }
@@ -238,8 +227,7 @@ impl Client {
                     let shards = servers.into_iter().map(|server| server.into()).collect();
                     let farms = agent_servers.farms().clone();
 
-                    let response = ServerPacket::ShardListResponse(ShardListResponse { farms, shards });
-                    writer.send(response).await?;
+                    writer.send(ShardListResponse { farms, shards }).await?;
                 },
                 ClientPacket::PingServerRequest(_) => {
                     let ping_response = PingServerResponse {
@@ -250,7 +238,7 @@ impl Client {
                             unknown_2: 0xbd,
                         }],
                     };
-                    writer.send(ServerPacket::PingServerResponse(ping_response)).await?;
+                    writer.send(ping_response).await?;
                 },
                 _ => {},
             }
@@ -269,11 +257,11 @@ impl Client {
             Some(addr) => addr,
             None => {
                 writer
-                    .send(ServerPacket::LoginResponse(LoginResponse {
+                    .send(LoginResponse {
                         result: silkroad_protocol::login::LoginResult::Error {
                             error: SecurityError::Inspection,
                         },
-                    }))
+                    })
                     .await?;
                 return Ok(());
             },
@@ -287,11 +275,11 @@ impl Client {
             Err(e) => {
                 debug!(client = ?writer.id(), error = %e, "Error when reserving a spot");
                 writer
-                    .send(ServerPacket::LoginResponse(LoginResponse {
+                    .send(LoginResponse {
                         result: silkroad_protocol::login::LoginResult::Error {
                             error: SecurityError::Inspection,
                         },
-                    }))
+                    })
                     .await?
             },
             Ok(result) => match result {
@@ -300,33 +288,33 @@ impl Client {
                     let port = server.port();
                     debug!(client = ?writer.id(), "Got a spot at {ip}:{port}: {token}");
                     writer
-                        .send(ServerPacket::LoginResponse(LoginResponse {
+                        .send(LoginResponse {
                             result: silkroad_protocol::login::LoginResult::Success {
                                 session_id: token,
                                 agent_ip: ip.to_string(),
                                 agent_port: port,
                                 unknown: 1,
                             },
-                        }))
+                        })
                         .await?
                 },
                 ReserveResponse::NotFound => {
                     writer
-                        .send(ServerPacket::LoginResponse(LoginResponse {
+                        .send(LoginResponse {
                             result: silkroad_protocol::login::LoginResult::Error {
                                 error: SecurityError::Inspection,
                             },
-                        }))
+                        })
                         .await?
                 },
                 ReserveResponse::Error(message) => {
                     debug!(client = ?writer.id(), "Could not reserve spot: {message}");
                     writer
-                        .send(ServerPacket::LoginResponse(LoginResponse {
+                        .send(LoginResponse {
                             result: silkroad_protocol::login::LoginResult::Error {
                                 error: SecurityError::ServerFull,
                             },
-                        }))
+                        })
                         .await?
                 },
             },

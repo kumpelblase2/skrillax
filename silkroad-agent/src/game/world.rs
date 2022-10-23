@@ -24,7 +24,7 @@ use silkroad_protocol::world::{
     CharacterPointsUpdate, TargetEntity, TargetEntityError, TargetEntityResponse, TargetEntityResult,
     UnTargetEntityResponse,
 };
-use silkroad_protocol::{ClientPacket, ServerPacket};
+use silkroad_protocol::ClientPacket;
 use std::mem::take;
 use std::ops::Add;
 use std::time::Duration;
@@ -87,8 +87,8 @@ pub(crate) fn handle_world_input(
                     {
                         Some(content) => content,
                         None => {
-                            client.send(ServerPacket::TargetEntityResponse(TargetEntityResponse::new(
-                                TargetEntityResult::failure(TargetEntityError::InvalidTarget),
+                            client.send(TargetEntityResponse::new(TargetEntityResult::failure(
+                                TargetEntityError::InvalidTarget,
                             )));
                             continue;
                         },
@@ -97,27 +97,26 @@ pub(crate) fn handle_world_input(
                     let distance = target.1.location.0.distance2(player_pos.location.0);
                     if distance >= MAX_TARGET_DISTANCE {
                         // Is this an adequate response?
-                        client.send(ServerPacket::TargetEntityResponse(TargetEntityResponse::new(
-                            TargetEntityResult::failure(TargetEntityError::InvalidTarget),
+                        client.send(TargetEntityResponse::new(TargetEntityResult::failure(
+                            TargetEntityError::InvalidTarget,
                         )));
                         continue;
                     }
 
                     match target {
                         (_, _, Some(health), Some(_mob), _, _) => {
-                            client.send(ServerPacket::TargetEntityResponse(TargetEntityResponse::new(
-                                TargetEntityResult::success_monster(unique_id, health.current_health),
+                            client.send(TargetEntityResponse::new(TargetEntityResult::success_monster(
+                                unique_id,
+                                health.current_health,
                             )));
                         },
                         (_, _, _, _, Some(npc), _) => {
-                            client.send(ServerPacket::TargetEntityResponse(TargetEntityResponse::new(
-                                TargetEntityResult::success_npc(unique_id),
-                            )));
+                            client.send(TargetEntityResponse::new(TargetEntityResult::success_npc(unique_id)));
                         },
                         (_entity, _, _, _, _, Some(player)) => {},
                         _ => {
-                            client.send(ServerPacket::TargetEntityResponse(TargetEntityResponse::new(
-                                TargetEntityResult::failure(TargetEntityError::InvalidTarget),
+                            client.send(TargetEntityResponse::new(TargetEntityResult::failure(
+                                TargetEntityError::InvalidTarget,
                             )));
                             continue;
                         },
@@ -131,7 +130,7 @@ pub(crate) fn handle_world_input(
                     let mut agent_lookup = target_lookup.p1();
                     let (_, mut agent) = agent_lookup.get_mut(entity).unwrap();
                     agent.target = None;
-                    client.send(ServerPacket::UnTargetEntityResponse(UnTargetEntityResponse::new(true)));
+                    client.send(UnTargetEntityResponse::new(true));
                 },
                 ClientPacket::PerformAction(action) => match action {
                     PerformAction::Do(DoActionType::Attack { target }) => {
@@ -140,7 +139,7 @@ pub(crate) fn handle_world_input(
                         let target = match target {
                             ActionTarget::Entity(entity) => entity,
                             _ => {
-                                client.send(ServerPacket::PerformActionResponse(PerformActionResponse::Do(2)));
+                                client.send(PerformActionResponse::Do(2));
                                 continue;
                             },
                         };
@@ -151,7 +150,7 @@ pub(crate) fn handle_world_input(
                         {
                             Some(entity) => entity,
                             None => {
-                                client.send(ServerPacket::PerformActionResponse(PerformActionResponse::Do(2)));
+                                client.send(PerformActionResponse::Do(2));
                                 continue;
                             },
                         };
@@ -161,14 +160,14 @@ pub(crate) fn handle_world_input(
                         let (attack_skill, range) = match get_default_attack_range(player_entity, player) {
                             Ok(inner) => inner,
                             Err(_) => {
-                                client.send(ServerPacket::PerformActionResponse(PerformActionResponse::Do(2)));
+                                client.send(PerformActionResponse::Do(2));
                                 continue;
                             },
                         };
 
                         let next = match target {
                             (target_ref, (entity, pos, Some(health), Some(mob), _, _)) => {
-                                client.send(ServerPacket::PerformActionResponse(PerformActionResponse::Do(1)));
+                                client.send(PerformActionResponse::Do(1));
                                 let distance = pos.location.0.distance2(player_pos.location.0);
                                 if distance <= range.pow(2) {
                                     AgentAction::Attack {
@@ -206,16 +205,12 @@ pub(crate) fn handle_world_input(
                                 if let Some(entity) = lookup.get_entity_for_id(id) {
                                     entity
                                 } else {
-                                    client.send(ServerPacket::PerformActionResponse(PerformActionResponse::Stop(
-                                        PerformActionError::InvalidTarget,
-                                    )));
+                                    client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
                                     continue;
                                 }
                             },
                             _ => {
-                                client.send(ServerPacket::PerformActionResponse(PerformActionResponse::Stop(
-                                    PerformActionError::InvalidTarget,
-                                )));
+                                client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
                                 continue;
                             },
                         };
@@ -224,9 +219,7 @@ pub(crate) fn handle_world_input(
                             let (_, item) = match item_query.get(item_entity) {
                                 Ok((entity, item)) => (entity, item),
                                 _ => {
-                                    client.send(ServerPacket::PerformActionResponse(PerformActionResponse::Stop(
-                                        PerformActionError::InvalidTarget,
-                                    )));
+                                    client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
                                     continue;
                                 },
                             };
@@ -238,20 +231,16 @@ pub(crate) fn handle_world_input(
                                 let mut player_lookup = target_lookup.p1();
                                 let (mut player, _) = player_lookup.get_mut(entity).unwrap();
                                 player.character.gold += amount as u64;
-                                client.send(ServerPacket::InventoryOperationResult(
-                                    InventoryOperationResult::Success(AddedByServer {
-                                        slot: GOLD_SLOT,
-                                        unknown: 0,
-                                        data: ItemPickupData::Gold { amount },
-                                    }),
-                                ));
-                                client.send(ServerPacket::CharacterPointsUpdate(CharacterPointsUpdate::Gold {
+                                client.send(InventoryOperationResult::Success(AddedByServer {
+                                    slot: GOLD_SLOT,
+                                    unknown: 0,
+                                    data: ItemPickupData::Gold { amount },
+                                }));
+                                client.send(CharacterPointsUpdate::Gold {
                                     amount: player.character.gold,
                                     display: true,
-                                }));
-                                client.send(ServerPacket::PerformActionResponse(PerformActionResponse::Stop(
-                                    PerformActionError::Completed,
-                                )));
+                                });
+                                client.send(PerformActionResponse::Stop(PerformActionError::Completed));
                                 cmd.entity(item_entity).despawn();
                             },
                             drop::Item::Consumable(_) => {},
@@ -296,7 +285,7 @@ pub(crate) fn finish_logout(
     for (entity, client, player) in query.iter() {
         if let Some(logout_time) = player.logout {
             if delta.last_update().unwrap() > logout_time {
-                client.send(ServerPacket::LogoutFinished(LogoutFinished));
+                client.send(LogoutFinished);
                 disconnect_events.send(ClientDisconnectedEvent(entity));
             }
         }

@@ -1,5 +1,5 @@
 use crate::comp::net::{CharselectInput, GmInput, InputBundle};
-use crate::comp::player::{Agent, Inventory, MovementState, Player, PlayerBundle};
+use crate::comp::player::{Agent, Inventory, Player, PlayerBundle};
 use crate::comp::pos::{Heading, LocalPosition, Position};
 use crate::comp::visibility::Visibility;
 use crate::comp::{CharacterSelect, Client, GameEntity, Playing};
@@ -28,7 +28,7 @@ use silkroad_protocol::inventory::{InventoryItemBindingData, InventoryItemConten
 use silkroad_protocol::world::{
     ActionState, AliveState, BodyState, CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, EntityState, JobType,
 };
-use silkroad_protocol::{ClientPacket, ServerPacket};
+use silkroad_protocol::ClientPacket;
 use sqlx::PgPool;
 use std::mem::take;
 use std::sync::Arc;
@@ -61,10 +61,10 @@ pub(crate) fn charselect(
                     } => {
                         if !can_create_character_with_name(&character_list, &character_name) {
                             debug!(id = ?client.0.id(), "Tried to create character without checking name first.");
-                            client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
+                            client.send(CharacterListResponse::new(
                                 CharacterListAction::Create,
                                 CharacterListResult::error(CharacterListError::CloudntCreateCharacter),
-                            )));
+                            ));
                         }
 
                         let character = create_character_from(
@@ -103,10 +103,10 @@ pub(crate) fn charselect(
                     },
                     CharacterListRequestAction::Delete { character_name } => {
                         if !has_user_character_with_name(&character_list, &character_name) {
-                            client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
+                            client.send(CharacterListResponse::new(
                                 CharacterListAction::Delete,
                                 CharacterListResult::error(CharacterListError::InvalidName),
-                            )));
+                            ));
                             continue;
                         }
 
@@ -121,10 +121,10 @@ pub(crate) fn charselect(
                     },
                     CharacterListRequestAction::Restore { character_name } => {
                         if !has_user_character_with_name(&character_list, &character_name) {
-                            client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
+                            client.send(CharacterListResponse::new(
                                 CharacterListAction::Delete,
                                 CharacterListResult::error(CharacterListError::InvalidName),
-                            )));
+                            ));
                             continue;
                         }
 
@@ -151,8 +151,8 @@ pub(crate) fn charselect(
                                 .unwrap();
 
                             if character.character_data.deletion_end.is_some() {
-                                client.send(ServerPacket::CharacterJoinResponse(CharacterJoinResponse::new(
-                                    CharacterJoinResult::error(CharacterListError::InvalidName),
+                                client.send(CharacterJoinResponse::new(CharacterJoinResult::error(
+                                    CharacterListError::InvalidName,
                                 )));
                                 continue;
                             }
@@ -241,10 +241,7 @@ pub(crate) fn charselect(
                         character_list.checked_name = None;
                         CharacterListResult::error(CharacterListError::NameAlreadyUsed)
                     };
-                    client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
-                        CharacterListAction::CheckName,
-                        result,
-                    )));
+                    client.send(CharacterListResponse::new(CharacterListAction::CheckName, result));
                     character_list.character_name_check = None;
                 },
                 Err(TryRecvError::Empty) => {},
@@ -258,10 +255,10 @@ pub(crate) fn charselect(
         if let Some(receiver) = character_list.character_create.as_mut() {
             match receiver.try_recv() {
                 Ok(_) => {
-                    client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
+                    client.send(CharacterListResponse::new(
                         CharacterListAction::Create,
                         CharacterListResult::ok(CharacterListContent::Empty),
-                    )));
+                    ));
                     character_list.character_create = None;
                 },
                 Err(TryRecvError::Empty) => {},
@@ -275,10 +272,10 @@ pub(crate) fn charselect(
         if let Some(receiver) = character_list.character_delete_task.as_mut() {
             match receiver.try_recv() {
                 Ok(true) => {
-                    client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
+                    client.send(CharacterListResponse::new(
                         CharacterListAction::Delete,
                         CharacterListResult::ok(CharacterListContent::Empty),
-                    )));
+                    ));
                     character_list.character_delete_task = None;
                 },
                 Err(TryRecvError::Empty) => {},
@@ -293,15 +290,15 @@ pub(crate) fn charselect(
             match receiver.try_recv() {
                 Ok(result) => {
                     if result {
-                        client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
+                        client.send(CharacterListResponse::new(
                             CharacterListAction::Restore,
                             CharacterListResult::ok(CharacterListContent::Empty),
-                        )));
+                        ));
                     } else {
-                        client.send(ServerPacket::CharacterListResponse(CharacterListResponse::new(
+                        client.send(CharacterListResponse::new(
                             CharacterListAction::Restore,
                             CharacterListResult::error(CharacterListError::InvalidName), // TODO: use a better error
-                        )));
+                        ));
                     }
                     character_list.character_restore = None;
                 },

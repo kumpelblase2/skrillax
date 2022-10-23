@@ -17,7 +17,6 @@ use silkroad_protocol::world::{
     GroupEntitySpawnData, GroupEntitySpawnEnd, GroupEntitySpawnStart, GroupSpawnDataContent, GroupSpawnType,
     GuildInformation, InteractOptions, ItemSpawnData, JobType, PlayerKillState, PvpCape,
 };
-use silkroad_protocol::ServerPacket;
 use std::collections::{BTreeMap, HashSet};
 use tracing::{trace, trace_span};
 
@@ -257,11 +256,8 @@ pub(crate) fn clear_visibility(mut query: Query<&mut Visibility, Without<Player>
 
 fn send_group_spawn_packet(client: &Client, mode: GroupSpawnType, spawns: Vec<GroupSpawnDataContent>) {
     if !spawns.is_empty() {
-        client.send(ServerPacket::GroupEntitySpawnStart(GroupEntitySpawnStart::new(
-            mode,
-            spawns.len() as u16,
-        )));
-        client.send(ServerPacket::GroupEntitySpawnData(GroupEntitySpawnData::new(spawns)));
-        client.send(ServerPacket::GroupEntitySpawnEnd(GroupEntitySpawnEnd));
+        client.send(GroupEntitySpawnStart::new(mode, spawns.len() as u16));
+        client.send(GroupEntitySpawnData::new(spawns));
+        client.send(GroupEntitySpawnEnd);
     }
 }

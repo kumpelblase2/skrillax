@@ -10,7 +10,7 @@ use silkroad_network::server::SilkroadServer;
 use silkroad_network::stream::StreamError;
 use silkroad_protocol::character::{GameGuideResponse, UpdateGameGuide};
 use silkroad_protocol::inventory::{ConsignmentResponse, OpenItemMallResponse, OpenItemMallResult};
-use silkroad_protocol::{ClientPacket, ServerPacket};
+use silkroad_protocol::ClientPacket;
 use sqlx::PgPool;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
@@ -108,12 +108,10 @@ pub(crate) fn receive(
                             }
                         },
                         ClientPacket::OpenItemMall(_) => {
-                            client.send(ServerPacket::OpenItemMallResponse(OpenItemMallResponse(
-                                OpenItemMallResult::Success {
-                                    jid: 123,
-                                    token: "123".to_string(),
-                                },
-                            )));
+                            client.send(OpenItemMallResponse(OpenItemMallResult::Success {
+                                jid: 123,
+                                token: "123".to_string(),
+                            }));
                         },
                         packet @ ClientPacket::InventoryOperation(_) => {
                             if let Some(input) = inventory_opt.as_mut() {

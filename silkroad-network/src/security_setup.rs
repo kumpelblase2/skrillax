@@ -1,6 +1,6 @@
 use crate::stream::{StreamError, StreamReader, StreamWriter};
 use silkroad_protocol::general::{HandshakeStage, SecuritySetup};
-use silkroad_protocol::{ClientPacket, ServerPacket};
+use silkroad_protocol::ClientPacket;
 use silkroad_security::security::SilkroadSecurity;
 use std::sync::{Arc, RwLock};
 use thiserror::Error;
@@ -37,9 +37,7 @@ impl SecurityHandshake {
             b: init.additional_seeds[1],
             c: init.additional_seeds[2],
         };
-        writer
-            .send(ServerPacket::SecuritySetup(SecuritySetup::new(handshake)))
-            .await?;
+        writer.send(SecuritySetup::new(handshake)).await?;
 
         let response = reader.next().await?;
         let challenge = match response {
@@ -53,9 +51,7 @@ impl SecurityHandshake {
         };
 
         writer
-            .send(ServerPacket::SecuritySetup(SecuritySetup::new(
-                HandshakeStage::Finalize { challenge },
-            )))
+            .send(SecuritySetup::new(HandshakeStage::Finalize { challenge }))
             .await?;
 
         let response = reader.next().await?;

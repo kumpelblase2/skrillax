@@ -13,7 +13,6 @@ use id_pool::IdPool;
 use silkroad_data::type_id::{ObjectConsumable, ObjectConsumableCurrency, ObjectItem, ObjectType};
 use silkroad_protocol::gm::{GmCommand, GmResponse};
 use silkroad_protocol::world::{BodyState, UpdatedState};
-use silkroad_protocol::ServerPacket;
 use std::mem::take;
 use std::time::Duration;
 

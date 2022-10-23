@@ -136,10 +136,10 @@ impl StreamWriter {
         }
     }
 
-    pub async fn send(&mut self, packet: ServerPacket) -> SendResult {
+    pub async fn send<P: Into<ServerPacket>>(&mut self, packet: P) -> SendResult {
         let span = trace_span!("encoding", id = ?self.id);
         let enter = span.enter();
-        let frames = SilkroadFrame::create_for(packet);
+        let frames = SilkroadFrame::create_for(packet.into());
         drop(enter);
 
         let mut iter = futures::stream::iter(frames.into_iter().map(Ok));
