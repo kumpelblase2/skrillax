@@ -1,4 +1,5 @@
 pub mod characterdata;
+pub mod common;
 pub mod datamap;
 pub mod gold;
 pub mod itemdata;
@@ -9,6 +10,7 @@ pub mod skilldata;
 pub mod type_id;
 
 pub use datamap::*;
+pub use type_id::*;
 
 use encoding_rs::WINDOWS_1252;
 use num_enum::{TryFromPrimitive, TryFromPrimitiveError};

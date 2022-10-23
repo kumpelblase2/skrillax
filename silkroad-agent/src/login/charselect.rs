@@ -17,6 +17,7 @@ use bevy_ecs::prelude::*;
 use cgmath::Vector3;
 use chrono::{TimeZone, Utc};
 use id_pool::IdPool;
+use silkroad_data::DataEntry;
 use silkroad_protocol::character::{
     CharacterJoinRequest, CharacterJoinResponse, CharacterJoinResult, CharacterListAction, CharacterListContent,
     CharacterListEntry, CharacterListEquippedItem, CharacterListError, CharacterListRequest,
@@ -413,7 +414,7 @@ fn send_spawn(client: &Client, entity: &GameEntity, player: &Player, position: &
         .map(|(slot, item)| InventoryItemData {
             slot: *slot,
             rent_data: RentInfo::Empty,
-            item_id: item.reference.ref_id,
+            item_id: item.reference.ref_id(),
             content_data: InventoryItemContentData::Equipment {
                 plus_level: item.upgrade_level,
                 variance: item.variance.unwrap_or_default(),

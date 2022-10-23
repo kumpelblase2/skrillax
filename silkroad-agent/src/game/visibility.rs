@@ -9,6 +9,7 @@ use crate::game::player_activity::PlayerActivity;
 use bevy_ecs::prelude::*;
 use bevy_tasks::TaskPool;
 use cgmath::num_traits::Pow;
+use silkroad_data::DataEntry;
 use silkroad_navmesh::region::Region;
 use silkroad_protocol::inventory::CharacterSpawnItemData;
 use silkroad_protocol::world::{
@@ -101,7 +102,7 @@ pub(crate) fn player_visibility_update(
                         .inventory
                         .equipment_items()
                         .map(|(_, item)| CharacterSpawnItemData {
-                            item_id: item.reference.ref_id,
+                            item_id: item.reference.ref_id(),
                             upgrade_level: item.upgrade_level,
                         })
                         .collect();

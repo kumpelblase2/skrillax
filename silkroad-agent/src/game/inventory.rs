@@ -13,6 +13,7 @@ use silkroad_data::type_id::{
     ObjectClothingPart, ObjectClothingType, ObjectConsumable, ObjectConsumableAmmo, ObjectEquippable, ObjectItem,
     ObjectJewelryType, ObjectRace, ObjectType, ObjectWeaponType,
 };
+use silkroad_data::DataEntry;
 use silkroad_navmesh::NavmeshLoader;
 use silkroad_protocol::inventory::{
     InventoryOperationError, InventoryOperationRequest, InventoryOperationResponseData, InventoryOperationResult,
@@ -80,9 +81,9 @@ pub(crate) fn handle_inventory_input(
                                 },
                                 game_entity: GameEntity {
                                     unique_id: drop_id,
-                                    ref_id: item_ref.ref_id,
+                                    ref_id: item_ref.ref_id(),
                                 },
-                                despawn: item_ref.despawn_time.into(),
+                                despawn: item_ref.common.despawn_time.into(),
                             });
 
                             client.send(InventoryOperationResult::Success(
@@ -97,7 +98,7 @@ pub(crate) fn handle_inventory_input(
                         InventoryOperationRequest::Move { source, target, amount } => {
                             if let Some(source_item) = player.inventory.get_item_at(source) {
                                 if Inventory::is_equipment_slot(target) {
-                                    let type_id = source_item.reference.type_id;
+                                    let type_id = source_item.reference.common.type_id;
                                     let object_type = ObjectType::from_type_id(&type_id)
                                         .expect("Iem to equip should have valid object type.");
                                     let fits = does_object_type_match_slot(target, object_type)

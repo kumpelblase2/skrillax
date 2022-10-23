@@ -1,4 +1,4 @@
-use crate::type_id::TypeId;
+use crate::common::RefCommon;
 use crate::{DataEntry, DataMap, FileError, ParseError};
 use pk2::Pk2;
 use std::str::FromStr;
@@ -9,12 +9,7 @@ pub fn load_character_map(pk2: &Pk2) -> Result<DataMap<RefCharacterData>, FileEr
 
 #[derive(Clone)]
 pub struct RefCharacterData {
-    pub ref_id: u32,
-    // column 1
-    pub id: String,
-    // column 2
-    pub type_id: TypeId,
-    // column 9-12
+    pub common: RefCommon,
     pub level: u8,
     // column 57
     pub exp: u32,
@@ -30,17 +25,17 @@ pub struct RefCharacterData {
     pub berserk_speed: u32,
     // column 48
     pub aggressive: bool,
-    // column 93,
+    // column 93
     pub skills: Vec<u32>, // column 83-92
 }
 
 impl DataEntry for RefCharacterData {
     fn ref_id(&self) -> u32 {
-        self.ref_id
+        self.common.ref_id
     }
 
     fn code(&self) -> &str {
-        &self.id
+        &self.common.id
     }
 }
 
@@ -49,6 +44,7 @@ impl FromStr for RefCharacterData {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let elements = s.split('\t').collect::<Vec<&str>>();
+        let common = RefCommon::from_columns(&elements)?;
         let aggressive: u8 = elements.get(93).ok_or(ParseError::MissingColumn(94))?.parse()?;
         let mut skills: Vec<u32> = Vec::new();
         for i in 83..=92 {
@@ -58,14 +54,7 @@ impl FromStr for RefCharacterData {
             }
         }
         Ok(Self {
-            ref_id: elements.get(1).ok_or(ParseError::MissingColumn(1))?.parse()?,
-            id: elements.get(2).ok_or(ParseError::MissingColumn(2))?.to_string(),
-            type_id: TypeId(
-                elements.get(9).ok_or(ParseError::MissingColumn(9))?.parse()?,
-                elements.get(10).ok_or(ParseError::MissingColumn(10))?.parse()?,
-                elements.get(11).ok_or(ParseError::MissingColumn(11))?.parse()?,
-                elements.get(12).ok_or(ParseError::MissingColumn(12))?.parse()?,
-            ),
+            common,
             level: elements.get(57).ok_or(ParseError::MissingColumn(57))?.parse()?,
             exp: elements.get(79).ok_or(ParseError::MissingColumn(79))?.parse()?,
             hp: elements.get(59).ok_or(ParseError::MissingColumn(59))?.parse()?,

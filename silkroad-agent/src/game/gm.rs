@@ -50,7 +50,7 @@ pub(crate) fn handle_gm_commands(
                 GmCommand::MakeItem { ref_id, upgrade } => {
                     let item = ITEMS.get().unwrap().find_id(ref_id).unwrap();
                     let unique_id = id_pool.request_id().unwrap();
-                    let object_type = ObjectType::from_type_id(&item.type_id).unwrap();
+                    let object_type = ObjectType::from_type_id(&item.common.type_id).unwrap();
                     let item_type = if matches!(object_type, ObjectType::Item(ObjectItem::Equippable(_))) {
                         Item::Equipment { upgrade }
                     } else if matches!(
@@ -70,7 +70,7 @@ pub(crate) fn handle_gm_commands(
                         },
                         position: position.clone(),
                         game_entity: GameEntity { unique_id, ref_id },
-                        despawn: Despawn(Timer::new(item.despawn_time, false)),
+                        despawn: Despawn(Timer::new(item.common.despawn_time, false)),
                     };
                     commands.spawn().insert_bundle(bundle);
                 },

@@ -35,8 +35,8 @@ pub(crate) fn spawn_npcs(
             .unwrap()
             .find_id(spawn.npc_id)
             .expect("Could not find character data for NPC to spawn.");
-        let type_id =
-            ObjectType::from_type_id(&character_data.type_id).expect("Could not create type id from type 4-tuple.");
+        let type_id = ObjectType::from_type_id(&character_data.common.type_id)
+            .expect("Could not create type id from type 4-tuple.");
         if matches!(
             type_id,
             ObjectType::Entity(ObjectEntity::NonPlayer(ObjectNonPlayer::NPC(_)))

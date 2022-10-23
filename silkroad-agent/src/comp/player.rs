@@ -11,6 +11,7 @@ use bevy_core::Timer;
 use bevy_ecs::prelude::*;
 use silkroad_data::itemdata::RefItemData;
 use silkroad_data::skilldata::RefSkillData;
+use silkroad_data::DataEntry;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -90,7 +91,7 @@ impl Inventory {
     pub(crate) fn move_item(&mut self, source: u8, target: u8, amount: u16) -> Result<u16, MoveError> {
         if let Some(mut source_item) = self.items.remove(&source) {
             if let Some(mut target_item) = self.items.remove(&target) {
-                if source_item.reference.ref_id == target_item.reference.ref_id
+                if source_item.reference.ref_id() == target_item.reference.ref_id()
                     && source_item.reference.max_stack_size > 1
                 {
                     let available_on_target_stack = target_item.reference.max_stack_size - target_item.amount;

@@ -314,7 +314,7 @@ fn get_attack_skill<'a>(
     weapon: Option<&Item>,
 ) -> Result<&'a RefSkillData, AttackSkillError> {
     let skill = if let Some(weapon) = weapon {
-        let item_type = match ObjectType::from_type_id(&weapon.reference.type_id).unwrap() {
+        let item_type = match ObjectType::from_type_id(&weapon.reference.common.type_id).unwrap() {
             ObjectType::Item(item) => item,
             _ => return Err(AttackSkillError::NotAWeapon),
         };
