@@ -7,7 +7,7 @@ use crate::comp::visibility::Visibility;
 use crate::comp::{Client, EntityReference, GameEntity};
 use crate::game::player_activity::PlayerActivity;
 use bevy_ecs::prelude::*;
-use bevy_tasks::TaskPool;
+use bevy_tasks::ComputeTaskPool;
 use cgmath::num_traits::Pow;
 use silkroad_data::DataEntry;
 use silkroad_navmesh::region::Region;
@@ -23,7 +23,7 @@ use tracing::{trace, trace_span};
 static EMPTY_VEC: Vec<(Entity, &Position, &GameEntity)> = vec![];
 
 pub(crate) fn visibility_update(
-    pool: Res<TaskPool>,
+    pool: Res<ComputeTaskPool>,
     activity: Res<PlayerActivity>,
     mut query: Query<(Entity, &GameEntity, &mut Visibility, &Position)>,
     lookup: Query<(Entity, &Position, &GameEntity)>,
