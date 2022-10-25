@@ -164,22 +164,22 @@ impl CharacterJoinResult {
 pub enum TimeInformation {
     #[silkroad(value = 1)]
     Deleting {
-        last_logout: u32,
+        last_logout: SilkroadTime,
         deletion_time_remaining: u32,
     },
     #[silkroad(value = 0)]
-    Playable { last_logout: u32 },
+    Playable { last_logout: SilkroadTime },
 }
 
 impl TimeInformation {
-    pub fn deleting(last_logout: u32, deletion_time_remaining: u32) -> Self {
+    pub fn deleting(last_logout: SilkroadTime, deletion_time_remaining: u32) -> Self {
         TimeInformation::Deleting {
             last_logout,
             deletion_time_remaining,
         }
     }
 
-    pub fn playable(last_logout: u32) -> Self {
+    pub fn playable(last_logout: SilkroadTime) -> Self {
         TimeInformation::Playable { last_logout }
     }
 }

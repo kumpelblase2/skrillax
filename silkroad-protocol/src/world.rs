@@ -787,7 +787,7 @@ pub struct CharacterSpawnStart;
 
 #[derive(Clone, Serialize, ByteSize)]
 pub struct CharacterSpawn {
-    pub time: u32,
+    pub time: SilkroadTime,
     pub ref_id: u32,
     pub scale: u8,
     pub level: u8,
@@ -867,7 +867,7 @@ pub struct CharacterSpawn {
 
 impl CharacterSpawn {
     pub fn new(
-        time: u32,
+        time: SilkroadTime,
         ref_id: u32,
         scale: u8,
         level: u8,

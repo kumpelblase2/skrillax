@@ -11,7 +11,6 @@ use crate::login::character_loader::{
 };
 use crate::login::job_distribution::JobDistribution;
 use crate::server_plugin::ServerId;
-use crate::time::AsSilkroadTime;
 use crate::GameSettings;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
@@ -28,7 +27,7 @@ use silkroad_protocol::inventory::{InventoryItemBindingData, InventoryItemConten
 use silkroad_protocol::world::{
     ActionState, AliveState, BodyState, CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, EntityState, JobType,
 };
-use silkroad_protocol::ClientPacket;
+use silkroad_protocol::{ClientPacket, SilkroadTime};
 use sqlx::PgPool;
 use std::mem::take;
 use std::sync::Arc;
@@ -346,7 +345,10 @@ fn send_character_list(client: &Client, character_list: &[Character]) {
 
 fn from_character(character: &Character) -> CharacterListEntry {
     let data = &character.character_data;
-    let last_logout = data.last_logout.map(|time| time.as_silkroad_time()).unwrap_or(0);
+    let last_logout = data
+        .last_logout
+        .map(SilkroadTime::from)
+        .unwrap_or_else(|| SilkroadTime::default());
     let target_deletion_date = data.deletion_end;
     let playtime_information = target_deletion_date
         .map(|end| end - Utc::now())
@@ -426,7 +428,7 @@ fn send_spawn(client: &Client, entity: &GameEntity, player: &Player, position: &
         .collect();
 
     client.send(CharacterSpawn::new(
-        Utc::now().as_silkroad_time(),
+        SilkroadTime::default(),
         entity.ref_id,
         character_data.scale,
         character_data.level,

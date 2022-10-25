@@ -9,7 +9,6 @@ mod net;
 mod population;
 mod server_plugin;
 mod settings;
-mod time;
 mod world;
 
 use crate::config::get_config;

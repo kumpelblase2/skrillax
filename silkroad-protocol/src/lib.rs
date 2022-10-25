@@ -20,6 +20,8 @@ pub mod inventory;
 pub mod login;
 pub mod world;
 
+pub use silkroad_serde::SilkroadTime;
+
 use crate::inventory::*;
 
 macro_rules! client_packets {

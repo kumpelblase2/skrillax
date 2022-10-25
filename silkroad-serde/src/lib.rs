@@ -1,10 +1,11 @@
 pub mod error;
+mod time;
 
 pub use error::SerializationError;
+pub use time::SilkroadTime;
 
 use byteorder::ReadBytesExt;
 use bytes::{BufMut, BytesMut};
-use chrono::{DateTime, Datelike, TimeZone, Timelike};
 use std::io::Read;
 
 macro_rules! implement_primitive {
@@ -94,24 +95,6 @@ implement_primitive!(u64, read_u64);
 implement_primitive!(i64, read_i64);
 implement_primitive!(f32, read_f32);
 implement_primitive!(f64, read_f64);
-
-impl<T: TimeZone> Serialize for DateTime<T> {
-    fn write_to(&self, writer: &mut BytesMut) {
-        writer.put_u16_le(self.year() as u16);
-        writer.put_u16_le(self.month() as u16);
-        writer.put_u16_le(self.day() as u16);
-        writer.put_u16_le(self.hour() as u16);
-        writer.put_u16_le(self.minute() as u16);
-        writer.put_u16_le(self.second() as u16);
-        writer.put_u32_le(self.timestamp_millis() as u32);
-    }
-}
-
-impl<T: TimeZone> ByteSize for DateTime<T> {
-    fn byte_size(&self) -> usize {
-        16
-    }
-}
 
 #[cfg(test)]
 mod test {
