@@ -13,16 +13,11 @@ use crate::login::character_loader::Character;
 use crate::population::capacity::PlayingToken;
 use bevy_core::Timer;
 use bevy_ecs::prelude::*;
-use silkroad_network::stream::Stream;
-use silkroad_protocol::ServerPacket;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::sync::oneshot::Receiver;
 
 #[derive(Component)]
 pub(crate) struct Login;
-
-#[derive(Component)]
-pub(crate) struct LastAction(pub(crate) Instant);
 
 #[derive(Component, Default)]
 pub(crate) struct CharacterSelect {
@@ -33,18 +28,6 @@ pub(crate) struct CharacterSelect {
     pub(crate) checked_name: Option<String>,
     pub(crate) character_create: Option<Receiver<()>>,
     pub(crate) character_restore: Option<Receiver<bool>>,
-}
-
-#[derive(Component)]
-pub(crate) struct Client(pub(crate) Stream);
-
-impl Client {
-    pub fn send<T: Into<ServerPacket>>(&self, packet: T) {
-        // We specifically ignore the error here because we'll handle the client being disconnected
-        // at the end of the game tick. This means we might do some unnecessary things, but that's ok
-        // for now. The upside is that this means there's a single point where we handle such errors.
-        let _ = self.0.send(packet);
-    }
 }
 
 #[derive(Component, Copy, Clone, PartialEq, Eq, Hash)]

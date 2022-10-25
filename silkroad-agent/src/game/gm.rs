@@ -1,17 +1,17 @@
 use crate::comp::drop::{DropBundle, Item, ItemDrop};
 use crate::comp::monster::{Monster, MonsterBundle, RandomStroll, SpawnedBy};
-use crate::comp::net::GmInput;
+use crate::comp::net::{Client, GmInput};
 use crate::comp::player::Agent;
 use crate::comp::pos::Position;
 use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
-use crate::comp::{Client, Despawn, EntityReference, GameEntity, Health};
-use crate::world::{EntityLookup, CHARACTERS, ITEMS};
+use crate::comp::{Despawn, EntityReference, GameEntity, Health};
+use crate::world::{EntityLookup, WorldData};
 use bevy_core::Timer;
 use bevy_ecs::prelude::*;
 use id_pool::IdPool;
 use silkroad_data::type_id::{ObjectConsumable, ObjectConsumableCurrency, ObjectItem, ObjectType};
-use silkroad_protocol::gm::{GmCommand, GmResponse};
+use silkroad_protocol::gm::GmCommand;
 use silkroad_protocol::world::{BodyState, UpdatedState};
 use std::mem::take;
 use std::time::Duration;
@@ -28,7 +28,7 @@ pub(crate) fn handle_gm_commands(
             match command {
                 GmCommand::BanUser { .. } => {},
                 GmCommand::SpawnMonster { ref_id, amount, rarity } => {
-                    let character_def = CHARACTERS.get().unwrap().find_id(ref_id).unwrap();
+                    let character_def = WorldData::characters().find_id(ref_id).unwrap();
                     for _ in 0..amount {
                         let unique_id = id_pool.request_id().unwrap();
                         // FIXME: `SpawnedBy` doesn't really make sense here.
@@ -47,7 +47,7 @@ pub(crate) fn handle_gm_commands(
                     }
                 },
                 GmCommand::MakeItem { ref_id, upgrade } => {
-                    let item = ITEMS.get().unwrap().find_id(ref_id).unwrap();
+                    let item = WorldData::items().find_id(ref_id).unwrap();
                     let unique_id = id_pool.request_id().unwrap();
                     let object_type = ObjectType::from_type_id(&item.common.type_id).unwrap();
                     let item_type = if matches!(object_type, ObjectType::Item(ObjectItem::Equippable(_))) {

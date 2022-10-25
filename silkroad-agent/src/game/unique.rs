@@ -1,5 +1,6 @@
 use crate::comp::monster::Monster;
-use crate::comp::{Client, GameEntity};
+use crate::comp::net::Client;
+use crate::comp::GameEntity;
 use crate::event::UniqueKilledEvent;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::world::{EntityRarity, GameNotification};

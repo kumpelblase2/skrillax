@@ -1,9 +1,9 @@
 use crate::comp::monster::{Monster, RandomStroll};
+use crate::comp::net::Client;
 use crate::comp::net::MovementInput;
 use crate::comp::player::{Agent, AgentAction, MovementState, MovementTarget, SkillState};
 use crate::comp::pos::{GlobalLocation, GlobalPosition, Heading, LocalPosition, Position};
 use crate::comp::sync::{MovementUpdate, Synchronize};
-use crate::comp::Client;
 use crate::ext::{Vector2Ext, Vector3Ext};
 use bevy_core::{Time, Timer};
 use bevy_ecs::prelude::*;

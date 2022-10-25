@@ -1,8 +1,8 @@
 use crate::comp::drop::{DropBundle, ItemDrop};
-use crate::comp::net::InventoryInput;
+use crate::comp::net::{Client, InventoryInput};
 use crate::comp::player::{Inventory, MoveError, Player, Race};
 use crate::comp::pos::{GlobalLocation, GlobalPosition, Heading, Position};
-use crate::comp::{drop, Client, GameEntity};
+use crate::comp::{drop, GameEntity};
 use crate::ext::{Vector2Ext, Vector3Ext};
 use crate::game::gold::get_gold_ref_id;
 use bevy_ecs::prelude::*;

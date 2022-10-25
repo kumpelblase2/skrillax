@@ -7,7 +7,7 @@ use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use crate::ext::Vector2Ext;
 use crate::game::player_activity::PlayerActivity;
-use crate::world::CHARACTERS;
+use crate::world::WorldData;
 use crate::GameSettings;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
@@ -30,9 +30,7 @@ pub(crate) fn spawn_npcs(
     mut id_pool: ResMut<IdPool>,
 ) {
     for spawn in npc_spawns.iter() {
-        let character_data = CHARACTERS
-            .get()
-            .unwrap()
+        let character_data = WorldData::characters()
             .find_id(spawn.npc_id)
             .expect("Could not find character data for NPC to spawn.");
         let type_id = ObjectType::from_type_id(&character_data.common.type_id)

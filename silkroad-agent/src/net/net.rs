@@ -1,6 +1,8 @@
-use crate::comp::net::{CharselectInput, ChatInput, GmInput, InventoryInput, MovementInput, WorldInput};
+use crate::comp::net::{
+    CharselectInput, ChatInput, Client, GmInput, InventoryInput, LastAction, MovementInput, WorldInput,
+};
 use crate::comp::player::Player;
-use crate::comp::{Client, LastAction, Login};
+use crate::comp::Login;
 use crate::db::character::update_last_played_of;
 use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent, LoadingFinishedEvent};
 use crate::GameSettings;

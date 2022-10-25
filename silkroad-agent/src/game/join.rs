@@ -1,6 +1,7 @@
+use crate::comp::net::Client;
 use crate::comp::player::{Character, Player, SpawningState};
 use crate::comp::sync::Synchronize;
-use crate::comp::{Client, GameEntity};
+use crate::comp::GameEntity;
 use crate::event::LoadingFinishedEvent;
 use crate::game::daylight::DaylightCycle;
 use crate::GameSettings;

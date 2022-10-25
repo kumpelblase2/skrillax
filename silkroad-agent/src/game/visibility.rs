@@ -1,10 +1,11 @@
 use crate::comp::drop::{Item, ItemDrop};
 use crate::comp::monster::Monster;
+use crate::comp::net::Client;
 use crate::comp::npc::NPC;
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
-use crate::comp::{Client, EntityReference, GameEntity};
+use crate::comp::{EntityReference, GameEntity};
 use crate::game::player_activity::PlayerActivity;
 use bevy_ecs::prelude::*;
 use bevy_tasks::ComputeTaskPool;

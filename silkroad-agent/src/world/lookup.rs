@@ -6,6 +6,7 @@ use id_pool::IdPool;
 use std::collections::HashMap;
 use tracing::debug;
 
+#[derive(Default)]
 pub struct EntityLookup {
     player_map: HashMap<String, Entity>,
     id_map: HashMap<u32, Entity>,
@@ -27,12 +28,6 @@ impl EntityLookup {
 
     pub fn get_entity_for_id(&self, id: u32) -> Option<Entity> {
         self.id_map.get(&id).copied()
-    }
-    pub fn new() -> Self {
-        Self {
-            player_map: HashMap::new(),
-            id_map: HashMap::new(),
-        }
     }
 }
 

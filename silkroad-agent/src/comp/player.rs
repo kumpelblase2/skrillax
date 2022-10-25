@@ -6,7 +6,7 @@ use crate::comp::visibility::Visibility;
 use crate::comp::GameEntity;
 use crate::db::character::CharacterItem;
 use crate::db::user::ServerUser;
-use crate::world::ITEMS;
+use crate::world::WorldData;
 use bevy_core::Timer;
 use bevy_ecs::prelude::*;
 use silkroad_data::itemdata::RefItemData;
@@ -49,7 +49,7 @@ impl Inventory {
     }
 
     pub fn from(items: &[CharacterItem], size: usize) -> Inventory {
-        let item_map = ITEMS.get().unwrap();
+        let item_map = WorldData::items();
         let mut my_items = HashMap::new();
 
         for item in items {

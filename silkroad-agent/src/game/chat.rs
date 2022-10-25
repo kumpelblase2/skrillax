@@ -1,7 +1,7 @@
-use crate::comp::net::ChatInput;
+use crate::comp::net::{ChatInput, Client};
 use crate::comp::player::Player;
 use crate::comp::visibility::Visibility;
-use crate::comp::{Client, GameEntity};
+use crate::comp::GameEntity;
 use crate::game::gm::handle_gm_commands;
 use crate::world::EntityLookup;
 use bevy_app::{App, Plugin};

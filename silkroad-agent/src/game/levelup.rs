@@ -1,7 +1,7 @@
+use crate::comp::net::Client;
 use crate::comp::player::Player;
-use crate::comp::Client;
 use crate::event::PlayerLevelUp;
-use crate::world::LEVELS;
+use crate::world::WorldData;
 use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
 use std::cmp::max;
@@ -12,9 +12,7 @@ pub(crate) fn notify_levelup(mut levelups: EventReader<PlayerLevelUp>, mut query
             player.character.level += 1;
             player.character.max_level = max(player.character.level, player.character.max_level);
             player.character.exp = max(
-                LEVELS
-                    .get()
-                    .unwrap()
+                WorldData::levels()
                     .get_exp_for_level(player.character.level)
                     .unwrap_or(0),
                 player.character.exp,

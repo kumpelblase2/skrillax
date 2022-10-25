@@ -1,5 +1,5 @@
-use crate::comp::net::CharselectInput;
-use crate::comp::{CharacterSelect, Client, Login, Playing};
+use crate::comp::net::{CharselectInput, Client};
+use crate::comp::{CharacterSelect, Login, Playing};
 use crate::event::ClientDisconnectedEvent;
 use crate::population::LoginQueue;
 use crate::population::ReservationError;

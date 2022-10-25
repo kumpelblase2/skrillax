@@ -1,8 +1,8 @@
-use crate::comp::net::{CharselectInput, GmInput, InputBundle};
+use crate::comp::net::{CharselectInput, Client, GmInput, InputBundle};
 use crate::comp::player::{Agent, Inventory, Player, PlayerBundle};
 use crate::comp::pos::{Heading, LocalPosition, Position};
 use crate::comp::visibility::Visibility;
-use crate::comp::{CharacterSelect, Client, GameEntity, Playing};
+use crate::comp::{CharacterSelect, GameEntity, Playing};
 use crate::db::character::{CharacterData, CharacterItem};
 use crate::ext::AsyncTaskCreate;
 use crate::login::character_loader::{
@@ -224,8 +224,8 @@ pub(crate) fn charselect(
                     character_list.character_receiver = None;
                 },
                 Err(TryRecvError::Empty) => {},
-                Err(_) => {
-                    warn!(id = playing.0.id, "Error when loading characters.");
+                Err(e) => {
+                    warn!(id = playing.0.id, "Error when loading characters. {:?}", e);
                     character_list.character_receiver = None;
                 },
             }

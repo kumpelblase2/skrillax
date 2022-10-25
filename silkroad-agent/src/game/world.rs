@@ -1,13 +1,13 @@
 use crate::comp::drop::ItemDrop;
 use crate::comp::monster::Monster;
-use crate::comp::net::WorldInput;
+use crate::comp::net::{Client, WorldInput};
 use crate::comp::npc::NPC;
 use crate::comp::player::{Agent, AgentAction, Item, Player};
 use crate::comp::pos::{GlobalPosition, Position};
-use crate::comp::{drop, Client, GameEntity, Health};
+use crate::comp::{drop, GameEntity, Health};
 use crate::event::ClientDisconnectedEvent;
 use crate::game::inventory::GOLD_SLOT;
-use crate::world::{EntityLookup, CHARACTERS, SKILLS};
+use crate::world::{EntityLookup, WorldData};
 use crate::GameSettings;
 use bevy_core::{Time, Timer};
 use bevy_ecs::prelude::*;
@@ -260,8 +260,8 @@ fn get_default_attack_range(
     player: &Player,
 ) -> Result<(&'static RefSkillData, f32), AttackSkillError> {
     let weapon = player.inventory.weapon();
-    let attack_skill = get_attack_skill(SKILLS.get().unwrap(), weapon)?;
-    let character_data = CHARACTERS.get().unwrap().find_id(player_entity.ref_id).unwrap();
+    let attack_skill = get_attack_skill(WorldData::skills(), weapon)?;
+    let character_data = WorldData::characters().find_id(player_entity.ref_id).unwrap();
     let weapon_data = weapon.map(|weapon| weapon.reference);
     let range = vec![
         attack_skill.range,

@@ -1,7 +1,8 @@
+use crate::comp::net::Client;
 use crate::comp::player::Player;
 use crate::comp::sync::{MovementUpdate, SkillUse, Synchronize};
 use crate::comp::visibility::Visibility;
-use crate::comp::{Client, GameEntity};
+use crate::comp::GameEntity;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::combat::{ActionType, PerformActionUpdate};
 use silkroad_protocol::world::{

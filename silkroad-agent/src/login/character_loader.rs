@@ -1,6 +1,6 @@
 use crate::db::character::{fetch_characters, fetch_characters_items, CharacterData, CharacterItem};
 use sqlx::PgPool;
-use tracing::trace_span;
+use tracing::{debug, debug_span};
 
 #[derive(Clone)]
 pub struct Character {
@@ -9,13 +9,13 @@ pub struct Character {
 }
 
 pub(crate) async fn load_characters_sparse(pool: PgPool, user_id: i32, server_id: u16) -> Vec<Character> {
-    let span = trace_span!("Load Characters", id = user_id);
+    let span = debug_span!("Load Characters", id = user_id);
     let _guard = span.enter();
     let characters: Vec<CharacterData> = fetch_characters(&pool, user_id, server_id).await.unwrap();
-
+    debug!("Character count: {}", characters.len());
     let character_ids = characters.iter().map(|char| char.id).collect();
     let mut character_items = fetch_characters_items(&pool, character_ids).await.unwrap();
-
+    debug!("Items count: {}", character_items.len());
     let mut all_characters = Vec::new();
 
     for character in characters {
@@ -26,6 +26,8 @@ pub(crate) async fn load_characters_sparse(pool: PgPool, user_id: i32, server_id
             items,
         });
     }
+
+    debug!("Mapped characters.");
 
     all_characters
 }
