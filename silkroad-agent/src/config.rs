@@ -1,4 +1,4 @@
-use config::ConfigError;
+use config::{ConfigError, FileFormat};
 use log::LevelFilter;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
@@ -40,40 +40,43 @@ impl DbOptions {
 #[derive(Deserialize, Default, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct GameConfig {
-    pub(crate) max_level: Option<u8>,
-    pub(crate) client_timeout: Option<u8>,
-    pub(crate) logout_duration: Option<u8>,
+    pub(crate) max_level: u8,
+    pub(crate) client_timeout: u8,
+    pub(crate) logout_duration: u8,
     pub(crate) join_notice: Option<String>,
     pub(crate) data_location: String,
-    pub(crate) desired_ticks: Option<u32>,
-    pub(crate) deletion_time: Option<u32>,
-    pub(crate) spawner: Option<SpawnOptions>,
+    pub(crate) desired_ticks: u32,
+    pub(crate) deletion_time: u32,
+    pub(crate) spawner: SpawnOptions,
 }
 
 #[derive(Deserialize, Default, Clone)]
 pub(crate) struct SpawnOptions {
-    pub(crate) radius: Option<f32>,
-    pub(crate) amount: Option<usize>,
+    pub(crate) radius: f32,
+    pub(crate) amount: usize,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct GameServerConfig {
-    pub(crate) listen_port: Option<u16>,
-    pub(crate) listen_address: Option<String>,
+    pub(crate) listen_port: u16,
+    pub(crate) listen_address: String,
     pub(crate) external_address: Option<String>,
-    pub(crate) server_id: Option<u16>,
-    pub(crate) rpc_port: Option<u16>,
-    pub(crate) max_player_count: Option<u16>,
+    pub(crate) server_id: u16,
+    pub(crate) rpc_port: u16,
+    pub(crate) max_player_count: u16,
     pub(crate) database: DbOptions,
     pub(crate) game: GameConfig,
-    pub(crate) region: Option<String>,
-    pub(crate) name: Option<String>,
+    pub(crate) region: String,
+    pub(crate) name: String,
 }
+
+static DEFAULT_CONFIG: &str = include_str!("../conf/default.toml");
 
 impl GameServerConfig {
     pub(crate) fn load() -> Result<Self, ConfigError> {
         config::Config::builder()
+            .add_source(config::File::from_str(DEFAULT_CONFIG, FileFormat::Toml))
             .add_source(config::File::with_name("configs/agent_server"))
             .add_source(config::Environment::with_prefix("SKRILLAX_AGENT"))
             .build()

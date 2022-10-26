@@ -2,9 +2,9 @@ use crate::comp::net::Client;
 use crate::comp::player::{Character, Player, SpawningState};
 use crate::comp::sync::Synchronize;
 use crate::comp::GameEntity;
+use crate::config::GameConfig;
 use crate::event::LoadingFinishedEvent;
 use crate::game::daylight::DaylightCycle;
-use crate::GameSettings;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::chat::{ChatSource, ChatUpdate, TextCharacterInitialization};
@@ -15,7 +15,7 @@ use tracing::debug;
 
 pub(crate) fn load_finished(
     mut reader: EventReader<LoadingFinishedEvent>,
-    settings: Res<GameSettings>,
+    settings: Res<GameConfig>,
     daycycle: Res<DaylightCycle>,
     mut query: Query<(&Client, &GameEntity, &mut Player, &mut Synchronize)>,
 ) {

@@ -5,10 +5,10 @@ use crate::comp::pos::{GlobalLocation, Heading, LocalPosition, Position};
 use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
+use crate::config::GameConfig;
 use crate::ext::Vector2Ext;
 use crate::game::player_activity::PlayerActivity;
 use crate::world::WorldData;
-use crate::GameSettings;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
 use id_pool::IdPool;
@@ -25,7 +25,7 @@ use tracing::trace;
 
 pub(crate) fn spawn_npcs(
     npc_spawns: Res<Vec<NpcPosition>>,
-    settings: Res<GameSettings>,
+    settings: Res<GameConfig>,
     mut commands: Commands,
     mut id_pool: ResMut<IdPool>,
 ) {
@@ -56,7 +56,7 @@ pub(crate) fn spawn_npcs(
             };
             commands
                 .spawn()
-                .insert(Spawner::new(&settings.spawn_settings, spawn.npc_id))
+                .insert(Spawner::new(&settings.spawner, spawn.npc_id))
                 .insert(position);
         }
     }

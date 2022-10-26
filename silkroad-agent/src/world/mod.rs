@@ -1,6 +1,5 @@
 use crate::world::lookup::collect_entities;
 use crate::world::lookup::maintain_entities;
-use crate::GameSettings;
 use bevy_app::{App, CoreStage, Plugin};
 use id_pool::IdPool;
 use pk2::Pk2;
@@ -12,6 +11,7 @@ mod data;
 mod lookup;
 mod spawning;
 
+use crate::config::GameConfig;
 pub use data::*;
 pub use lookup::*;
 
@@ -23,7 +23,7 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         let data_location = &app
             .world
-            .get_resource::<GameSettings>()
+            .get_resource::<GameConfig>()
             .expect("Game settings should exist")
             .data_location;
         let location = Path::new(data_location);

@@ -3,9 +3,9 @@ use crate::comp::net::{
 };
 use crate::comp::player::Player;
 use crate::comp::Login;
+use crate::config::GameConfig;
 use crate::db::character::update_last_played_of;
 use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent, LoadingFinishedEvent};
-use crate::GameSettings;
 use bevy_core::Time;
 use bevy_ecs::prelude::*;
 use silkroad_network::server::SilkroadServer;
@@ -41,7 +41,7 @@ pub(crate) fn accept(
 pub(crate) fn receive(
     mut events: EventWriter<ClientDisconnectedEvent>,
     mut loading_events: EventWriter<LoadingFinishedEvent>,
-    settings: Res<GameSettings>,
+    settings: Res<GameConfig>,
     time: Res<Time>,
     mut query: Query<
         (

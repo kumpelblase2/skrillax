@@ -5,10 +5,10 @@ use crate::comp::npc::NPC;
 use crate::comp::player::{Agent, AgentAction, Item, Player};
 use crate::comp::pos::{GlobalPosition, Position};
 use crate::comp::{drop, GameEntity, Health};
+use crate::config::GameConfig;
 use crate::event::ClientDisconnectedEvent;
 use crate::game::inventory::GOLD_SLOT;
 use crate::world::{EntityLookup, WorldData};
-use crate::GameSettings;
 use bevy_core::{Time, Timer};
 use bevy_ecs::prelude::*;
 use cgmath::num_traits::Pow;
@@ -53,7 +53,7 @@ pub(crate) fn handle_world_input(
         Query<(&mut Player, &mut Agent)>,
         Query<(&GameEntity, &ItemDrop)>,
     )>,
-    settings: Res<GameSettings>,
+    settings: Res<GameConfig>,
     lookup: Res<EntityLookup>,
     mut cmd: Commands,
 ) {

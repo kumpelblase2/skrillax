@@ -1,0 +1,24 @@
+server-id = 1
+name = "Skrillax"
+rpc-port = 1337
+region = "EU"
+max-player-count = 10
+listen-address = "0.0.0.0"
+listen-port = 15780
+
+[game]
+max-level = 110
+logout-duration = 2
+desired-ticks = 128
+client-timeout = 30
+deletion-time = 10080
+
+[game.spawner]
+radius = 500
+amount = 10
+
+[database]
+host = "localhost"
+user = "skrillax"
+password = "skrillax"
+database = "skrillax"

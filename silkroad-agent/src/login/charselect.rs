@@ -3,6 +3,7 @@ use crate::comp::player::{Agent, Inventory, Player, PlayerBundle};
 use crate::comp::pos::{Heading, LocalPosition, Position};
 use crate::comp::visibility::Visibility;
 use crate::comp::{CharacterSelect, GameEntity, Playing};
+use crate::config::GameConfig;
 use crate::db::character::{CharacterData, CharacterItem};
 use crate::ext::AsyncTaskCreate;
 use crate::login::character_loader::{
@@ -11,7 +12,6 @@ use crate::login::character_loader::{
 };
 use crate::login::job_distribution::JobDistribution;
 use crate::server_plugin::ServerId;
-use crate::GameSettings;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
 use chrono::{TimeZone, Utc};
@@ -36,7 +36,7 @@ use tokio::sync::oneshot::error::TryRecvError;
 use tracing::{debug, warn};
 
 pub(crate) fn charselect(
-    settings: Res<GameSettings>,
+    settings: Res<GameConfig>,
     job_distribution: Res<JobDistribution>,
     pool: Res<PgPool>,
     task_creator: Res<Arc<Runtime>>,

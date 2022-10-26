@@ -3,7 +3,7 @@ use crate::comp::pos::{GlobalLocation, Position};
 use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
-use crate::settings::SpawnSettings;
+use crate::config::SpawnOptions;
 use bevy_core::Timer;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::world::EntityRarity;
@@ -61,7 +61,7 @@ pub struct Spawner {
 }
 
 impl Spawner {
-    pub(crate) fn new(settings: &SpawnSettings, spawned: u32) -> Self {
+    pub(crate) fn new(settings: &SpawnOptions, spawned: u32) -> Self {
         Spawner {
             active: false,
             radius: settings.radius,
