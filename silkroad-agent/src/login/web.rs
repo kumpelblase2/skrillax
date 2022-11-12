@@ -1,4 +1,4 @@
-use crate::db::user::fetch_server_user;
+use crate::db::user::ServerUser;
 use crate::{CapacityController, LoginQueue};
 use axum::http::HeaderMap;
 use axum::response::IntoResponse;
@@ -44,7 +44,7 @@ async fn handle_spot_request(
         return Json(ReserveResponse::Error("Invalid auth token.".to_string()));
     }
 
-    let user = fetch_server_user(&pool, reservation.user_id, settings.0)
+    let user = ServerUser::fetch(reservation.user_id, settings.0, pool)
         .await
         .unwrap()
         .unwrap();

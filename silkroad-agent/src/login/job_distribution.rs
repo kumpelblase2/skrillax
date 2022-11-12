@@ -1,4 +1,4 @@
-use crate::db::job::fetch_job_spread;
+use crate::db::user::ServerUser;
 use crate::ext::AsyncTaskCreate;
 use crate::server_plugin::ServerId;
 use bevy_core::prelude::*;
@@ -58,12 +58,14 @@ pub(crate) fn update_job_distribution(
     task_runtime: Res<Arc<Runtime>>,
     mut job: ResMut<JobDistribution>,
 ) {
-    job.refresh_timer.tick(time.delta());
-    if job.refresh_timer.just_finished() {
-        let pool = pool.clone();
-        let server_id = server_id.0;
-        let receiver = task_runtime.create_task(fetch_job_spread(pool, server_id));
-        job.refresh_result = Some(receiver);
+    if job.refresh_result.is_none() {
+        job.refresh_timer.tick(time.delta());
+        if job.refresh_timer.just_finished() {
+            let pool = pool.clone();
+            let server_id = server_id.0;
+            let receiver = task_runtime.create_task(ServerUser::fetch_job_distribution(server_id, pool));
+            job.refresh_result = Some(receiver);
+        }
     }
 
     if let Some(receive) = job.refresh_result.as_mut() {

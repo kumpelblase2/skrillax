@@ -305,8 +305,16 @@ pub struct CharacterJoinResponse {
 }
 
 impl CharacterJoinResponse {
-    pub fn new(result: CharacterJoinResult) -> Self {
-        CharacterJoinResponse { result }
+    pub fn success() -> Self {
+        CharacterJoinResponse {
+            result: CharacterJoinResult::Success,
+        }
+    }
+
+    pub fn error(error: CharacterListError) -> Self {
+        CharacterJoinResponse {
+            result: CharacterJoinResult::Error { error },
+        }
     }
 }
 

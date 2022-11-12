@@ -4,7 +4,7 @@ use crate::comp::net::{
 use crate::comp::player::Player;
 use crate::comp::Login;
 use crate::config::GameConfig;
-use crate::db::character::update_last_played_of;
+use crate::db::character::CharacterData;
 use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent, LoadingFinishedEvent};
 use bevy_core::Time;
 use bevy_ecs::prelude::*;
@@ -166,10 +166,7 @@ pub(crate) fn disconnected(
         debug!("Handling client disconnect.");
         if let Ok(player) = query.get(event.0) {
             let id = player.character.id;
-            let pool = pool.clone();
-            task_creator.spawn(async move {
-                update_last_played_of(&pool, id).await;
-            });
+            task_creator.spawn(CharacterData::update_last_played_of(id, pool.clone()));
         }
         cmd.entity(entity).despawn();
     }

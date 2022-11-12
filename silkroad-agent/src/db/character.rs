@@ -1,10 +1,11 @@
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use sqlx::{Error, PgPool};
+use std::borrow::Borrow;
 use std::collections::HashMap;
 
 #[derive(sqlx::FromRow, Clone)]
-pub(crate) struct CharacterData {
+pub struct CharacterData {
     pub id: i32,
     pub user_id: i32,
     pub server_id: i32,
@@ -34,6 +35,42 @@ pub(crate) struct CharacterData {
     pub last_logout: Option<DateTime<Utc>>,
 }
 
+impl CharacterData {
+    pub async fn fetch_characters<T: Borrow<PgPool>>(
+        user: i32,
+        shard: u16,
+        pool: T,
+    ) -> Result<Vec<CharacterData>, Error> {
+        sqlx::query_as!(
+            CharacterData,
+            "SELECT * FROM characters WHERE user_id = $1 AND server_id = $2 AND (deletion_end > NOW() OR deletion_end is null) ORDER BY id ASC",
+            user,
+            shard as i32
+        ).fetch_all(pool.borrow()).await
+    }
+
+    pub async fn check_name_available<T: Borrow<PgPool>>(name: String, server_id: u16, pool: T) -> bool {
+        let result = sqlx::query!(
+            "SELECT COUNT(*) as \"count!\" FROM characters WHERE LOWER(charname) = LOWER($1) and server_id = $2",
+            name,
+            server_id as i16
+        )
+        .fetch_one(pool.borrow())
+        .await
+        .unwrap();
+
+        result.count == 0
+    }
+
+    pub async fn update_last_played_of<T: Borrow<PgPool>>(character_id: u32, pool: T) {
+        let _ = sqlx::query!(
+            "UPDATE characters SET last_logout = CURRENT_TIMESTAMP WHERE id = $1",
+            character_id as i32
+        )
+        .execute(pool.borrow());
+    }
+}
+
 #[derive(sqlx::FromRow, Clone)]
 pub struct CharacterItem {
     pub id: i32,
@@ -45,48 +82,23 @@ pub struct CharacterItem {
     pub amount: i16,
 }
 
+impl CharacterItem {
+    pub async fn fetch_bulk_character_items<T: Borrow<PgPool>>(
+        character_ids: Vec<i32>,
+        pool: T,
+    ) -> Result<HashMap<i32, Vec<CharacterItem>>, Error> {
+        let all_items: Vec<CharacterItem> = sqlx::query_as!(
+            CharacterItem,
+            "SELECT * FROM character_items WHERE character_id in (SELECT * FROM UNNEST($1::INTEGER[]))",
+            &character_ids
+        )
+        .fetch_all(pool.borrow())
+        .await?;
+
+        let character_item_map = all_items.into_iter().into_group_map_by(|item| item.character_id);
+        Ok(character_item_map)
+    }
+}
+
 #[derive(sqlx::FromRow)]
 pub struct CharacterMastery {}
-
-pub(crate) async fn fetch_characters(pool: &PgPool, user: i32, shard: u16) -> Result<Vec<CharacterData>, Error> {
-    sqlx::query_as!(
-        CharacterData,
-        "SELECT * FROM characters WHERE user_id = $1 AND server_id = $2 AND (deletion_end > NOW() OR deletion_end is null) ORDER BY id ASC",
-        user,
-        shard as i32
-    ).fetch_all(pool).await
-}
-
-pub(crate) async fn fetch_character_items(pool: &PgPool, character_id: i32) -> Result<Vec<CharacterItem>, Error> {
-    sqlx::query_as!(
-        CharacterItem,
-        "SELECT * FROM character_items WHERE character_id = $1",
-        character_id
-    )
-    .fetch_all(pool)
-    .await
-}
-
-pub(crate) async fn fetch_characters_items(
-    pool: &PgPool,
-    character_ids: Vec<i32>,
-) -> Result<HashMap<i32, Vec<CharacterItem>>, Error> {
-    let all_items: Vec<CharacterItem> = sqlx::query_as!(
-        CharacterItem,
-        "SELECT * FROM character_items WHERE character_id in (SELECT * FROM UNNEST($1::INTEGER[]))",
-        &character_ids
-    )
-    .fetch_all(pool)
-    .await?;
-
-    let character_item_map = all_items.into_iter().into_group_map_by(|item| item.character_id);
-    Ok(character_item_map)
-}
-
-pub(crate) async fn update_last_played_of(pool: &PgPool, character_id: u32) {
-    let _ = sqlx::query!(
-        "UPDATE characters SET last_logout = CURRENT_TIMESTAMP WHERE id = $1",
-        character_id as i32
-    )
-    .execute(pool);
-}

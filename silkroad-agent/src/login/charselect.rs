@@ -6,10 +6,7 @@ use crate::comp::{CharacterSelect, GameEntity, Playing};
 use crate::config::GameConfig;
 use crate::db::character::{CharacterData, CharacterItem};
 use crate::ext::AsyncTaskCreate;
-use crate::login::character_loader::{
-    check_name_available, create_character, load_characters_sparse, restore_character, start_delete_character,
-    Character,
-};
+use crate::login::character_loader::Character;
 use crate::login::job_distribution::JobDistribution;
 use crate::server_plugin::ServerId;
 use bevy_ecs::prelude::*;
@@ -18,10 +15,9 @@ use chrono::{TimeZone, Utc};
 use id_pool::IdPool;
 use silkroad_data::DataEntry;
 use silkroad_protocol::character::{
-    CharacterJoinRequest, CharacterJoinResponse, CharacterJoinResult, CharacterListAction, CharacterListContent,
-    CharacterListEntry, CharacterListEquippedItem, CharacterListError, CharacterListRequest,
-    CharacterListRequestAction, CharacterListResponse, CharacterListResult, MacroStatus, TimeInformation, MACRO_HUNT,
-    MACRO_POTION, MACRO_SKILL,
+    CharacterJoinRequest, CharacterJoinResponse, CharacterListAction, CharacterListContent, CharacterListEntry,
+    CharacterListEquippedItem, CharacterListError, CharacterListRequest, CharacterListRequestAction,
+    CharacterListResponse, CharacterListResult, MacroStatus, TimeInformation, MACRO_HUNT, MACRO_POTION, MACRO_SKILL,
 };
 use silkroad_protocol::inventory::{InventoryItemBindingData, InventoryItemContentData, InventoryItemData, RentInfo};
 use silkroad_protocol::world::{
@@ -77,7 +73,7 @@ pub(crate) fn charselect(
                             boots,
                             weapon,
                         );
-                        let task = task_creator.create_task(create_character(pool.clone(), character));
+                        let task = task_creator.create_task(Character::create_character(character, pool.clone()));
                         character_list.character_create = Some(task);
                     },
                     CharacterListRequestAction::List => {
@@ -85,17 +81,21 @@ pub(crate) fn charselect(
                             continue;
                         }
 
-                        let receiver =
-                            task_creator.create_task(load_characters_sparse(pool.clone(), playing.0.id, server_id.0));
+                        let receiver = task_creator.create_task(Character::load_characters_sparse(
+                            playing.0.id,
+                            server_id.0,
+                            pool.clone(),
+                        ));
                         character_list.character_receiver = Some(receiver);
                     },
                     CharacterListRequestAction::CheckName { character_name } => {
                         if character_list.character_name_check.is_none() {
                             character_list.checked_name = Some(character_name.clone());
-                            let task = task_creator.create_task(check_name_available(
-                                pool.clone(),
+                            let server_id = server_id.0;
+                            let task = task_creator.create_task(CharacterData::check_name_available(
                                 character_name,
-                                server_id.0,
+                                server_id,
+                                pool.clone(),
                             ));
                             character_list.character_name_check = Some(task);
                         }
@@ -109,12 +109,12 @@ pub(crate) fn charselect(
                             continue;
                         }
 
-                        let task = task_creator.create_task(start_delete_character(
-                            pool.clone(),
+                        let task = task_creator.create_task(Character::start_delete_character(
                             playing.0.id,
                             character_name,
                             server_id.0,
                             settings.deletion_time,
+                            pool.clone(),
                         ));
                         character_list.character_delete_task = Some(task);
                     },
@@ -127,11 +127,11 @@ pub(crate) fn charselect(
                             continue;
                         }
 
-                        let task = task_creator.create_task(restore_character(
-                            pool.clone(),
+                        let task = task_creator.create_task(Character::restore_character(
                             playing.0.id,
                             character_name,
                             server_id.0,
+                            pool.clone(),
                         ));
                         character_list.character_restore = Some(task);
                     },
@@ -150,9 +150,7 @@ pub(crate) fn charselect(
                                 .unwrap();
 
                             if character.character_data.deletion_end.is_some() {
-                                client.send(CharacterJoinResponse::new(CharacterJoinResult::error(
-                                    CharacterListError::InvalidName,
-                                )));
+                                client.send(CharacterJoinResponse::error(CharacterListError::InvalidName));
                                 continue;
                             }
 
@@ -181,7 +179,7 @@ pub(crate) fn charselect(
                                 unique_id: allocator.request_id().unwrap(),
                             };
 
-                            client.send(CharacterJoinResponse::new(CharacterJoinResult::Success));
+                            client.send(CharacterJoinResponse::success());
 
                             send_spawn(client, &game_entity, &player, &position, settings.max_level);
 
@@ -206,9 +204,8 @@ pub(crate) fn charselect(
                             }
                         },
                         None => {
-                            client.send(CharacterJoinResponse::new(CharacterJoinResult::Error {
-                                error: CharacterListError::ReachedCapacity, // TODO
-                            }));
+                            // TODO
+                            client.send(CharacterJoinResponse::error(CharacterListError::ReachedCapacity));
                         },
                     }
                 },
@@ -358,8 +355,7 @@ fn from_character(character: &Character) -> CharacterListEntry {
     CharacterListEntry {
         ref_id: data.character_type as u32,
         name: data.charname.clone(),
-        unknown_1: 0,
-        unknown_2: 0,
+        unknown: String::new(),
         scale: data.scale as u8,
         level: data.level as u8,
         exp: data.exp as u64,

@@ -11,7 +11,7 @@ mod server_plugin;
 mod world;
 
 use crate::config::get_config;
-use crate::db::server::register_server;
+use crate::db::server::ServerRegistration;
 use crate::game::GamePlugin;
 use crate::login::LoginPlugin;
 use crate::net::NetworkPlugin;
@@ -62,14 +62,17 @@ fn main() {
         .map(char::from)
         .collect();
 
-    runtime.block_on(register_server(
-        db_pool.clone(),
-        configuration.name.clone(),
-        configuration.region.clone(),
-        external_addr,
-        configuration.rpc_port,
-        token.clone(),
-    ));
+    runtime
+        .block_on(ServerRegistration::setup(
+            server_id,
+            configuration.name.clone(),
+            configuration.region.clone(),
+            external_addr,
+            configuration.rpc_port,
+            token.clone(),
+            db_pool.clone(),
+        ))
+        .expect("Should be able to register server");
 
     let _web_handle = runtime.spawn(
         WebServer::new(
