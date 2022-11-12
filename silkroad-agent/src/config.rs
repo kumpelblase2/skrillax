@@ -1,3 +1,4 @@
+use bevy_ecs_macros::Resource;
 use config::{ConfigError, FileFormat};
 use log::LevelFilter;
 use once_cell::sync::Lazy;
@@ -37,7 +38,7 @@ impl DbOptions {
     }
 }
 
-#[derive(Deserialize, Default, Clone)]
+#[derive(Deserialize, Default, Clone, Resource)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct GameConfig {
     pub(crate) max_level: u8,

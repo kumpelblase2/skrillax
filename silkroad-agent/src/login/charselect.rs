@@ -5,14 +5,14 @@ use crate::comp::visibility::Visibility;
 use crate::comp::{CharacterSelect, GameEntity, Playing};
 use crate::config::GameConfig;
 use crate::db::character::{CharacterData, CharacterItem};
-use crate::ext::AsyncTaskCreate;
+use crate::ext::{DbPool, EntityIdPool};
 use crate::login::character_loader::Character;
 use crate::login::job_distribution::JobDistribution;
 use crate::server_plugin::ServerId;
+use crate::tasks::TaskCreator;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
 use chrono::{TimeZone, Utc};
-use id_pool::IdPool;
 use silkroad_data::DataEntry;
 use silkroad_protocol::character::{
     CharacterJoinRequest, CharacterJoinResponse, CharacterListAction, CharacterListContent, CharacterListEntry,
@@ -24,21 +24,18 @@ use silkroad_protocol::world::{
     ActionState, AliveState, BodyState, CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, EntityState, JobType,
 };
 use silkroad_protocol::{ClientPacket, SilkroadTime};
-use sqlx::PgPool;
 use std::mem::take;
-use std::sync::Arc;
-use tokio::runtime::Runtime;
 use tokio::sync::oneshot::error::TryRecvError;
 use tracing::{debug, warn};
 
 pub(crate) fn charselect(
     settings: Res<GameConfig>,
     job_distribution: Res<JobDistribution>,
-    pool: Res<PgPool>,
-    task_creator: Res<Arc<Runtime>>,
+    pool: Res<DbPool>,
+    task_creator: Res<TaskCreator>,
     server_id: Res<ServerId>,
     mut cmd: Commands,
-    mut allocator: ResMut<IdPool>,
+    mut allocator: ResMut<EntityIdPool>,
     mut query: Query<(Entity, &Client, &mut CharselectInput, &mut CharacterSelect, &Playing)>,
 ) {
     for (entity, client, mut charselect_inputs, mut character_list, playing) in query.iter_mut() {
@@ -189,14 +186,14 @@ pub(crate) fn charselect(
 
                             let mut spawn_cmd = cmd.entity(entity);
                             spawn_cmd
-                                .insert_bundle(PlayerBundle::new(
+                                .insert(PlayerBundle::new(
                                     player,
                                     game_entity,
                                     agent,
                                     position.clone(),
                                     Visibility::with_radius(500.),
                                 ))
-                                .insert_bundle(InputBundle::default())
+                                .insert(InputBundle::default())
                                 .remove::<CharacterSelect>();
 
                             if is_gm {

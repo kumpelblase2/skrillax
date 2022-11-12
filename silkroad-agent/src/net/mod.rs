@@ -2,6 +2,7 @@ mod login;
 mod net;
 
 use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent};
+use crate::ext::ServerResource;
 use crate::net::login::login;
 use crate::net::net::{accept, connected, disconnected, receive};
 use bevy_app::{App, CoreStage, Plugin};
@@ -14,7 +15,7 @@ pub struct NetworkPlugin {
 
 impl Plugin for NetworkPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(self.server.clone())
+        app.insert_resource::<ServerResource>(self.server.clone().into())
             .add_system_to_stage(CoreStage::PreUpdate, accept)
             .add_system_to_stage(CoreStage::PreUpdate, receive.before(disconnected))
             .add_system_to_stage(CoreStage::PreUpdate, disconnected)

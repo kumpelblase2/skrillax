@@ -6,7 +6,7 @@ use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use crate::config::GameConfig;
-use crate::ext::Vector2Ext;
+use crate::ext::{EntityIdPool, Navmesh, NpcPositionList, Vector2Ext};
 use crate::game::player_activity::PlayerActivity;
 use crate::world::WorldData;
 use bevy_ecs::prelude::*;
@@ -14,7 +14,6 @@ use cgmath::Vector3;
 use id_pool::IdPool;
 use pk2::Pk2;
 use rand::{random, Rng};
-use silkroad_data::npc_pos::NpcPosition;
 use silkroad_data::type_id::{ObjectEntity, ObjectMonster, ObjectNonPlayer, ObjectType};
 use silkroad_navmesh::region::Region;
 use silkroad_navmesh::NavmeshLoader;
@@ -24,10 +23,10 @@ use std::time::{Duration, Instant};
 use tracing::trace;
 
 pub(crate) fn spawn_npcs(
-    npc_spawns: Res<Vec<NpcPosition>>,
+    npc_spawns: Res<NpcPositionList>,
     settings: Res<GameConfig>,
     mut commands: Commands,
-    mut id_pool: ResMut<IdPool>,
+    mut id_pool: ResMut<EntityIdPool>,
 ) {
     for spawn in npc_spawns.iter() {
         let character_data = WorldData::characters()
@@ -39,7 +38,7 @@ pub(crate) fn spawn_npcs(
             type_id,
             ObjectType::Entity(ObjectEntity::NonPlayer(ObjectNonPlayer::NPC(_)))
         ) {
-            commands.spawn().insert_bundle(NpcBundle::new(
+            commands.spawn(NpcBundle::new(
                 id_pool.request_id().expect("Should have ID available for NPC"),
                 spawn.npc_id,
                 LocalPosition(spawn.region.into(), Vector3::new(spawn.x, spawn.y, spawn.z)),
@@ -54,10 +53,7 @@ pub(crate) fn spawn_npcs(
                 location: LocalPosition(spawn.region.into(), Vector3::new(spawn.x, spawn.y, spawn.z)).to_global(),
                 rotation: Heading(0.0),
             };
-            commands
-                .spawn()
-                .insert(Spawner::new(&settings.spawner, spawn.npc_id))
-                .insert(position);
+            commands.spawn((Spawner::new(&settings.spawner, spawn.npc_id), position));
         }
     }
 }
@@ -66,8 +62,8 @@ pub(crate) fn spawn_monsters(
     mut query: Query<(Entity, &mut Spawner, &Position)>,
     mut commands: Commands,
     activity: Res<PlayerActivity>,
-    mut navmesh: ResMut<NavmeshLoader<Pk2>>,
-    mut id_pool: ResMut<IdPool>,
+    mut navmesh: ResMut<Navmesh>,
+    mut id_pool: ResMut<EntityIdPool>,
     despawn_query: Query<(Entity, &SpawnedBy)>,
 ) {
     let current_time = Instant::now();
@@ -139,7 +135,7 @@ fn spawn_n_monsters(
 
     let spawned_amount = spawned.len();
     for bundle in spawned {
-        commands.spawn().insert_bundle(bundle);
+        commands.spawn(bundle);
     }
     spawned_amount
 }

@@ -1,7 +1,6 @@
 use crate::world::lookup::collect_entities;
 use crate::world::lookup::maintain_entities;
 use bevy_app::{App, CoreStage, Plugin};
-use id_pool::IdPool;
 use pk2::Pk2;
 use silkroad_data::npc_pos::NpcPosition;
 use silkroad_navmesh::NavmeshLoader;
@@ -12,6 +11,7 @@ mod lookup;
 mod spawning;
 
 use crate::config::GameConfig;
+use crate::ext::{EntityIdPool, Navmesh, NpcPositionList};
 pub use data::*;
 pub use lookup::*;
 
@@ -33,13 +33,13 @@ impl Plugin for WorldPlugin {
         let media_pk2 = Pk2::open(media_file, BLOWFISH_KEY).unwrap();
         WorldData::load_data_from(&media_pk2).expect("Should be able to load silkroad data");
         let npcs = NpcPosition::from(&media_pk2).unwrap();
-        app.insert_resource(IdPool::new())
+        app.insert_resource(EntityIdPool::default())
             .insert_resource(EntityLookup::default())
-            .insert_resource(npcs)
+            .insert_resource::<NpcPositionList>(npcs.into())
             .add_startup_system(spawning::spawn_npcs)
             .add_system_to_stage(CoreStage::First, maintain_entities)
             .add_system_to_stage(CoreStage::Last, collect_entities)
             .add_system(spawning::spawn_monsters)
-            .insert_resource(NavmeshLoader::new(data_pk2));
+            .insert_resource::<Navmesh>(NavmeshLoader::new(data_pk2).into());
     }
 }

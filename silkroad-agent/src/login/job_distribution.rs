@@ -1,17 +1,16 @@
 use crate::db::user::ServerUser;
-use crate::ext::AsyncTaskCreate;
+use crate::ext::DbPool;
 use crate::server_plugin::ServerId;
-use bevy_core::prelude::*;
+use crate::tasks::TaskCreator;
 use bevy_ecs::prelude::*;
-use sqlx::PgPool;
-use std::sync::Arc;
+use bevy_time::{Time, Timer, TimerMode};
 use std::time::Duration;
-use tokio::runtime::Runtime;
 use tokio::sync::oneshot::error::TryRecvError;
 use tokio::sync::oneshot::Receiver;
 
 const REFRESH_INTERVAL: u64 = 60 * 60;
 
+#[derive(Resource)]
 pub(crate) struct JobDistribution {
     hunters: u32,
     thieves: u32,
@@ -24,7 +23,7 @@ impl JobDistribution {
         Self {
             hunters: 0,
             thieves: 0,
-            refresh_timer: Timer::new(Duration::from_secs(timer_duration), true),
+            refresh_timer: Timer::new(Duration::from_secs(timer_duration), TimerMode::Repeating),
             refresh_result: None,
         }
     }
@@ -52,10 +51,10 @@ impl Default for JobDistribution {
 }
 
 pub(crate) fn update_job_distribution(
-    pool: Res<PgPool>,
+    pool: Res<DbPool>,
     server_id: Res<ServerId>,
     time: Res<Time>,
-    task_runtime: Res<Arc<Runtime>>,
+    task_runtime: Res<TaskCreator>,
     mut job: ResMut<JobDistribution>,
 ) {
     if job.refresh_result.is_none() {

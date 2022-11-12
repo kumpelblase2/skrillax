@@ -3,8 +3,6 @@ name = "silkroad-agent"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 tracing-subscriber = { workspace = true }
 silkroad-network = { path = "../silkroad-network" }
@@ -28,11 +26,13 @@ serde_derive = { workspace = true }
 thiserror = { workspace = true }
 chrono = { workspace = true }
 itertools = "*"
-bevy_ecs = "0.7.0"
-bevy_ecs_macros = "0.7.0"
-bevy_core = "0.7.0"
-bevy_app = "0.7.0"
-bevy_tasks = "0.7.0"
+bevy_ecs = "0.9"
+bevy_ecs_macros = "0.9"
+bevy_core = "0.9"
+bevy_app = "0.9"
+bevy_tasks = "0.9"
+bevy_time = "0.9"
 cgmath = "0.18.0"
 pk2 = "0.1.0"
 id-pool = { version = "0.2.1", features = ["u32"], default_features = false }
+derive_more = "0.99.17"

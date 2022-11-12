@@ -4,8 +4,8 @@ use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use crate::config::SpawnOptions;
-use bevy_core::Timer;
 use bevy_ecs::prelude::*;
+use bevy_time::{Timer, TimerMode};
 use silkroad_protocol::world::EntityRarity;
 use std::time::{Duration, Instant};
 
@@ -45,7 +45,7 @@ impl RandomStroll {
         Self {
             origin,
             radius,
-            check_timer: Timer::new(interval, true),
+            check_timer: Timer::new(interval, TimerMode::Repeating),
         }
     }
 }

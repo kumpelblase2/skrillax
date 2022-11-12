@@ -6,10 +6,10 @@ use crate::comp::pos::Position;
 use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
 use crate::comp::{Despawn, EntityReference, GameEntity, Health};
+use crate::ext::EntityIdPool;
 use crate::world::{EntityLookup, WorldData};
-use bevy_core::Timer;
 use bevy_ecs::prelude::*;
-use id_pool::IdPool;
+use bevy_time::{Timer, TimerMode};
 use silkroad_data::type_id::{ObjectConsumable, ObjectConsumableCurrency, ObjectItem, ObjectType};
 use silkroad_protocol::gm::GmCommand;
 use silkroad_protocol::world::{BodyState, UpdatedState};
@@ -19,7 +19,7 @@ use std::time::Duration;
 pub(crate) fn handle_gm_commands(
     mut query: Query<(Entity, &GameEntity, &Client, &Position, &mut GmInput, &mut Synchronize)>,
     mut commands: Commands,
-    mut id_pool: ResMut<IdPool>,
+    mut id_pool: ResMut<EntityIdPool>,
     lookup: Res<EntityLookup>,
 ) {
     for (entity, game_entity, client, position, mut input, mut sync) in query.iter_mut() {
@@ -43,7 +43,7 @@ pub(crate) fn handle_gm_commands(
                             sync: Default::default(),
                             stroll: RandomStroll::new(position.location.to_location(), 100., Duration::from_secs(1)),
                         };
-                        commands.spawn().insert_bundle(bundle);
+                        commands.spawn(bundle);
                     }
                 },
                 GmCommand::MakeItem { ref_id, upgrade } => {
@@ -69,9 +69,9 @@ pub(crate) fn handle_gm_commands(
                         },
                         position: position.clone(),
                         game_entity: GameEntity { unique_id, ref_id },
-                        despawn: Despawn(Timer::new(item.common.despawn_time, false)),
+                        despawn: Despawn(Timer::new(item.common.despawn_time, TimerMode::Once)),
                     };
-                    commands.spawn().insert_bundle(bundle);
+                    commands.spawn(bundle);
                 },
                 GmCommand::Invincible => {
                     sync.state.push(UpdatedState::Body(BodyState::GMInvincible));

@@ -1,5 +1,6 @@
-use bevy_core::Time;
 use bevy_ecs::system::{Res, ResMut};
+use bevy_ecs_macros::Resource;
+use bevy_time::Time;
 use rand::random;
 use std::time::Duration;
 
@@ -11,6 +12,7 @@ fn get_official_per_day_duration() -> Duration {
     Duration::from_secs_f64(required_real_seconds)
 }
 
+#[derive(Resource)]
 pub struct DaylightCycle {
     moon: u16,
     full_day: Duration,

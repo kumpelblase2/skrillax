@@ -8,7 +8,6 @@ use crate::comp::visibility::Visibility;
 use crate::comp::{EntityReference, GameEntity};
 use crate::game::player_activity::PlayerActivity;
 use bevy_ecs::prelude::*;
-use bevy_tasks::ComputeTaskPool;
 use cgmath::num_traits::Pow;
 use silkroad_data::DataEntry;
 use silkroad_navmesh::region::Region;
@@ -24,7 +23,6 @@ use tracing::{trace, trace_span};
 static EMPTY_VEC: Vec<(Entity, &Position, &GameEntity)> = vec![];
 
 pub(crate) fn visibility_update(
-    pool: Res<ComputeTaskPool>,
     activity: Res<PlayerActivity>,
     mut query: Query<(Entity, &GameEntity, &mut Visibility, &Position)>,
     lookup: Query<(Entity, &Position, &GameEntity)>,
@@ -38,7 +36,7 @@ pub(crate) fn visibility_update(
                     acc
                 });
 
-        query.par_for_each_mut(&pool, 300, |(entity, game_entity, mut visibility, position)| {
+        query.par_for_each_mut(300, |(entity, game_entity, mut visibility, position)| {
             let my_region = position.location.region();
             let close_regions = my_region.neighbours();
             if close_regions.iter().any(|region| activity.set.contains(&region.id())) {
@@ -47,7 +45,7 @@ pub(crate) fn visibility_update(
                         .flat_map(|region| {
                             grouped.get(region).unwrap_or(&EMPTY_VEC)
                         })
-                        .filter(|(other_entity, _, _)| other_entity.id() != entity.id())
+                        .filter(|(other_entity, _, _)| other_entity.index() != entity.index())
                         .filter(|(_, other_position, _)| {
                             position.distance_to(other_position) < (visibility.visibility_radius.pow(2))
                         })

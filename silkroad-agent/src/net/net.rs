@@ -6,21 +6,19 @@ use crate::comp::Login;
 use crate::config::GameConfig;
 use crate::db::character::CharacterData;
 use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent, LoadingFinishedEvent};
-use bevy_core::Time;
+use crate::ext::{DbPool, ServerResource};
+use crate::tasks::TaskCreator;
 use bevy_ecs::prelude::*;
-use silkroad_network::server::SilkroadServer;
+use bevy_time::Time;
 use silkroad_network::stream::StreamError;
 use silkroad_protocol::character::{GameGuideResponse, UpdateGameGuide};
 use silkroad_protocol::inventory::{ConsignmentResponse, OpenItemMallResponse, OpenItemMallResult};
 use silkroad_protocol::ClientPacket;
-use sqlx::PgPool;
-use std::sync::Arc;
-use tokio::runtime::Runtime;
 use tracing::{debug, warn};
 
 pub(crate) fn accept(
     mut events: EventWriter<ClientConnectedEvent>,
-    network: Res<SilkroadServer>,
+    network: Res<ServerResource>,
     time: Res<Time>,
     mut cmd: Commands,
 ) {
@@ -28,10 +26,7 @@ pub(crate) fn accept(
         debug!(id = ?client.id(), "Accepted client");
 
         let entity = cmd
-            .spawn()
-            .insert(Client(client))
-            .insert(LastAction(time.last_update().unwrap()))
-            .insert(Login)
+            .spawn((Client(client), LastAction(time.last_update().unwrap()), Login))
             .id();
 
         events.send(ClientConnectedEvent(entity));
@@ -157,8 +152,8 @@ pub(crate) fn receive(
 pub(crate) fn disconnected(
     mut events: EventReader<ClientDisconnectedEvent>,
     mut cmd: Commands,
-    task_creator: Res<Arc<Runtime>>,
-    pool: Res<PgPool>,
+    task_creator: Res<TaskCreator>,
+    pool: Res<DbPool>,
     query: Query<&Player>,
 ) {
     for event in events.iter() {

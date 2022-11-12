@@ -11,8 +11,8 @@ pub(crate) mod visibility;
 use crate::db::user::ServerUser;
 use crate::login::character_loader::Character;
 use crate::population::capacity::PlayingToken;
-use bevy_core::Timer;
 use bevy_ecs::prelude::*;
+use bevy_time::{Timer, TimerMode};
 use std::time::Duration;
 use tokio::sync::oneshot::Receiver;
 
@@ -62,12 +62,12 @@ pub struct Despawn(pub Timer);
 
 impl Despawn {
     pub fn despawn_after_seconds(seconds: u64) -> Despawn {
-        Despawn(Timer::from_seconds(seconds as f32, false))
+        Despawn(Timer::from_seconds(seconds as f32, TimerMode::Once))
     }
 }
 
 impl From<Duration> for Despawn {
     fn from(duration: Duration) -> Self {
-        Despawn(Timer::new(duration, false))
+        Despawn(Timer::new(duration, TimerMode::Once))
     }
 }

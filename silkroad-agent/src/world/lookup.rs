@@ -1,12 +1,12 @@
 use crate::comp::player::Player;
 use crate::comp::GameEntity;
+use crate::ext::EntityIdPool;
 use bevy_ecs::entity::Entities;
 use bevy_ecs::prelude::*;
-use id_pool::IdPool;
 use std::collections::HashMap;
 use tracing::debug;
 
-#[derive(Default)]
+#[derive(Default, Resource)]
 pub struct EntityLookup {
     player_map: HashMap<String, Entity>,
     id_map: HashMap<u32, Entity>,
@@ -44,7 +44,7 @@ pub(crate) fn collect_entities(
     }
 }
 
-pub fn maintain_entities(mut lookup: ResMut<EntityLookup>, mut id_pool: ResMut<IdPool>, entities: &Entities) {
+pub fn maintain_entities(mut lookup: ResMut<EntityLookup>, mut id_pool: ResMut<EntityIdPool>, entities: &Entities) {
     let before_player_count = lookup.player_map.len();
     lookup.player_map.retain(|_, entity| entities.contains(*entity));
     let after_player_count = lookup.player_map.len();

@@ -8,19 +8,23 @@ mod login;
 mod net;
 mod population;
 mod server_plugin;
+mod tasks;
 mod world;
 
 use crate::config::get_config;
 use crate::db::server::ServerRegistration;
+use crate::ext::DbPool;
 use crate::game::GamePlugin;
 use crate::login::LoginPlugin;
 use crate::net::NetworkPlugin;
 use crate::population::CapacityController;
 use crate::population::LoginQueue;
 use crate::server_plugin::ServerPlugin;
+use crate::tasks::TaskCreator;
 use crate::world::WorldPlugin;
 use bevy_app::App;
 use bevy_core::CorePlugin;
+use bevy_time::TimePlugin;
 use login::web::WebServer;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -93,9 +97,10 @@ fn main() {
 
     info!("Listening for clients");
     App::new()
-        .add_plugin(CorePlugin)
-        .insert_resource(db_pool)
-        .insert_resource(runtime)
+        .add_plugin(CorePlugin { ..Default::default() })
+        .add_plugin(TimePlugin)
+        .insert_resource::<DbPool>(db_pool.into())
+        .insert_resource::<TaskCreator>(runtime.into())
         .add_plugin(ServerPlugin::new(configuration.game.clone(), server_id))
         .add_plugin(WorldPlugin)
         .add_plugin(NetworkPlugin::new(network))

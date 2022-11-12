@@ -3,7 +3,7 @@ use crate::comp::pos::Position;
 use bevy_ecs::prelude::*;
 use std::collections::HashSet;
 
-#[derive(Default)]
+#[derive(Default, Resource)]
 pub(crate) struct PlayerActivity {
     pub(crate) set: HashSet<u16>,
 }

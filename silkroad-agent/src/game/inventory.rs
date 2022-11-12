@@ -3,18 +3,15 @@ use crate::comp::net::{Client, InventoryInput};
 use crate::comp::player::{Inventory, MoveError, Player, Race};
 use crate::comp::pos::{GlobalLocation, GlobalPosition, Heading, Position};
 use crate::comp::{drop, GameEntity};
-use crate::ext::{Vector2Ext, Vector3Ext};
+use crate::ext::{EntityIdPool, Navmesh, Vector2Ext, Vector3Ext};
 use crate::game::gold::get_gold_ref_id;
 use bevy_ecs::prelude::*;
-use id_pool::IdPool;
-use pk2::Pk2;
 use rand::Rng;
 use silkroad_data::type_id::{
     ObjectClothingPart, ObjectClothingType, ObjectConsumable, ObjectConsumableAmmo, ObjectEquippable, ObjectItem,
     ObjectJewelryType, ObjectRace, ObjectType, ObjectWeaponType,
 };
 use silkroad_data::DataEntry;
-use silkroad_navmesh::NavmeshLoader;
 use silkroad_protocol::inventory::{
     InventoryOperationError, InventoryOperationRequest, InventoryOperationResponseData, InventoryOperationResult,
 };
@@ -35,8 +32,8 @@ pub(crate) fn handle_inventory_input(
         &Position,
     )>,
     mut commands: Commands,
-    mut navmesh: ResMut<NavmeshLoader<Pk2>>,
-    mut id_pool: ResMut<IdPool>,
+    mut navmesh: ResMut<Navmesh>,
+    mut id_pool: ResMut<EntityIdPool>,
 ) {
     for (entity, game_entity, client, mut input, mut player, position) in query.iter_mut() {
         for action in mem::take(&mut input.inputs) {
@@ -70,7 +67,7 @@ pub(crate) fn handle_inventory_input(
                             let rotation = rand::thread_rng().gen_range(0..360) as f32;
 
                             let item_ref = get_gold_ref_id(amount as u32);
-                            commands.spawn().insert_bundle(DropBundle {
+                            commands.spawn(DropBundle {
                                 drop: ItemDrop {
                                     owner: None,
                                     item: drop::Item::Gold(amount as u32),

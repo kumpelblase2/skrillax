@@ -1,5 +1,6 @@
 use crate::db::user::ServerUser;
 use crate::population::capacity::{CapacityController, PlayingToken, QueueToken};
+use bevy_ecs_macros::Resource;
 use rand::{thread_rng, Rng};
 use std::ops::Add;
 use std::sync::{Arc, Mutex};
@@ -25,7 +26,7 @@ struct Reservation<T: PartialEq> {
     spot_token: QueueToken,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Resource)]
 pub struct LoginQueue {
     capacity: Arc<CapacityController>,
     reservations: Arc<Mutex<Vec<Reservation<ServerUser>>>>,

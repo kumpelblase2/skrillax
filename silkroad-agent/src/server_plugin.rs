@@ -1,8 +1,10 @@
 use crate::config::GameConfig;
 use bevy_app::{App, Plugin, ScheduleRunnerPlugin, ScheduleRunnerSettings};
+use bevy_ecs_macros::Resource;
 use std::ops::Div;
 use std::time::Duration;
 
+#[derive(Resource)]
 pub(crate) struct ServerId(pub u16);
 
 pub(crate) struct ServerPlugin {

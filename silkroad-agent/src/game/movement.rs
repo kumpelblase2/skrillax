@@ -4,14 +4,12 @@ use crate::comp::net::MovementInput;
 use crate::comp::player::{Agent, AgentAction, MovementState, MovementTarget, SkillState};
 use crate::comp::pos::{GlobalLocation, GlobalPosition, Heading, LocalPosition, Position};
 use crate::comp::sync::{MovementUpdate, Synchronize};
-use crate::ext::{Vector2Ext, Vector3Ext};
-use bevy_core::{Time, Timer};
+use crate::ext::{Navmesh, Vector2Ext, Vector3Ext};
 use bevy_ecs::prelude::*;
+use bevy_time::{Time, Timer, TimerMode};
 use cgmath::num_traits::Pow;
 use cgmath::{Deg, InnerSpace, MetricSpace, Quaternion, Rotation3, Vector2, Vector3};
-use pk2::Pk2;
 use rand::random;
-use silkroad_navmesh::NavmeshLoader;
 use silkroad_protocol::world::{PlayerMovementRequest, Rotation};
 use silkroad_protocol::ClientPacket;
 use std::mem;
@@ -49,7 +47,7 @@ pub(crate) fn movement_input(mut query: Query<(&Client, &mut MovementInput, &mut
 
 pub(crate) fn movement(
     mut query: Query<(&mut Agent, &mut Position, &mut Synchronize)>,
-    mut navmesh: ResMut<NavmeshLoader<Pk2>>,
+    mut navmesh: ResMut<Navmesh>,
     delta: Res<Time>,
 ) {
     for (mut agent, mut position, mut sync) in query.iter_mut() {
@@ -124,17 +122,17 @@ pub(crate) fn movement(
                             if reference.timings.preparation_time > 0 {
                                 SkillState::Prepare(Timer::new(
                                     Duration::from_millis(reference.timings.preparation_time as u64),
-                                    false,
+                                    TimerMode::Once,
                                 ))
                             } else if reference.timings.cast_time > 0 {
                                 SkillState::Cast(Timer::new(
                                     Duration::from_millis(reference.timings.preparation_time as u64),
-                                    false,
+                                    TimerMode::Once,
                                 ))
                             } else {
                                 SkillState::Default(Timer::new(
                                     Duration::from_millis(reference.timings.preparation_time as u64),
-                                    false,
+                                    TimerMode::Once,
                                 ))
                             }
                         },
@@ -144,12 +142,12 @@ pub(crate) fn movement(
                                 if reference.timings.cast_time > 0 {
                                     SkillState::Cast(Timer::new(
                                         Duration::from_millis(reference.timings.preparation_time as u64),
-                                        false,
+                                        TimerMode::Once,
                                     ))
                                 } else {
                                     SkillState::Default(Timer::new(
                                         Duration::from_millis(reference.timings.preparation_time as u64),
-                                        false,
+                                        TimerMode::Once,
                                     ))
                                 }
                             } else {
@@ -161,7 +159,7 @@ pub(crate) fn movement(
                             if timer.finished() {
                                 SkillState::Default(Timer::new(
                                     Duration::from_millis(reference.timings.preparation_time as u64),
-                                    false,
+                                    TimerMode::Once,
                                 ))
                             } else {
                                 SkillState::Cast(mem::take(timer))
@@ -333,7 +331,7 @@ pub(crate) fn update_attack_location(
 pub(crate) fn movement_monster(
     mut query: Query<(&mut Agent, &mut RandomStroll, &Position), With<Monster>>,
     delta: Res<Time>,
-    mut navmesh: ResMut<NavmeshLoader<Pk2>>,
+    mut navmesh: ResMut<Navmesh>,
 ) {
     let delta = delta.delta();
     for (mut agent, mut stroll, pos) in query.iter_mut() {

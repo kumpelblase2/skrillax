@@ -9,8 +9,8 @@ use crate::config::GameConfig;
 use crate::event::ClientDisconnectedEvent;
 use crate::game::inventory::GOLD_SLOT;
 use crate::world::{EntityLookup, WorldData};
-use bevy_core::{Time, Timer};
 use bevy_ecs::prelude::*;
+use bevy_time::{Time, Timer, TimerMode};
 use cgmath::num_traits::Pow;
 use cgmath::{InnerSpace, MetricSpace, Vector3};
 use silkroad_data::skilldata::RefSkillData;
@@ -175,7 +175,7 @@ pub(crate) fn handle_world_input(
                                         range,
                                         reference: attack_skill,
                                         current_destination: player_pos.location,
-                                        refresh_timer: Timer::new(Duration::from_secs(1), true),
+                                        refresh_timer: Timer::new(Duration::from_secs(1), TimerMode::Repeating),
                                     }
                                 } else {
                                     let direction_vector = player_pos.location.0 - pos.location.0;
@@ -186,7 +186,7 @@ pub(crate) fn handle_world_input(
                                         range,
                                         reference: attack_skill,
                                         current_destination: GlobalPosition(dest),
-                                        refresh_timer: Timer::new(Duration::from_secs(1), true),
+                                        refresh_timer: Timer::new(Duration::from_secs(1), TimerMode::Repeating),
                                     }
                                 }
                             },
