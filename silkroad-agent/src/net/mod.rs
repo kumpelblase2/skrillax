@@ -1,6 +1,7 @@
 mod login;
 mod net;
 
+use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent};
 use crate::net::login::login;
 use crate::net::net::{accept, connected, disconnected, receive};
 use bevy_app::{App, CoreStage, Plugin};
@@ -18,7 +19,9 @@ impl Plugin for NetworkPlugin {
             .add_system_to_stage(CoreStage::PreUpdate, receive.before(disconnected))
             .add_system_to_stage(CoreStage::PreUpdate, disconnected)
             .add_system_to_stage(CoreStage::PreUpdate, connected)
-            .add_system_to_stage(CoreStage::PreUpdate, login);
+            .add_system_to_stage(CoreStage::PreUpdate, login)
+            .add_event::<ClientDisconnectedEvent>()
+            .add_event::<ClientConnectedEvent>();
     }
 }
 
