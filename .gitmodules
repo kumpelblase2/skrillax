@@ -1,3 +1,0 @@
-[submodule "blowfish-compat.rs"]
-	path = blowfish-compat.rs
-	url = ssh://gitea@aura.eternalwings.de:2222/tim/blowfish-compat.rs.git
