@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-blowfish-compat = { path = "../blowfish-compat.rs" }
+blowfish-compat = { git = "https://aura.eternalwings.de/tim/blowfish-compat.rs.git", branch = "master" }
 bytes = { workspace = true }
 rand = { workspace = true }
 tracing = { workspace = true }

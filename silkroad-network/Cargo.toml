@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-blowfish-compat = { path = "../blowfish-compat.rs" }
+blowfish-compat = { git = "https://aura.eternalwings.de/tim/blowfish-compat.rs.git", branch = "master" }
 bytes = { workspace = true }
 byteorder = { workspace = true }
 tracing = { workspace = true }

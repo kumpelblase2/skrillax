@@ -423,16 +423,10 @@ dependencies = [
 [[package]]
 name = "blowfish-compat"
 version = "0.1.0"
+source = "git+https://aura.eternalwings.de/tim/blowfish-compat.rs.git?branch=master#20b47fb8c170c458b9ced98969f927230d210970"
 dependencies = [
  "blowfish",
- "bswap",
 ]
-
-[[package]]
-name = "bswap"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1adc2e63da20123aa621f16f382c51711af7b3577fe585afe0b8106231b48eea"
 
 [[package]]
 name = "bumpalo"
