@@ -42,7 +42,7 @@ pub(crate) fn handle_inventory_input(
                     match op.data {
                         InventoryOperationRequest::DropGold { amount } => {
                             if amount > player.character.gold {
-                                client.send(InventoryOperationResult::Error(InventoryOperationError::Indisposable));
+                                client.send(InventoryOperationResult::Error(InventoryOperationError::NotEnoughGold));
                                 continue;
                             }
 
@@ -97,7 +97,7 @@ pub(crate) fn handle_inventory_input(
                                 if Inventory::is_equipment_slot(target) {
                                     let type_id = source_item.reference.common.type_id;
                                     let object_type = ObjectType::from_type_id(&type_id)
-                                        .expect("Iem to equip should have valid object type.");
+                                        .expect("Item to equip should have valid object type.");
                                     let fits = does_object_type_match_slot(target, object_type)
                                         && source_item
                                             .reference
@@ -108,6 +108,7 @@ pub(crate) fn handle_inventory_input(
                                     // TODO: check if equipment requirement sex matches
                                     //  check if required masteries matches
                                     if !fits {
+                                        // TODO: Use more approriate error code
                                         client.send(InventoryOperationResult::Error(
                                             InventoryOperationError::Indisposable,
                                         ));
@@ -124,8 +125,7 @@ pub(crate) fn handle_inventory_input(
                                     },
                                 }
                             } else {
-                                // TODO: use proper error code
-                                client.send(InventoryOperationResult::Error(InventoryOperationError::Indisposable));
+                                client.send(InventoryOperationResult::Error(InventoryOperationError::InvalidTarget));
                             }
                         },
                         InventoryOperationRequest::DropItem { .. } => {},

@@ -55,7 +55,7 @@ pub(crate) fn charselect(
                             debug!(id = ?client.0.id(), "Tried to create character without checking name first.");
                             client.send(CharacterListResponse::new(
                                 CharacterListAction::Create,
-                                CharacterListResult::error(CharacterListError::CloudntCreateCharacter),
+                                CharacterListResult::error(CharacterListError::InvalidCharacterData),
                             ));
                         }
 

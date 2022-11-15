@@ -204,8 +204,48 @@ impl InventoryItemContentData {
 #[derive(Copy, Clone, Serialize, ByteSize)]
 #[silkroad(size = 2)]
 pub enum InventoryOperationError {
+    #[silkroad(value = 0x03)]
+    InvalidTarget,
+    #[silkroad(value = 0x1807)]
+    InventoryFull,
+    #[silkroad(value = 0x1808)]
+    SomethingMallLevelLimit,
+    // ??? TODO
+    #[silkroad(value = 0x180B)]
+    CannotBeStored,
+    #[silkroad(value = 0x180E)]
+    EquipItemErr,
+    // ??? TODO
+    #[silkroad(value = 0x180F)]
+    NotEnoughGold,
+    #[silkroad(value = 0x1810)]
+    TooLowLevel,
+    #[silkroad(value = 0x1812)]
+    LockedByOthers,
+    #[silkroad(value = 0x1816)]
+    DifferentSex,
+    #[silkroad(value = 0x181E)]
+    Busy,
+    #[silkroad(value = 0x1826)]
+    Timeout,
+    #[silkroad(value = 0x182B)]
+    ExchangeCancelled,
+    #[silkroad(value = 0x182F)]
+    DifferentRegion,
+    #[silkroad(value = 0x1830)]
+    MoreStrengthRequired,
+    #[silkroad(value = 0x1831)]
+    MoreIntellectRequired,
     #[silkroad(value = 0x1838)]
     Indisposable,
+    #[silkroad(value = 0x1839)]
+    CannotBePicked,
+    #[silkroad(value = 0x183A)]
+    CannotTrade,
+    #[silkroad(value = 0x183e)]
+    Unusable,
+    #[silkroad(value = 0x184A)]
+    InsufficientCoins,
     #[silkroad(value = 0x18DC)]
     RequiresSpecialtyBag,
 }

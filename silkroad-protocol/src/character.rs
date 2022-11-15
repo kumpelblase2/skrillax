@@ -23,11 +23,15 @@ pub enum CharacterListAction {
 #[silkroad(size = 2)]
 pub enum CharacterListError {
     #[silkroad(value = 0x403)]
-    CloudntCreateCharacter,
+    InvalidCharacterData,
     #[silkroad(value = 0x404)]
     WeaponRequired,
     #[silkroad(value = 0x405)]
     TooManyCharacters,
+    #[silkroad(value = 0x406)]
+    CouldntCreateCharacter,
+    #[silkroad(value = 0x409)]
+    UnknownGameserver,
     #[silkroad(value = 0x40C)]
     NameTooLong,
     #[silkroad(value = 0x40D)]
@@ -38,6 +42,10 @@ pub enum CharacterListError {
     ConnectionOverlay,
     #[silkroad(value = 0x414)]
     ReachedCapacity,
+    #[silkroad(value = 0x415)]
+    FailedToJoinWorld,
+    #[silkroad(value = 0x418)]
+    CouldntConnectToServer,
 }
 
 #[derive(Clone, Serialize, ByteSize)]
