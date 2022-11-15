@@ -20,7 +20,7 @@ pub enum CharacterListAction {
 }
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
-#[silkroad(size = 1)]
+#[silkroad(size = 2)]
 pub enum CharacterListError {
     #[silkroad(value = 0x403)]
     CloudntCreateCharacter,
