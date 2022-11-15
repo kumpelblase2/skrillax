@@ -219,8 +219,7 @@ impl CharacterListAvatarItem {
 pub struct CharacterListEntry {
     pub ref_id: u32,
     pub name: String,
-    pub unknown_1: u8,
-    pub unknown_2: u8,
+    pub unknown: String,
     pub scale: u8,
     pub level: u8,
     pub exp: u64,
@@ -263,8 +262,7 @@ impl CharacterListEntry {
         CharacterListEntry {
             ref_id,
             name,
-            unknown_1: 0,
-            unknown_2: 0,
+            unknown: String::new(),
             scale,
             level,
             exp,
