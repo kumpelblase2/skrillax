@@ -367,7 +367,12 @@ fn from_character(character: &Character) -> CharacterListEntry {
         guild_member_class: 0,
         guild_rename_required: None,
         academy_member_class: 0,
-        equipped_items: character.items.iter().map(from_item).collect(),
+        equipped_items: character
+            .items
+            .iter()
+            .filter(|item| item.slot < 13)
+            .map(from_item)
+            .collect(),
         avatar_items: Vec::new(),
     }
 }
