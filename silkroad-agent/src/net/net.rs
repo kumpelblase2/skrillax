@@ -14,6 +14,7 @@ use silkroad_network::stream::StreamError;
 use silkroad_protocol::character::{GameGuideResponse, UpdateGameGuide};
 use silkroad_protocol::inventory::{ConsignmentResponse, OpenItemMallResponse, OpenItemMallResult};
 use silkroad_protocol::ClientPacket;
+use std::time::Instant;
 use tracing::{debug, warn};
 
 pub(crate) fn accept(
@@ -26,7 +27,11 @@ pub(crate) fn accept(
         debug!(id = ?client.id(), "Accepted client");
 
         let entity = cmd
-            .spawn((Client(client), LastAction(time.last_update().unwrap()), Login))
+            .spawn((
+                Client(client),
+                LastAction(time.last_update().unwrap_or_else(Instant::now)),
+                Login,
+            ))
             .id();
 
         events.send(ClientConnectedEvent(entity));
