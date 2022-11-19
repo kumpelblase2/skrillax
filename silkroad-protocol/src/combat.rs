@@ -109,16 +109,30 @@ pub enum PerformActionError {
     Completed,
     #[silkroad(value = 0x01)]
     Obstacle,
+    #[silkroad(value = 0x03)]
+    NotLearned,
+    #[silkroad(value = 0x04)]
+    InsufficientMP,
     #[silkroad(value = 0x05)]
     Cooldown,
     #[silkroad(value = 0x06)]
     InvalidTarget,
+    #[silkroad(value = 0x07)]
+    InvalidDistance,
     #[silkroad(value = 0x0C)]
     BuffsIntersect,
     #[silkroad(value = 0x0D)]
     InvalidWeapon,
     #[silkroad(value = 0x0E)]
     InsufficientAmmunition,
+    #[silkroad(value = 0x0F)]
+    WeaponBroken,
+    #[silkroad(value = 0x10)]
+    ObstacleInPath,
+    #[silkroad(value = 0x11)]
+    Untargetable,
+    #[silkroad(value = 0x13)]
+    InsufficientHP,
 }
 
 #[derive(Serialize, ByteSize)]
