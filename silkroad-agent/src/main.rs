@@ -53,7 +53,7 @@ fn main() {
         .expect("Should be able to create tokio runtime");
     let runtime = Arc::new(runtime);
 
-    let capacity_manager = Arc::new(CapacityController::new(configuration.max_player_count));
+    let capacity_manager = CapacityController::new(configuration.max_player_count);
     let queue = LoginQueue::new(capacity_manager.clone(), 30);
 
     let db_pool = runtime

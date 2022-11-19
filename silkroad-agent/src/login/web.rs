@@ -7,10 +7,9 @@ use axum::{Extension, Json, Router, Server};
 use silkroad_rpc::{ReserveRequest, ReserveResponse, ServerStatusReport};
 use sqlx::PgPool;
 use std::net::SocketAddr;
-use std::sync::Arc;
 
 #[derive(Clone)]
-struct Capacity(Arc<CapacityController>);
+struct Capacity(CapacityController);
 
 #[derive(Clone)]
 struct Settings(u16, String);
@@ -61,7 +60,7 @@ pub(crate) struct WebServer {
     server_id: u16,
     pool: PgPool,
     login_queue: LoginQueue,
-    capacity: Arc<CapacityController>,
+    capacity: CapacityController,
     token: String,
     port: u16,
 }
@@ -71,7 +70,7 @@ impl WebServer {
         server_id: u16,
         pool: PgPool,
         login_queue: LoginQueue,
-        capacity_controller: Arc<CapacityController>,
+        capacity_controller: CapacityController,
         token: String,
         port: u16,
     ) -> Self {

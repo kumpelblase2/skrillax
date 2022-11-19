@@ -28,13 +28,13 @@ struct Reservation<T: PartialEq> {
 
 #[derive(Clone, Resource)]
 pub struct LoginQueue {
-    capacity: Arc<CapacityController>,
+    capacity: CapacityController,
     reservations: Arc<Mutex<Vec<Reservation<ServerUser>>>>,
     reservation_valid_time: u64,
 }
 
 impl LoginQueue {
-    pub fn new(capacity: Arc<CapacityController>, reservation_valid_time: u64) -> Self {
+    pub fn new(capacity: CapacityController, reservation_valid_time: u64) -> Self {
         LoginQueue {
             capacity,
             reservations: Arc::new(Mutex::new(Vec::new())),
