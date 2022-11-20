@@ -6,9 +6,8 @@ use silkroad_network::sid::StreamId;
 use silkroad_network::stream::{Stream, StreamError, StreamReader, StreamWriter};
 use silkroad_protocol::general::IdentityInformation;
 use silkroad_protocol::login::{
-    BlockReason, GatewayNotice, GatewayNoticeResponse, LoginResponse, PasscodeAccountStatus, PasscodeRequiredCode,
-    PasscodeRequiredResponse, PasscodeResponse, PatchError, PatchResponse, PatchResult, PingServer, PingServerResponse,
-    SecurityCodeResponse, SecurityError, ShardListResponse,
+    BlockReason, GatewayNotice, GatewayNoticeResponse, LoginResponse, PasscodeRequiredResponse, PasscodeResponse,
+    PatchError, PatchResponse, PingServer, PingServerResponse, SecurityCodeResponse, SecurityError, ShardListResponse,
 };
 use silkroad_protocol::ClientPacket;
 use silkroad_rpc::ReserveResponse;
@@ -75,32 +74,24 @@ impl Client {
                 ClientPacket::KeepAlive(_) => {},
                 ClientPacket::PatchRequest(patch) => match patcher.get_patch_information(patch.version) {
                     PatchInformation::UpToDate => {
-                        writer
-                            .send(PatchResponse::new(PatchResult::UpToDate { unknown: 0 }))
-                            .await?;
+                        writer.send(PatchResponse::up_to_date()).await?;
                     },
                     PatchInformation::RequiresUpdate {
                         files,
                         target_version,
                         host,
                     } => {
-                        let response = PatchResponse::new(PatchResult::Problem {
-                            error: PatchError::Update {
-                                server_ip: "localhost".to_string(),
-                                server_port: 80,
-                                current_version: target_version,
-                                patch_files: files,
-                                http_server: host,
-                            },
+                        let response = PatchResponse::error(PatchError::Update {
+                            server_ip: "localhost".to_string(),
+                            server_port: 80,
+                            current_version: target_version,
+                            patch_files: files,
+                            http_server: host,
                         });
                         writer.send(response).await?;
                     },
                     PatchInformation::Outdated => {
-                        writer
-                            .send(PatchResponse::new(PatchResult::Problem {
-                                error: PatchError::InvalidVersion,
-                            }))
-                            .await?;
+                        writer.send(PatchResponse::error(PatchError::InvalidVersion)).await?;
                     },
                 },
                 ClientPacket::IdentityInformation(identity) => {
@@ -140,29 +131,21 @@ impl Client {
                             Self::try_reserve_spot(&mut writer, &agent_servers, id as u32, creds).await?
                         },
                         LoginResult::MissingPasscode => {
-                            writer
-                                .send(PasscodeRequiredResponse::new(PasscodeRequiredCode::PasscodeRequired))
-                                .await?;
+                            writer.send(PasscodeRequiredResponse::passcode_required()).await?;
                         },
                         LoginResult::InvalidCredentials => {
                             writer
-                                .send(LoginResponse {
-                                    result: silkroad_protocol::login::LoginResult::Error {
-                                        error: SecurityError::InvalidCredentials {
-                                            max_attempts: 5,
-                                            current_attempts: 1,
-                                        },
-                                    },
-                                })
+                                .send(LoginResponse::error(SecurityError::InvalidCredentials {
+                                    max_attempts: 5,
+                                    current_attempts: 1,
+                                }))
                                 .await?;
                         },
                         LoginResult::Blocked => {
-                            let response = LoginResponse::new(silkroad_protocol::login::LoginResult::Error {
-                                error: SecurityError::Blocked {
-                                    reason: BlockReason::Punishment {
-                                        reason: "You have been blocked.".to_string(),
-                                        end: Utc.ymd(2099, 12, 31).and_hms(23, 59, 59),
-                                    },
+                            let response = LoginResponse::error(SecurityError::Blocked {
+                                reason: BlockReason::Punishment {
+                                    reason: "You have been blocked.".to_string(),
+                                    end: Utc.ymd(2099, 12, 31).and_hms(23, 59, 59),
                                 },
                             });
                             writer.send(response).await?;
@@ -189,31 +172,17 @@ impl Client {
 
                         match result {
                             LoginResult::Success(id) => {
-                                writer
-                                    .send(SecurityCodeResponse {
-                                        account_status: PasscodeAccountStatus::Ok,
-                                        result: 1,
-                                        invalid_attempts: 3,
-                                    })
-                                    .await?;
+                                writer.send(SecurityCodeResponse::success()).await?;
                                 Self::try_reserve_spot(&mut writer, &agent_servers, id as u32, previous).await?
                             },
                             LoginResult::MissingPasscode => {
                                 error!("Player entered passcode but we somehow didn't use it.");
                             },
                             LoginResult::InvalidCredentials => {
-                                writer
-                                    .send(PasscodeRequiredResponse {
-                                        result: PasscodeRequiredCode::PasscodeInvalid,
-                                    })
-                                    .await?;
+                                writer.send(PasscodeRequiredResponse::passcode_invalid()).await?;
                             },
                             LoginResult::Blocked => {
-                                writer
-                                    .send(PasscodeRequiredResponse {
-                                        result: PasscodeRequiredCode::PasscodeBlocked,
-                                    })
-                                    .await?;
+                                writer.send(PasscodeRequiredResponse::passcode_blocked()).await?;
                             },
                         }
                     }
@@ -226,14 +195,12 @@ impl Client {
                     writer.send(ShardListResponse { farms, shards }).await?;
                 },
                 ClientPacket::PingServerRequest(_) => {
-                    let ping_response = PingServerResponse {
-                        servers: vec![PingServer {
-                            index: 1,
-                            domain: "localhost".to_string(),
-                            unknown_1: 0x32,
-                            unknown_2: 0xbd,
-                        }],
-                    };
+                    let ping_response = PingServerResponse::new(vec![PingServer {
+                        index: 1,
+                        domain: "localhost".to_string(),
+                        unknown_1: 0x32,
+                        unknown_2: 0xbd,
+                    }]);
                     writer.send(ping_response).await?;
                 },
                 _ => {},
@@ -252,13 +219,7 @@ impl Client {
         let server = match agent_servers.server_details(last_credentials.shard).await {
             Some(addr) => addr,
             None => {
-                writer
-                    .send(LoginResponse {
-                        result: silkroad_protocol::login::LoginResult::Error {
-                            error: SecurityError::Inspection,
-                        },
-                    })
-                    .await?;
+                writer.send(LoginResponse::error(SecurityError::Inspection)).await?;
                 return Ok(());
             },
         };
@@ -270,13 +231,7 @@ impl Client {
         match result {
             Err(e) => {
                 debug!(client = ?writer.id(), error = %e, "Error when reserving a spot");
-                writer
-                    .send(LoginResponse {
-                        result: silkroad_protocol::login::LoginResult::Error {
-                            error: SecurityError::Inspection,
-                        },
-                    })
-                    .await?
+                writer.send(LoginResponse::error(SecurityError::Inspection)).await?
             },
             Ok(result) => match result {
                 ReserveResponse::Success { token, .. } => {
@@ -296,22 +251,12 @@ impl Client {
                 },
                 ReserveResponse::NotFound => {
                     writer
-                        .send(LoginResponse {
-                            result: silkroad_protocol::login::LoginResult::Error {
-                                error: SecurityError::Inspection,
-                            },
-                        })
+                        .send(LoginResponse::error(SecurityError::AlreadyConnected))
                         .await?
                 },
                 ReserveResponse::Error(message) => {
                     debug!(client = ?writer.id(), "Could not reserve spot: {message}");
-                    writer
-                        .send(LoginResponse {
-                            result: silkroad_protocol::login::LoginResult::Error {
-                                error: SecurityError::ServerFull,
-                            },
-                        })
-                        .await?
+                    writer.send(LoginResponse::error(SecurityError::ServerFull)).await?
                 },
             },
         }

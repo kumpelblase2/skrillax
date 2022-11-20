@@ -299,6 +299,18 @@ impl PatchResponse {
     pub fn new(result: PatchResult) -> Self {
         PatchResponse { result }
     }
+
+    pub fn up_to_date() -> Self {
+        PatchResponse {
+            result: PatchResult::UpToDate { unknown: 0 },
+        }
+    }
+
+    pub fn error(error: PatchError) -> Self {
+        PatchResponse {
+            result: PatchResult::Problem { error },
+        }
+    }
 }
 
 #[derive(Clone, Deserialize, ByteSize)]
@@ -318,6 +330,12 @@ pub struct LoginResponse {
 impl LoginResponse {
     pub fn new(result: LoginResult) -> Self {
         LoginResponse { result }
+    }
+
+    pub fn error(error: SecurityError) -> Self {
+        LoginResponse {
+            result: LoginResult::Error { error },
+        }
     }
 }
 
@@ -341,6 +359,14 @@ impl SecurityCodeResponse {
             account_status,
             result,
             invalid_attempts,
+        }
+    }
+
+    pub fn success() -> Self {
+        SecurityCodeResponse {
+            account_status: PasscodeAccountStatus::Ok,
+            result: 1,
+            invalid_attempts: 3,
         }
     }
 }
@@ -402,6 +428,30 @@ pub struct PasscodeRequiredResponse {
 impl PasscodeRequiredResponse {
     pub fn new(result: PasscodeRequiredCode) -> Self {
         PasscodeRequiredResponse { result }
+    }
+
+    pub fn define_passcode() -> Self {
+        PasscodeRequiredResponse {
+            result: PasscodeRequiredCode::DefinePasscode,
+        }
+    }
+
+    pub fn passcode_required() -> Self {
+        PasscodeRequiredResponse {
+            result: PasscodeRequiredCode::PasscodeRequired,
+        }
+    }
+
+    pub fn passcode_invalid() -> Self {
+        PasscodeRequiredResponse {
+            result: PasscodeRequiredCode::PasscodeInvalid,
+        }
+    }
+
+    pub fn passcode_blocked() -> Self {
+        PasscodeRequiredResponse {
+            result: PasscodeRequiredCode::PasscodeBlocked,
+        }
     }
 }
 
