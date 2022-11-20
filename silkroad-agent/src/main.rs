@@ -78,17 +78,14 @@ fn main() {
         ))
         .expect("Should be able to register server");
 
-    let _web_handle = runtime.spawn(
-        WebServer::new(
-            server_id,
-            db_pool.clone(),
-            queue.clone(),
-            capacity_manager,
-            token,
-            configuration.rpc_port,
-        )
-        .run(),
-    );
+    let _web_handle = runtime.spawn(WebServer::run(
+        server_id,
+        db_pool.clone(),
+        queue.clone(),
+        capacity_manager,
+        token,
+        configuration.rpc_port,
+    ));
 
     let listen_addr = format!("{}:{}", configuration.listen_address, configuration.listen_port)
         .parse()

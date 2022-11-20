@@ -249,7 +249,9 @@ impl Client {
                         })
                         .await?
                 },
-                ReserveResponse::NotFound => {
+                ReserveResponse::NotFound => writer.send(LoginResponse::error(SecurityError::Inspection)).await?,
+                ReserveResponse::Full => writer.send(LoginResponse::error(SecurityError::ServerFull)).await?,
+                ReserveResponse::Duplicate => {
                     writer
                         .send(LoginResponse::error(SecurityError::AlreadyConnected))
                         .await?

@@ -61,5 +61,7 @@ pub struct ReserveRequest {
 pub enum ReserveResponse {
     Success { token: u32, alive: u64 },
     NotFound,
+    Full,
+    Duplicate,
     Error(String),
 }

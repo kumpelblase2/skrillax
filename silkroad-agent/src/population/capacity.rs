@@ -39,14 +39,22 @@ impl Capacity {
         }
     }
 
+    fn current_total(&self) -> u16 {
+        self.queued.load(Ordering::Acquire) + self.playing.load(Ordering::Acquire)
+    }
+
+    fn available(&self) -> u16 {
+        self.max - self.current_total()
+    }
+
     fn usage(&self) -> f32 {
-        let total_current = (self.queued.load(Ordering::Acquire) + self.playing.load(Ordering::Acquire)) as f32;
+        let total_current = self.current_total() as f32;
         let maximum = self.max as f32;
         total_current / maximum
     }
 
     fn can_queue(&self) -> bool {
-        self.usage() < 1.0
+        self.available() > 0
     }
 }
 

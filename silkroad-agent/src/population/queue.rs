@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use thiserror::Error;
 
+const MAX_TOKEN_TRIES: u8 = 10;
+
 #[derive(Error, Debug)]
 pub enum ReservationError {
     #[error("There are no more spots available")]
@@ -61,15 +63,16 @@ impl LoginQueue {
 
         let current_time = Instant::now();
         let timeout = current_time.add(Duration::from_secs(self.reservation_valid_time));
-        let mut id = thread_rng().gen_range(u16::MIN..u16::MAX) as u32;
+        let mut rng = thread_rng();
+        let mut id = rng.gen_range(u32::MIN..u32::MAX);
         let mut tries = 0u8;
         while reservations.iter().any(|reservation| reservation.token == id) {
-            if tries >= 10 {
+            if tries >= MAX_TOKEN_TRIES {
                 // TODO make this never happen
                 return Err(ReservationError::AllTokensTaken);
             }
 
-            id = thread_rng().gen_range(u32::MIN..u32::MAX);
+            id = rng.gen_range(u32::MIN..u32::MAX);
             tries += 1;
         }
 
