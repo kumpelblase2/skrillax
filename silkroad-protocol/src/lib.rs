@@ -144,8 +144,6 @@ server_packets! {
     0xA117 => PasscodeResponse,
     0x210E => QueueUpdate,
     0x2001 => IdentityInformation,
-    0x2005 => ServerInfoSeed,
-    0x6005 => ServerStateSeed,
     0x5000 => SecuritySetup,
     0xA103 => AuthResponse,
     0xB005 => LogoutResponse,
@@ -164,13 +162,7 @@ server_packets! {
 
 impl ServerPacket {
     pub fn is_massive(&self) -> bool {
-        matches!(
-            self,
-            Self::PatchResponse(_)
-                | Self::GatewayNoticeResponse(_)
-                | Self::ServerInfoSeed(_)
-                | Self::ServerStateSeed(_)
-        )
+        matches!(self, Self::PatchResponse(_) | Self::GatewayNoticeResponse(_))
     }
 
     pub fn is_encrypted(&self) -> bool {

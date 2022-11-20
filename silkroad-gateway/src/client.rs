@@ -4,7 +4,7 @@ use crate::{AgentServerManager, NewsCacheAsync, Patcher};
 use chrono::{TimeZone, Utc};
 use silkroad_network::sid::StreamId;
 use silkroad_network::stream::{Stream, StreamError, StreamReader, StreamWriter};
-use silkroad_protocol::general::{IdentityInformation, ServerInfoSeed, ServerStateSeed};
+use silkroad_protocol::general::IdentityInformation;
 use silkroad_protocol::login::{
     BlockReason, GatewayNotice, GatewayNoticeResponse, LoginResponse, PasscodeAccountStatus, PasscodeRequiredCode,
     PasscodeRequiredResponse, PasscodeResponse, PatchError, PatchResponse, PatchResult, PingServer, PingServerResponse,
@@ -111,10 +111,6 @@ impl Client {
                             locality: 0,
                         })
                         .await?;
-                    // TODO: need to figure out what this value actually represents.
-                    //   This seems like "server version", maybe expose a setting for it.
-                    writer.send(ServerInfoSeed::new(0x1056)).await?;
-                    writer.send(ServerStateSeed::new()).await?;
                 },
                 ClientPacket::GatewayNoticeRequest(_) => {
                     let mut news = news.lock().await;

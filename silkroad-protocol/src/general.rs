@@ -59,50 +59,6 @@ impl IdentityInformation {
 pub struct KeepAlive;
 
 #[derive(Clone, Serialize, ByteSize)]
-pub struct ServerInfoSeed {
-    pub unknown_1: u8,
-    pub unknown_2: u8,
-    pub unknown_3: u8,
-    pub seed_value: u16,
-    pub unknown_4: u32,
-    pub unknown_5: u8,
-}
-
-impl ServerInfoSeed {
-    pub fn new(seed_value: u16) -> Self {
-        ServerInfoSeed {
-            unknown_1: 1,
-            unknown_2: 0,
-            unknown_3: 1,
-            seed_value,
-            unknown_4: 5,
-            unknown_5: 2,
-        }
-    }
-}
-
-#[derive(Clone, Serialize, ByteSize)]
-pub struct ServerStateSeed {
-    pub unknown_1: u8,
-    pub unknown_2: u8,
-    pub unknown_3: u8,
-    pub unknown_4: u8,
-    pub unknown_5: u8,
-}
-
-impl ServerStateSeed {
-    pub fn new() -> Self {
-        ServerStateSeed {
-            unknown_1: 3,
-            unknown_2: 0,
-            unknown_3: 2,
-            unknown_4: 0,
-            unknown_5: 2,
-        }
-    }
-}
-
-#[derive(Clone, Serialize, ByteSize)]
 pub struct SecuritySetup {
     pub stage: HandshakeStage,
 }
