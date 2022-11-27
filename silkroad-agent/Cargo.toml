@@ -11,7 +11,7 @@ silkroad-rpc = { path = "../silkroad-rpc" }
 silkroad-navmesh = { path = "../silkroad-navmesh", features = ["pk2"] }
 silkroad-data = { path = "../silkroad-data" }
 tokio = { workspace = true }
-axum = "0.5.13"
+axum = "0.5.17"
 bytes = "1.1.0"
 once_cell = { workspace = true }
 byteorder = { workspace = true }

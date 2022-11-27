@@ -1,6 +1,5 @@
 use config::ConfigError;
 use log::LevelFilter;
-use once_cell::sync::Lazy;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{ConnectOptions, PgPool};
@@ -69,8 +68,6 @@ impl GatewayServerConfig {
     }
 }
 
-static CONFIG: Lazy<GatewayServerConfig> = Lazy::new(|| GatewayServerConfig::load().expect("Could not load config."));
-
-pub(crate) fn get_config() -> &'static GatewayServerConfig {
-    &CONFIG
+pub(crate) fn get_config() -> Result<GatewayServerConfig, ConfigError> {
+    GatewayServerConfig::load()
 }

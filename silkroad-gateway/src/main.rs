@@ -1,4 +1,5 @@
 mod agentserver;
+mod cli;
 mod client;
 mod config;
 mod login;
@@ -7,33 +8,39 @@ mod patch;
 mod server;
 
 use crate::agentserver::AgentServerManager;
-use crate::config::get_config;
+use crate::cli::{Cli, Commands};
+use crate::config::{get_config, DbOptions, GatewayServerConfig};
 use crate::login::LoginProvider;
 use crate::news::NewsCacheAsync;
 use crate::patch::Patcher;
 use crate::server::GatewayServer;
+use anyhow::{anyhow, Result};
+use clap::Parser;
 use silkroad_protocol::login::Farm;
+use sqlx::PgPool;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, error};
+use tracing::{debug, error, info};
 
 const DEFAULT_FARM: &str = "Skrillax_TestBed";
 const DEFAULT_HEALTHCHECK_INTERVAL: u64 = 60;
 const DEFAULT_LISTEN_PORT: u16 = 15779;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
-    let configuration = get_config();
+    let configuration = get_config()?;
+
+    let args = Cli::parse();
+    if let Some(command) = args.command {
+        run_command(&command, &configuration).await?;
+        return Ok(());
+    }
 
     debug!(patch = ?configuration.patch, "patch information");
 
-    let db_pool = configuration
-        .database
-        .create_pool()
-        .await
-        .expect("Should be able to access database");
+    let db_pool = create_db(&configuration.database).await;
     let news = NewsCacheAsync::new(
         db_pool.clone(),
         Duration::from_secs(configuration.news_cache_duration.unwrap_or(120)),
@@ -97,4 +104,36 @@ async fn main() {
             error!(error = %e, "Could not start server")
         },
     }
+
+    Ok(())
+}
+
+async fn create_db(configuration: &DbOptions) -> PgPool {
+    configuration
+        .create_pool()
+        .await
+        .expect("Should be able to access database")
+}
+
+async fn run_command(command: &Commands, configuration: &GatewayServerConfig) -> Result<()> {
+    match command {
+        Commands::Register {
+            username,
+            password,
+            passcode,
+        } => {
+            let db = create_db(&configuration.database).await;
+            let login_handler = LoginProvider::new(db);
+            if login_handler
+                .register(username, password, passcode.as_ref().map(|r| r.as_ref()))
+                .await
+            {
+                info!("Registered user {} with password {}.", username, password)
+            } else {
+                return Err(anyhow!("Could not create account."));
+            }
+        },
+    }
+
+    Ok(())
 }

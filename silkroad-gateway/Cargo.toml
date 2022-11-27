@@ -7,7 +7,6 @@ edition = "2021"
 config = { workspace = true }
 serde = { workspace = true }
 serde_derive = { workspace = true }
-once_cell = { workspace = true }
 tracing = { workspace = true }
 log = { workspace = true, default-features = false }
 chrono = { workspace = true }
@@ -21,3 +20,6 @@ silkroad-protocol = { path = "../silkroad-protocol" }
 silkroad-rpc = { path = "../silkroad-rpc" }
 silkroad-security = { path = "../silkroad-security" }
 reqwest = { version = "0.11.11", features = ["json"] }
+clap = { version = "4", features = ["derive"] }
+anyhow = "1.0.66"
+bcrypt = "0.13"
