@@ -120,54 +120,77 @@ pub(crate) fn movement(
                         SkillState::Before => {
                             // TODO: send skill start info
                             if reference.timings.preparation_time > 0 {
-                                SkillState::Prepare(Timer::new(
+                                Some(SkillState::Prepare(Timer::new(
                                     Duration::from_millis(reference.timings.preparation_time as u64),
                                     TimerMode::Once,
-                                ))
+                                )))
                             } else if reference.timings.cast_time > 0 {
-                                SkillState::Cast(Timer::new(
-                                    Duration::from_millis(reference.timings.preparation_time as u64),
+                                Some(SkillState::Cast(Timer::new(
+                                    Duration::from_millis(reference.timings.cast_time as u64),
                                     TimerMode::Once,
-                                ))
+                                )))
                             } else {
-                                SkillState::Default(Timer::new(
-                                    Duration::from_millis(reference.timings.preparation_time as u64),
+                                Some(SkillState::Default(Timer::new(
+                                    Duration::from_millis(reference.timings.duration as u64),
                                     TimerMode::Once,
-                                ))
+                                )))
                             }
                         },
                         SkillState::Prepare(timer) => {
                             timer.tick(delta.delta());
                             if timer.finished() {
                                 if reference.timings.cast_time > 0 {
-                                    SkillState::Cast(Timer::new(
-                                        Duration::from_millis(reference.timings.preparation_time as u64),
+                                    Some(SkillState::Cast(Timer::new(
+                                        Duration::from_millis(reference.timings.cast_time as u64),
                                         TimerMode::Once,
-                                    ))
+                                    )))
                                 } else {
-                                    SkillState::Default(Timer::new(
-                                        Duration::from_millis(reference.timings.preparation_time as u64),
+                                    Some(SkillState::Default(Timer::new(
+                                        Duration::from_millis(reference.timings.duration as u64),
                                         TimerMode::Once,
-                                    ))
+                                    )))
                                 }
                             } else {
-                                SkillState::Prepare(mem::take(timer))
+                                Some(SkillState::Prepare(mem::take(timer)))
                             }
                         },
                         SkillState::Cast(timer) => {
                             timer.tick(delta.delta());
                             if timer.finished() {
-                                SkillState::Default(Timer::new(
-                                    Duration::from_millis(reference.timings.preparation_time as u64),
+                                Some(SkillState::Default(Timer::new(
+                                    Duration::from_millis(reference.timings.duration as u64),
                                     TimerMode::Once,
-                                ))
+                                )))
                             } else {
-                                SkillState::Cast(mem::take(timer))
+                                Some(SkillState::Cast(mem::take(timer)))
                             }
                         },
-                        _ => todo!(),
+                        SkillState::Default(timer) => {
+                            timer.tick(delta.delta());
+                            // This should actually execute the skill
+                            if timer.finished() {
+                                Some(SkillState::Cooldown(Timer::new(
+                                    Duration::from_millis(reference.timings.cooldown as u64),
+                                    TimerMode::Once,
+                                )))
+                            } else {
+                                Some(SkillState::Default(mem::take(timer)))
+                            }
+                        },
+                        SkillState::Cooldown(timer) => {
+                            timer.tick(delta.delta());
+                            if timer.finished() {
+                                None
+                            } else {
+                                Some(SkillState::Cooldown(mem::take(timer)))
+                            }
+                        },
                     };
-                    let _ = mem::replace(state, next_state);
+                    if let Some(next_state) = next_state {
+                        let _ = mem::replace(state, next_state);
+                    } else {
+                        agent.current_action = None;
+                    }
                 },
                 AgentAction::Attack {
                     current_destination,
