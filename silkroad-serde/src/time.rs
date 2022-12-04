@@ -39,8 +39,8 @@ impl Deref for SilkroadTime {
 impl Serialize for SilkroadTime {
     fn write_to(&self, writer: &mut BytesMut) {
         let data = ((self.year() - 2000) as u32) & 63
-            | (self.month() - 1 & 15) << 6
-            | (self.day() - 1 & 31) << 10
+            | ((self.month() - 1) & 15) << 6
+            | ((self.day() - 1) & 31) << 10
             | (self.hour() & 31) << 15
             | (self.minute() & 63) << 20
             | (self.second() & 63) << 26;
