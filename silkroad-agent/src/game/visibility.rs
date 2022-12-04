@@ -38,8 +38,8 @@ pub(crate) fn visibility_update(
 
         query.par_for_each_mut(300, |(entity, game_entity, mut visibility, position)| {
             let my_region = position.location.region();
-            let close_regions = my_region.neighbours();
-            if close_regions.iter().any(|region| activity.set.contains(&region.id())) {
+            let close_regions = my_region.with_grid_neighbours();
+            if close_regions.iter().any(|region| activity.is_region_active(&region)) {
                 let entities_in_range: HashSet<EntityReference> = close_regions
                         .iter()
                         .flat_map(|region| {

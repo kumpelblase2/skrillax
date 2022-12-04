@@ -28,7 +28,7 @@ use silkroad_protocol::ClientPacket;
 use std::mem::take;
 use std::ops::Add;
 use std::time::Duration;
-use tracing::info;
+use tracing::{debug, info};
 
 const PUNCH_SKILL_ID: u32 = 1;
 const MAX_TARGET_DISTANCE: f32 = 500. * 500.;
@@ -246,6 +246,10 @@ pub(crate) fn handle_world_input(
                             drop::Item::Consumable(_) => {},
                             drop::Item::Equipment { .. } => {},
                         }
+                    },
+                    PerformAction::Do(DoActionType::UseSkill { ref_id, target }) => {
+                        debug!(id = ref_id, target = ?target, "Using skill");
+                        client.send(PerformActionResponse::Stop(PerformActionError::Completed));
                     },
                     _ => {},
                 },

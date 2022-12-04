@@ -6,6 +6,7 @@ use crate::comp::{GameEntity, Health};
 use crate::config::SpawnOptions;
 use bevy_ecs::prelude::*;
 use bevy_time::{Timer, TimerMode};
+use rand::random;
 use silkroad_protocol::world::EntityRarity;
 use std::time::{Duration, Instant};
 
@@ -57,7 +58,8 @@ pub struct Spawner {
     pub ref_id: u32,
     pub target_amount: usize,
     pub current_amount: usize,
-    pub last_spawn_check: Instant,
+    last_spawn_check: Instant,
+    spawn_check_duration: Duration,
 }
 
 impl Spawner {
@@ -69,10 +71,19 @@ impl Spawner {
             ref_id: spawned,
             current_amount: 0,
             last_spawn_check: Instant::now(),
+            spawn_check_duration: Duration::from_secs(1),
         }
     }
 
     pub fn has_spots_available(&self) -> bool {
         self.current_amount < self.target_amount
+    }
+
+    pub fn should_spawn(&mut self, now: Instant) -> bool {
+        if now.duration_since(self.last_spawn_check) > self.spawn_check_duration {
+            self.last_spawn_check = now;
+            return random::<f32>() > 0.5;
+        }
+        false
     }
 }

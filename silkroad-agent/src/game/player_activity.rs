@@ -1,19 +1,25 @@
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
 use bevy_ecs::prelude::*;
+use itertools::Itertools;
+use silkroad_navmesh::region::Region;
 use std::collections::HashSet;
 
 #[derive(Default, Resource)]
 pub(crate) struct PlayerActivity {
-    pub(crate) set: HashSet<u16>,
+    set: HashSet<Region>,
 }
 
-pub(crate) fn reset_player_activity(mut activity: ResMut<PlayerActivity>) {
-    activity.set.clear();
+impl PlayerActivity {
+    pub(crate) fn is_region_active(&self, region: &Region) -> bool {
+        self.set.contains(&region)
+    }
+
+    pub(crate) fn active_regions(&self) -> impl Iterator<Item = Region> + '_ {
+        self.set.iter().map(|region| *region)
+    }
 }
 
 pub(crate) fn update_player_activity(mut activity: ResMut<PlayerActivity>, query: Query<&Position, With<Player>>) {
-    query.iter().for_each(|pos| {
-        activity.set.insert(pos.location.region().id());
-    });
+    activity.set = query.iter().map(|pos| pos.location.region()).collect();
 }

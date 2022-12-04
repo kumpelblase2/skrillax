@@ -32,10 +32,10 @@ impl Region {
         (self.0 & 0x8000) != 0
     }
 
-    pub fn neighbours(&self) -> Vec<Region> {
+    pub fn with_grid_neighbours(&self) -> Vec<Region> {
         vec![
             Region::from_xy(self.x() - 1, self.y()),
-            Region::from_xy(self.x(), self.y()),
+            *self,
             Region::from_xy(self.x() + 1, self.y()),
             Region::from_xy(self.x() - 1, self.y() - 1),
             Region::from_xy(self.x(), self.y() - 1),

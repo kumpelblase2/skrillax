@@ -12,13 +12,15 @@ use crate::world::WorldData;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
 use id_pool::IdPool;
+use itertools::Itertools;
 use pk2::Pk2;
-use rand::{random, Rng};
+use rand::Rng;
 use silkroad_data::type_id::{ObjectEntity, ObjectMonster, ObjectNonPlayer, ObjectType};
 use silkroad_navmesh::region::Region;
 use silkroad_navmesh::NavmeshLoader;
 use silkroad_protocol::world::EntityRarity;
 use std::cmp::min;
+use std::collections::HashSet;
 use std::time::{Duration, Instant};
 use tracing::trace;
 
@@ -68,19 +70,15 @@ pub(crate) fn spawn_monsters(
 ) {
     let current_time = Instant::now();
 
-    let mut active_regions = activity.set.clone();
-    activity
-        .set
-        .iter()
-        .flat_map(|r| Region::from(*r).neighbours())
-        .for_each(|r| {
-            let _ = active_regions.insert(r.id());
-        });
+    let active_regions: HashSet<Region> = activity
+        .active_regions()
+        .flat_map(|region| region.with_grid_neighbours())
+        .collect();
 
     for (entity, mut spawner, position) in query.iter_mut() {
-        let should_be_active = active_regions.contains(&position.location.region().id());
+        let should_be_active = active_regions.contains(&position.location.region());
         if !spawner.active && should_be_active {
-            trace!("Activating spawner {:?}", entity);
+            trace!(spawner = ?entity, "Activating spawner");
             activate_spawner(
                 entity,
                 &mut spawner,
@@ -90,29 +88,24 @@ pub(crate) fn spawn_monsters(
                 &mut id_pool,
             );
         } else if spawner.active && !should_be_active {
-            trace!("Deactivating spawner {:?}", entity);
+            trace!(spawner = ?entity, "Deactivating spawner");
             deactivate_spawner(entity, &mut spawner, &mut commands, &despawn_query);
         } else if spawner.active {
-            if spawner.has_spots_available()
-                && current_time.duration_since(spawner.last_spawn_check) > Duration::from_secs(1)
-            {
-                spawner.last_spawn_check = current_time;
-                if random::<f32>() > 0.5 {
-                    let empty_spots = spawner.target_amount - spawner.current_amount;
-                    let max_spawn = min(empty_spots, 3); // Spawn at most 3 at once
-                    let to_spawn = rand::thread_rng().gen_range(1..=max_spawn);
+            if spawner.has_spots_available() && spawner.should_spawn(current_time) {
+                let empty_spots = spawner.target_amount - spawner.current_amount;
+                let max_spawn = min(empty_spots, 3); // Spawn at most 3 at once
+                let to_spawn = rand::thread_rng().gen_range(1..=max_spawn);
 
-                    let spawned_amount = spawn_n_monsters(
-                        entity,
-                        &mut commands,
-                        &mut navmesh,
-                        &mut id_pool,
-                        &mut spawner,
-                        position,
-                        to_spawn,
-                    );
-                    spawner.current_amount += spawned_amount;
-                }
+                let spawned_amount = spawn_n_monsters(
+                    entity,
+                    &mut commands,
+                    &mut navmesh,
+                    &mut id_pool,
+                    &mut spawner,
+                    position,
+                    to_spawn,
+                );
+                spawner.current_amount += spawned_amount;
             }
         }
     }
