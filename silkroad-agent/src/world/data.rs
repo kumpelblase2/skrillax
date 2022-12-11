@@ -5,6 +5,7 @@ use silkroad_data::datamap::DataMap;
 use silkroad_data::gold::{load_gold_map, GoldMap};
 use silkroad_data::itemdata::{load_item_map, RefItemData};
 use silkroad_data::level::{load_level_map, LevelMap};
+use silkroad_data::masterydata::{load_mastery_map, RefMasteryData};
 use silkroad_data::skilldata::{load_skill_map, RefSkillData};
 use silkroad_data::FileError;
 
@@ -13,6 +14,7 @@ static CHARACTERS: OnceCell<DataMap<RefCharacterData>> = OnceCell::new();
 static SKILLS: OnceCell<DataMap<RefSkillData>> = OnceCell::new();
 static LEVELS: OnceCell<LevelMap> = OnceCell::new();
 static GOLD: OnceCell<GoldMap> = OnceCell::new();
+static MASTERIES: OnceCell<DataMap<RefMasteryData>> = OnceCell::new();
 
 pub struct WorldData;
 
@@ -23,11 +25,13 @@ impl WorldData {
         let characters = load_character_map(&media_pk2)?;
         let items = load_item_map(&media_pk2)?;
         let skills = load_skill_map(&media_pk2)?;
+        let masteries = load_mastery_map(&media_pk2)?;
         let _ = LEVELS.set(levels);
         let _ = GOLD.set(gold);
         let _ = CHARACTERS.set(characters);
         let _ = ITEMS.set(items);
         let _ = SKILLS.set(skills);
+        let _ = MASTERIES.set(masteries);
         Ok(())
     }
 
@@ -49,5 +53,9 @@ impl WorldData {
 
     pub fn gold() -> &'static GoldMap {
         GOLD.get().expect("Gold should have been set")
+    }
+
+    pub fn masteries() -> &'static DataMap<RefMasteryData> {
+        MASTERIES.get().expect("Masteries should have been set")
     }
 }
