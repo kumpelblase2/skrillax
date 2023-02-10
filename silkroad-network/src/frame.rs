@@ -99,7 +99,7 @@ impl SilkroadFrame {
             content_size + 4
         };
 
-        if data.len() < total_size as usize {
+        if data.len() < total_size {
             return Err(FrameError::Incomplete);
         }
 
@@ -119,7 +119,7 @@ impl SilkroadFrame {
         let count = data[2];
         let crc = data[3];
 
-        let final_length = (total_size + 2) as usize;
+        let final_length = total_size + 2;
         if opcode == MASSIVE_PACKET_OPCODE {
             let mode = data[4];
             if mode == 1 {
