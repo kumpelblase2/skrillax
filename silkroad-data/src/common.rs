@@ -1,5 +1,4 @@
-use crate::ParseError;
-use crate::TypeId;
+use crate::{ParseError, TypeId};
 use num_enum_derive::TryFromPrimitive;
 use std::str::FromStr;
 use std::time::Duration;

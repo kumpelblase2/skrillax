@@ -1,5 +1,4 @@
-use crate::world::lookup::collect_entities;
-use crate::world::lookup::maintain_entities;
+use crate::world::lookup::{collect_entities, maintain_entities};
 use bevy_app::{App, CoreStage, Plugin};
 use pk2::Pk2;
 use silkroad_data::npc_pos::NpcPosition;

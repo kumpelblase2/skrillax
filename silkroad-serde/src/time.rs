@@ -1,7 +1,6 @@
 use crate::{ByteSize, Serialize};
 use bytes::{BufMut, BytesMut};
-use chrono::Duration as CDuration;
-use chrono::{DateTime, Datelike, TimeZone, Timelike, Utc};
+use chrono::{DateTime, Datelike, Duration as CDuration, TimeZone, Timelike, Utc};
 use std::ops::{Add, Deref};
 use std::time::Duration;
 

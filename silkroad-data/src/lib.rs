@@ -10,8 +10,6 @@ pub mod skilldata;
 pub mod type_id;
 
 pub use datamap::*;
-pub use type_id::*;
-
 use encoding_rs::WINDOWS_1252;
 use num_enum::{TryFromPrimitive, TryFromPrimitiveError};
 use pk2::ChainLookupError;
@@ -21,6 +19,7 @@ use std::io::Read;
 use std::num::{ParseFloatError, ParseIntError};
 use std::str::{FromStr, ParseBoolError};
 use thiserror::Error;
+pub use type_id::*;
 
 pub(crate) fn load_lines<T: FromStr>(source: &str) -> Result<Vec<T>, T::Err> {
     let mut all_lines = Vec::new();

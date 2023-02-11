@@ -20,12 +20,12 @@ pub struct WorldData;
 
 impl WorldData {
     pub(crate) fn load_data_from(media_pk2: &Pk2) -> Result<(), FileError> {
-        let levels = load_level_map(&media_pk2)?;
-        let gold = load_gold_map(&media_pk2)?;
-        let characters = load_character_map(&media_pk2)?;
-        let items = load_item_map(&media_pk2)?;
-        let skills = load_skill_map(&media_pk2)?;
-        let masteries = load_mastery_map(&media_pk2)?;
+        let levels = load_level_map(media_pk2)?;
+        let gold = load_gold_map(media_pk2)?;
+        let characters = load_character_map(media_pk2)?;
+        let items = load_item_map(media_pk2)?;
+        let skills = load_skill_map(media_pk2)?;
+        let masteries = load_mastery_map(media_pk2)?;
         let _ = LEVELS.set(levels);
         let _ = GOLD.set(gold);
         let _ = CHARACTERS.set(characters);

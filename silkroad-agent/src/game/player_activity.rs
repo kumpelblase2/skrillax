@@ -1,7 +1,6 @@
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
 use bevy_ecs::prelude::*;
-use itertools::Itertools;
 use silkroad_navmesh::region::Region;
 use std::collections::HashSet;
 
@@ -12,11 +11,11 @@ pub(crate) struct PlayerActivity {
 
 impl PlayerActivity {
     pub(crate) fn is_region_active(&self, region: &Region) -> bool {
-        self.set.contains(&region)
+        self.set.contains(region)
     }
 
     pub(crate) fn active_regions(&self) -> impl Iterator<Item = Region> + '_ {
-        self.set.iter().map(|region| *region)
+        self.set.iter().copied()
     }
 }
 

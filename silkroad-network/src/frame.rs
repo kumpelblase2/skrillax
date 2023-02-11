@@ -1,12 +1,11 @@
 use byteorder::{ByteOrder, LittleEndian};
 use bytes::{BufMut, Bytes, BytesMut};
 use silkroad_protocol::ServerPacket;
+use silkroad_security::security::{SilkroadSecurity, SilkroadSecurityError};
 use std::cmp::{max, min};
 use std::sync::{Arc, RwLock};
 use thiserror::Error;
 use tracing::trace_span;
-
-use silkroad_security::security::{SilkroadSecurity, SilkroadSecurityError};
 
 const MASSIVE_PACKET_OPCODE: u16 = 0x600D;
 

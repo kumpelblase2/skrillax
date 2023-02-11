@@ -1,12 +1,11 @@
 pub mod error;
 mod time;
 
-pub use error::SerializationError;
-pub use time::SilkroadTime;
-
 use byteorder::ReadBytesExt;
 use bytes::{BufMut, BytesMut};
+pub use error::SerializationError;
 use std::io::Read;
+pub use time::SilkroadTime;
 
 macro_rules! implement_primitive {
     ($tt:ty, $read:ident) => {
@@ -67,7 +66,7 @@ impl Deserialize for u8 {
 
 impl Serialize for bool {
     fn write_to(&self, writer: &mut BytesMut) {
-        let value = if *self { 1 } else { 0u8 };
+        let value = u8::from(*self);
         value.write_to(writer);
     }
 }

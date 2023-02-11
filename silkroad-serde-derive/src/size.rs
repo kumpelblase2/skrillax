@@ -120,7 +120,10 @@ fn generate_size_for(field: &Field, ident: TokenStream) -> TokenStream {
             }
         },
         UsedType::Option(inner) => {
-            let size = if field_args.when.is_some() { 0 } else { 1usize };
+            // If we don't have a `when` condition, we need a boolean flag to note if it has content or not.
+            // So `is_none()` means no condition, meaning we need another field, and thus size should be 1.
+            // If we have a condition, we don't need a field, and thus size should be 0.
+            let size = usize::from(field_args.when.is_none());
             let inner_ty = get_type_of(inner);
             let inner_ts = generate_size_for_inner(inner, &inner_ty, quote!(elem));
             quote_spanned! { field.span() =>
