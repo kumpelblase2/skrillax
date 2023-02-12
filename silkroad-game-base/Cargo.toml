@@ -1,0 +1,12 @@
+[package]
+name = "silkroad-game-base"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cgmath = "0.18"
+rand = { workspace = true }
+silkroad-navmesh = { path = "../silkroad-navmesh" }
+silkroad-data = { path = "../silkroad-data" }

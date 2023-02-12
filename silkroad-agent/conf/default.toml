@@ -12,6 +12,7 @@ logout-duration = 2
 desired-ticks = 128
 client-timeout = 30
 deletion-time = 10080
+max-follow-distance = 300.0
 
 [game.spawner]
 radius = 500

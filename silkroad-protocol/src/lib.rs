@@ -20,9 +20,8 @@ pub mod inventory;
 pub mod login;
 pub mod world;
 
-pub use silkroad_serde::SilkroadTime;
-
 use crate::inventory::*;
+pub use silkroad_serde::SilkroadTime;
 
 macro_rules! client_packets {
     ($($opcode:literal => $name:ident),*) => {
@@ -157,7 +156,8 @@ server_packets! {
     0xB070 => PerformActionUpdate,
     0x304E => CharacterPointsUpdate,
     0xB0EA => GameGuideResponse,
-    0xB023 => EntityMovementInterrupt
+    0xB023 => EntityMovementInterrupt,
+    0x3036 => UnknownActionData
 }
 
 impl ServerPacket {

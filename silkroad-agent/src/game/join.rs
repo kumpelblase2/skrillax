@@ -1,11 +1,12 @@
 use crate::comp::net::Client;
-use crate::comp::player::{Character, Player, SpawningState};
+use crate::comp::player::Player;
 use crate::comp::sync::Synchronize;
 use crate::comp::GameEntity;
 use crate::config::GameConfig;
 use crate::event::LoadingFinishedEvent;
 use crate::game::daylight::DaylightCycle;
 use bevy_ecs::prelude::*;
+use silkroad_game_base::{Character, SpawningState};
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::chat::{ChatSource, ChatUpdate, TextCharacterInitialization};
 use silkroad_protocol::world::{
@@ -37,7 +38,7 @@ pub(crate) fn load_finished(
             hour,
             minute,
         });
-        client.send(CharacterFinished::new());
+        client.send(CharacterFinished::default());
         client.send(FriendListInfo {
             groups: vec![FriendListGroup::not_assigned()],
             friends: vec![],

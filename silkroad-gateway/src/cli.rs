@@ -13,4 +13,11 @@ pub(crate) enum Commands {
         password: String,
         passcode: Option<String>,
     },
+    // Some other command ideas:
+    // - Add news entry
+    // - list news
+    // - remove news
+    // - ban user
+    // - unban user
+    // - set/unset gm
 }

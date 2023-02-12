@@ -13,7 +13,7 @@ use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio_util::codec::{FramedRead, FramedWrite};
-use tracing::{debug, trace_span, warn};
+use tracing::{debug, instrument, trace_span, warn};
 
 pub type StreamResult<T> = Result<T, StreamError>;
 pub type SendResult = StreamResult<()>;
@@ -136,11 +136,9 @@ impl StreamWriter {
         }
     }
 
+    #[instrument(skip_all)]
     pub async fn send<P: Into<ServerPacket>>(&mut self, packet: P) -> SendResult {
-        let span = trace_span!("encoding", id = ?self.id);
-        let enter = span.enter();
         let frames = SilkroadFrame::create_for(packet.into());
-        drop(enter);
 
         let mut iter = futures::stream::iter(frames.into_iter().map(Ok));
         self.inner.send_all(&mut iter).await?;

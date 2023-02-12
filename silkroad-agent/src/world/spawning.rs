@@ -1,21 +1,23 @@
-use crate::comp::monster::{Monster, MonsterBundle, RandomStroll, SpawnedBy, Spawner};
+use crate::agent::states::StateTransitionQueue;
+use crate::agent::Agent;
+use crate::comp::monster::{Monster, MonsterBundle, RandomStroll, SpawnedBy};
 use crate::comp::npc::NpcBundle;
-use crate::comp::player::Agent;
-use crate::comp::pos::{GlobalLocation, Heading, LocalPosition, Position};
+use crate::comp::pos::Position;
+use crate::comp::spawner::Spawner;
 use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use crate::config::GameConfig;
-use crate::ext::{EntityIdPool, Navmesh, NpcPositionList, Vector2Ext};
+use crate::ext::{EntityIdPool, Navmesh, NpcPositionList};
 use crate::game::player_activity::PlayerActivity;
 use crate::world::WorldData;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
 use id_pool::IdPool;
-use itertools::Itertools;
 use pk2::Pk2;
 use rand::Rng;
 use silkroad_data::type_id::{ObjectEntity, ObjectMonster, ObjectNonPlayer, ObjectType};
+use silkroad_game_base::{GlobalLocation, Heading, LocalPosition, Vector2Ext};
 use silkroad_navmesh::region::Region;
 use silkroad_navmesh::NavmeshLoader;
 use silkroad_protocol::world::EntityRarity;
@@ -44,6 +46,7 @@ pub(crate) fn spawn_npcs(
                 id_pool.request_id().expect("Should have ID available for NPC"),
                 spawn.npc_id,
                 LocalPosition(spawn.region.into(), Vector3::new(spawn.x, spawn.y, spawn.z)),
+                Agent::from_character_data(character_data),
             ));
         } else if matches!(
             type_id,
@@ -211,8 +214,9 @@ fn spawn_monster(
         entity: GameEntity { ref_id, unique_id },
         visibility: Visibility::with_radius(100.0),
         spawner: SpawnedBy { spawner },
-        navigation: Agent::new(16.0),
+        navigation: Agent::default(),
         sync: Synchronize::default(),
         stroll: RandomStroll::new(spawn_center, 100.0, Duration::from_secs(2)),
+        state_queue: StateTransitionQueue::default(),
     }
 }

@@ -1,34 +1,19 @@
 pub(crate) mod drop;
+pub(crate) mod inventory;
 pub(crate) mod monster;
 pub(crate) mod net;
 pub(crate) mod npc;
 pub(crate) mod player;
 pub(crate) mod pos;
-pub(crate) mod stats;
+pub(crate) mod spawner;
 pub(crate) mod sync;
 pub(crate) mod visibility;
 
 use crate::db::user::ServerUser;
-use crate::login::character_loader::Character;
 use crate::population::capacity::PlayingToken;
 use bevy_ecs::prelude::*;
 use bevy_time::{Timer, TimerMode};
 use std::time::Duration;
-use tokio::sync::oneshot::Receiver;
-
-#[derive(Component)]
-pub(crate) struct Login;
-
-#[derive(Component, Default)]
-pub(crate) struct CharacterSelect {
-    pub(crate) characters: Option<Vec<Character>>,
-    pub(crate) character_receiver: Option<Receiver<Vec<Character>>>,
-    pub(crate) character_name_check: Option<Receiver<bool>>,
-    pub(crate) character_delete_task: Option<Receiver<bool>>,
-    pub(crate) checked_name: Option<String>,
-    pub(crate) character_create: Option<Receiver<()>>,
-    pub(crate) character_restore: Option<Receiver<bool>>,
-}
 
 #[derive(Component, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct GameEntity {

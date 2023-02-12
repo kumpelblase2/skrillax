@@ -1,24 +1,14 @@
-use crate::comp::pos::{Heading, LocalPosition};
 use bevy_ecs_macros::Component;
-use silkroad_data::skilldata::RefSkillData;
+use silkroad_game_base::{Heading, LocalPosition, Vector3Ext};
 use silkroad_protocol::world::UpdatedState;
+use std::ops::{Deref, Sub};
 
 #[derive(Component, Default)]
 pub struct Synchronize {
     pub movement: Option<MovementUpdate>,
-    pub damage: Vec<DamageReceived>,
+    pub rotation: Option<Heading>,
     pub state: Vec<UpdatedState>,
-    pub skill: Option<SkillUse>,
-}
-
-pub struct TargetDamage {
-    pub target: u32,
-    pub damage: Vec<(u32, bool)>,
-}
-
-pub struct SkillUse {
-    pub used: &'static RefSkillData,
-    pub damages: Vec<TargetDamage>,
+    pub actions: Vec<ActionAnimation>,
 }
 
 pub enum MovementUpdate {
@@ -28,15 +18,29 @@ pub enum MovementUpdate {
     Turn(Heading),
 }
 
-impl Synchronize {
-    pub fn clear(&mut self) {
-        self.movement = None;
-        self.damage.clear();
-        self.state.clear();
+impl MovementUpdate {
+    pub fn rotation(&self) -> Heading {
+        match self {
+            MovementUpdate::StartMove(from, to) => {
+                let dir = to.to_global().sub(from.to_global().deref());
+                Heading::from(dir.to_flat_vec2())
+            },
+            MovementUpdate::StartMoveTowards(_, heading)
+            | MovementUpdate::StopMove(_, heading)
+            | MovementUpdate::Turn(heading) => *heading,
+        }
     }
 }
 
-pub struct DamageReceived {
-    pub amount: u32,
-    pub crit: bool,
+pub enum ActionAnimation {
+    Pickup,
+}
+
+impl Synchronize {
+    pub fn clear(&mut self) {
+        self.movement = None;
+        self.rotation = None;
+        self.state.clear();
+        self.actions.clear();
+    }
 }

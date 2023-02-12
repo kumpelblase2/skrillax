@@ -1,39 +1,50 @@
-use crate::db::character::{CharacterData, CharacterItem};
+use crate::db::character::{CharacterData, CharacterItem, CharacterMastery};
+use itertools::Itertools;
 use sqlx::PgPool;
 use std::borrow::Borrow;
-use tracing::{debug, debug_span};
+use tracing::{debug, instrument};
 
 #[derive(Clone)]
-pub struct Character {
+pub struct DbCharacter {
     pub(crate) character_data: CharacterData,
     pub(crate) items: Vec<CharacterItem>,
+    pub(crate) masteries: Vec<CharacterMastery>,
 }
 
-impl Character {
-    pub async fn load_characters_sparse<T: Borrow<PgPool>>(user_id: i32, server_id: u16, pool: T) -> Vec<Character> {
-        let span = debug_span!("Load Characters", id = user_id);
-        let _guard = span.enter();
+impl DbCharacter {
+    #[instrument(name = "load-characters", skip(pool))]
+    pub async fn load_characters_sparse<T: Borrow<PgPool>>(user_id: i32, server_id: u16, pool: T) -> Vec<DbCharacter> {
         let characters: Vec<CharacterData> = CharacterData::fetch_characters(user_id, server_id, pool.borrow())
             .await
             .unwrap();
-        debug!("Character count: {}", characters.len());
-        let character_ids = characters.iter().map(|char| char.id).collect();
-        let mut character_items = CharacterItem::fetch_bulk_character_items(character_ids, pool.borrow())
+        let character_ids = characters.iter().map(|char| char.id).collect::<Vec<_>>();
+        let mut character_items = CharacterItem::fetch_bulk_character_items(&character_ids, pool.borrow())
             .await
             .unwrap();
-        debug!("Items count: {}", character_items.len());
+        let mut character_masteries = CharacterMastery::fetch_for_characters(&character_ids, pool.borrow())
+            .await
+            .unwrap()
+            .into_iter()
+            .into_group_map_by(|r| r.character_id);
+
         let mut all_characters = Vec::new();
 
         for character in characters {
             let items = character_items.remove(&character.id).unwrap_or_default();
+            let masteries = character_masteries.remove(&character.id).unwrap_or_default();
 
-            all_characters.push(Character {
+            all_characters.push(DbCharacter {
                 character_data: character,
                 items,
+                masteries,
             });
         }
 
-        debug!("Mapped characters.");
+        debug!(
+            items = character_items.len(),
+            characters = all_characters.len(),
+            "Mapped characters."
+        );
 
         all_characters
     }
@@ -77,7 +88,7 @@ impl Character {
         result.rows_affected() == 1
     }
 
-    pub(crate) async fn create_character<T: Borrow<PgPool>>(character: Character, pool: T) {
+    pub(crate) async fn create_character<T: Borrow<PgPool>>(character: DbCharacter, pool: T) {
         let result = sqlx::query!(
         "INSERT INTO characters(user_id, server_id, charname, character_type, scale, level, max_level, strength, intelligence, stat_points, current_hp, current_mp, x, y, z, region, beginner_mark) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id",
         character.character_data.user_id,

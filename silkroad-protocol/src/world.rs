@@ -508,7 +508,7 @@ impl Position {
     }
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Copy, Clone, Debug, Deserialize)]
 pub struct Location {
     pub region: u16,
     pub pos_x: f32,
@@ -1010,19 +1010,10 @@ pub struct CooldownInfo {
     pub cooldown: u32,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Default)]
 pub struct CharacterFinished {
     pub item_cooldowns: Vec<CooldownInfo>,
     pub skill_cooldowns: Vec<CooldownInfo>,
-}
-
-impl CharacterFinished {
-    pub fn new() -> Self {
-        CharacterFinished {
-            item_cooldowns: Vec::new(),
-            skill_cooldowns: Vec::new(),
-        }
-    }
 }
 
 #[derive(Clone, Serialize, ByteSize)]
@@ -1268,7 +1259,7 @@ pub enum EntityBarUpdateSource {
     LevelUp,
 }
 
-// TODO: this should be a bitflag
+// Maybe this should be a bitflag?
 #[derive(Serialize, ByteSize)]
 pub enum EntityBarUpdates {
     #[silkroad(value = 0)]
@@ -1314,4 +1305,10 @@ pub enum CharacterPointsUpdate {
     StatPoints(u16),
     #[silkroad(value = 4)]
     Berserk { amount: u8, source: u32 },
+}
+
+#[derive(Serialize, ByteSize)]
+pub struct UnknownActionData {
+    pub entity: u32,
+    pub unknown: u8,
 }

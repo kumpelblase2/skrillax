@@ -44,6 +44,13 @@ impl ObjectType {
             _ => None,
         }
     }
+
+    pub fn as_item(&self) -> Option<ObjectItem> {
+        match *self {
+            ObjectType::Item(item) => Some(item),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Copy, Clone)]

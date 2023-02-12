@@ -1,137 +1,100 @@
-use crate::comp::drop::{DropBundle, ItemDrop};
-use crate::comp::net::{Client, InventoryInput};
-use crate::comp::player::{Inventory, MoveError, Player, Race};
-use crate::comp::pos::{GlobalLocation, GlobalPosition, Heading, Position};
-use crate::comp::{drop, GameEntity};
-use crate::ext::{EntityIdPool, Navmesh, Vector2Ext, Vector3Ext};
+use crate::comp::inventory::PlayerInventory;
+use crate::comp::net::Client;
+use crate::comp::player::Player;
+use crate::comp::pos::Position;
+use crate::game::drop::SpawnDrop;
 use crate::game::gold::get_gold_ref_id;
+use crate::input::PlayerInput;
 use bevy_ecs::prelude::*;
-use rand::Rng;
 use silkroad_data::type_id::{
     ObjectClothingPart, ObjectClothingType, ObjectConsumable, ObjectConsumableAmmo, ObjectEquippable, ObjectItem,
     ObjectJewelryType, ObjectRace, ObjectType, ObjectWeaponType,
 };
-use silkroad_data::DataEntry;
+use silkroad_game_base::{Inventory, Item, ItemTypeData, MoveError, Race};
 use silkroad_protocol::inventory::{
     InventoryOperationError, InventoryOperationRequest, InventoryOperationResponseData, InventoryOperationResult,
 };
 use silkroad_protocol::world::CharacterPointsUpdate;
-use silkroad_protocol::ClientPacket;
 use std::cmp::max;
-use std::mem;
-
-pub const GOLD_SLOT: u8 = 0xFE;
 
 pub(crate) fn handle_inventory_input(
-    mut query: Query<(
-        Entity,
-        &GameEntity,
-        &Client,
-        &mut InventoryInput,
-        &mut Player,
-        &Position,
-    )>,
-    mut commands: Commands,
-    mut navmesh: ResMut<Navmesh>,
-    mut id_pool: ResMut<EntityIdPool>,
+    mut query: Query<(&Client, &Player, &PlayerInput, &mut PlayerInventory, &Position)>,
+    mut item_spawn: EventWriter<SpawnDrop>,
 ) {
-    for (entity, game_entity, client, mut input, mut player, position) in query.iter_mut() {
-        for action in mem::take(&mut input.inputs) {
-            match action {
-                ClientPacket::InventoryOperation(op) => {
-                    match op.data {
-                        InventoryOperationRequest::DropGold { amount } => {
-                            if amount > player.character.gold {
-                                client.send(InventoryOperationResult::Error(InventoryOperationError::NotEnoughGold));
+    for (client, player, input, mut inventory, position) in query.iter_mut() {
+        if let Some(ref action) = input.inventory {
+            match action.data {
+                InventoryOperationRequest::DropGold { amount } => {
+                    if amount > inventory.gold {
+                        client.send(InventoryOperationResult::Error(InventoryOperationError::NotEnoughGold));
+                        continue;
+                    }
+
+                    if amount == 0 {
+                        continue;
+                    }
+
+                    inventory.gold -= amount;
+
+                    let item_ref = get_gold_ref_id(amount as u32);
+                    item_spawn.send(SpawnDrop::new(
+                        Item {
+                            reference: item_ref,
+                            variance: None,
+                            type_data: ItemTypeData::Gold { amount: amount as u32 },
+                        },
+                        position.location.to_location(),
+                        None,
+                    ));
+
+                    client.send(InventoryOperationResult::Success(
+                        InventoryOperationResponseData::DropGold { amount },
+                    ));
+                    client.send(CharacterPointsUpdate::Gold {
+                        amount: player.character.gold,
+                        display: false,
+                    });
+                    client.send(InventoryOperationResult::Success(
+                        InventoryOperationResponseData::DropGold { amount },
+                    ))
+                },
+                InventoryOperationRequest::PickupItem { unique_id } => {},
+                InventoryOperationRequest::Move { source, target, amount } => {
+                    if let Some(source_item) = inventory.get_item_at(source) {
+                        if Inventory::is_equipment_slot(target) {
+                            let type_id = source_item.reference.common.type_id;
+                            let object_type = ObjectType::from_type_id(&type_id)
+                                .expect("Item to equip should have valid object type.");
+                            let fits = does_object_type_match_slot(target, object_type)
+                                && source_item
+                                    .reference
+                                    .required_level
+                                    .map(|val| val.get() <= player.character.level)
+                                    .unwrap_or(true)
+                                && does_object_type_match_race(player.character.race, object_type);
+                            // TODO: check if equipment requirement sex matches
+                            //  check if required masteries matches
+                            if !fits {
+                                // TODO: Use more appropriate error code
+                                client.send(InventoryOperationResult::Error(InventoryOperationError::Indisposable));
                                 continue;
                             }
-
-                            if amount == 0 {
-                                continue;
-                            }
-
-                            player.character.gold -= amount;
-
-                            let drop_position = position.location.0.to_flat_vec2().random_in_radius(2.0);
-                            let local_drop_pos = GlobalLocation(drop_position).to_local();
-                            let target_region = local_drop_pos.0;
-                            let drop_position = drop_position.with_height(
-                                navmesh
-                                    .load_navmesh(target_region)
-                                    .unwrap()
-                                    .heightmap()
-                                    .height_at_position(local_drop_pos.1.x, local_drop_pos.1.y)
-                                    .unwrap(),
-                            );
-                            let drop_id = id_pool.request_id().expect("Should be able to generate an id");
-                            let rotation = rand::thread_rng().gen_range(0..360) as f32;
-
-                            let item_ref = get_gold_ref_id(amount as u32);
-                            commands.spawn(DropBundle {
-                                drop: ItemDrop {
-                                    owner: None,
-                                    item: drop::Item::Gold(amount as u32),
-                                },
-                                position: Position {
-                                    location: GlobalPosition(drop_position),
-                                    rotation: Heading(rotation),
-                                },
-                                game_entity: GameEntity {
-                                    unique_id: drop_id,
-                                    ref_id: item_ref.ref_id(),
-                                },
-                                despawn: item_ref.common.despawn_time.into(),
-                            });
-
-                            client.send(InventoryOperationResult::Success(
-                                InventoryOperationResponseData::DropGold { amount },
-                            ));
-                            client.send(CharacterPointsUpdate::Gold {
-                                amount: player.character.gold,
-                                display: false,
-                            });
-                        },
-                        InventoryOperationRequest::PickupItem { unique_id } => {},
-                        InventoryOperationRequest::Move { source, target, amount } => {
-                            if let Some(source_item) = player.inventory.get_item_at(source) {
-                                if Inventory::is_equipment_slot(target) {
-                                    let type_id = source_item.reference.common.type_id;
-                                    let object_type = ObjectType::from_type_id(&type_id)
-                                        .expect("Item to equip should have valid object type.");
-                                    let fits = does_object_type_match_slot(target, object_type)
-                                        && source_item
-                                            .reference
-                                            .required_level
-                                            .map(|val| val.get() <= player.character.level)
-                                            .unwrap_or(true)
-                                        && does_object_type_match_race(player.character.race, object_type);
-                                    // TODO: check if equipment requirement sex matches
-                                    //  check if required masteries matches
-                                    if !fits {
-                                        // TODO: Use more approriate error code
-                                        client.send(InventoryOperationResult::Error(
-                                            InventoryOperationError::Indisposable,
-                                        ));
-                                        continue;
-                                    }
-                                }
-                                match player.inventory.move_item(source, target, max(1, amount)) {
-                                    Err(MoveError::Impossible) => {},
-                                    Err(MoveError::ItemDoesNotExist) => {},
-                                    Ok(amount_moved) => {
-                                        client.send(InventoryOperationResult::Success(
-                                            InventoryOperationResponseData::move_item(source, target, amount_moved),
-                                        ));
-                                    },
-                                }
-                            } else {
-                                client.send(InventoryOperationResult::Error(InventoryOperationError::InvalidTarget));
-                            }
-                        },
-                        InventoryOperationRequest::DropItem { .. } => {},
+                        }
+                        match inventory.move_item(source, target, max(1, amount)) {
+                            Err(MoveError::Impossible) => {},
+                            Err(MoveError::ItemDoesNotExist) => {},
+                            Err(MoveError::NotStackable) => {},
+                            Ok(amount_moved) => {
+                                client.send(InventoryOperationResult::Success(
+                                    InventoryOperationResponseData::move_item(source, target, amount_moved),
+                                ));
+                            },
+                        }
+                    } else {
+                        client.send(InventoryOperationResult::Error(InventoryOperationError::InvalidTarget));
                     }
                 },
-                _ => {},
+                InventoryOperationRequest::DropItem { .. } => {},
             }
         }
     }

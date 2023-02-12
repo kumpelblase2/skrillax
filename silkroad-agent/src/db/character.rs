@@ -49,17 +49,17 @@ impl CharacterData {
         ).fetch_all(pool.borrow()).await
     }
 
-    pub async fn check_name_available<T: Borrow<PgPool>>(name: String, server_id: u16, pool: T) -> bool {
+    pub async fn check_name_available<T: Borrow<PgPool>>(name: String, server_id: u16, pool: T) -> (String, bool) {
         let result = sqlx::query!(
             "SELECT COUNT(*) as \"count!\" FROM characters WHERE LOWER(charname) = LOWER($1) and server_id = $2",
-            name,
+            name.clone(),
             server_id as i16
         )
         .fetch_one(pool.borrow())
         .await
         .unwrap();
 
-        result.count == 0
+        (name, result.count == 0)
     }
 
     pub async fn update_last_played_of<T: Borrow<PgPool>>(character_id: u32, pool: T) {
@@ -84,13 +84,13 @@ pub struct CharacterItem {
 
 impl CharacterItem {
     pub async fn fetch_bulk_character_items<T: Borrow<PgPool>>(
-        character_ids: Vec<i32>,
+        character_ids: &[i32],
         pool: T,
     ) -> Result<HashMap<i32, Vec<CharacterItem>>, Error> {
         let all_items: Vec<CharacterItem> = sqlx::query_as!(
             CharacterItem,
             "SELECT * FROM character_items WHERE character_id in (SELECT * FROM UNNEST($1::INTEGER[]))",
-            &character_ids
+            character_ids
         )
         .fetch_all(pool.borrow())
         .await?;
@@ -100,5 +100,25 @@ impl CharacterItem {
     }
 }
 
-#[derive(sqlx::FromRow)]
-pub struct CharacterMastery {}
+#[derive(sqlx::FromRow, Copy, Clone)]
+pub struct CharacterMastery {
+    pub character_id: i32,
+    pub mastery_id: i32,
+    pub level: i16,
+}
+
+impl CharacterMastery {
+    pub async fn fetch_for_characters<T: Borrow<PgPool>>(
+        character_ids: &[i32],
+        pool: T,
+    ) -> Result<Vec<CharacterMastery>, Error> {
+        let masteries = sqlx::query_as!(
+            CharacterMastery,
+            "SELECT mastery_id, character_id, level FROM character_masteries WHERE character_id in (SELECT * FROM UNNEST($1::INTEGER[]))",
+            character_ids
+        )
+                .fetch_all(pool.borrow())
+                .await?;
+        Ok(masteries)
+    }
+}

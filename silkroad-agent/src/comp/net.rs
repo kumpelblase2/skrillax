@@ -1,51 +1,13 @@
 use bevy_ecs::prelude::*;
+use derive_more::Deref;
 use silkroad_network::stream::Stream;
-use silkroad_protocol::gm::GmCommand;
-use silkroad_protocol::{ClientPacket, ServerPacket};
+use silkroad_protocol::ServerPacket;
 use std::time::Instant;
-
-#[derive(Component, Default)]
-pub struct CharselectInput {
-    pub inputs: Vec<ClientPacket>,
-}
-
-#[derive(Component, Default)]
-pub struct MovementInput {
-    pub inputs: Vec<ClientPacket>,
-}
-
-#[derive(Component, Default)]
-pub struct InventoryInput {
-    pub inputs: Vec<ClientPacket>,
-}
-
-#[derive(Component, Default)]
-pub struct ChatInput {
-    pub inputs: Vec<ClientPacket>,
-}
-
-#[derive(Component, Default)]
-pub struct WorldInput {
-    pub inputs: Vec<ClientPacket>,
-}
-
-#[derive(Component, Default)]
-pub struct GmInput {
-    pub inputs: Vec<GmCommand>,
-}
-
-#[derive(Bundle, Default)]
-pub struct InputBundle {
-    movement: MovementInput,
-    chat: ChatInput,
-    world: WorldInput,
-    inventory: InventoryInput,
-}
 
 #[derive(Component)]
 pub(crate) struct LastAction(pub(crate) Instant);
 
-#[derive(Component)]
+#[derive(Component, Deref)]
 pub(crate) struct Client(pub(crate) Stream);
 
 impl Client {

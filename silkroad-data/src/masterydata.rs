@@ -1,13 +1,21 @@
-use crate::{DataEntry, DataMap, FileError, ParseError};
+use crate::{parse_file, DataEntry, DataMap, FileError, ParseError};
 use pk2::Pk2;
+use std::num::NonZeroU8;
 use std::str::FromStr;
 
 pub fn load_mastery_map(pk2: &Pk2) -> Result<DataMap<RefMasteryData>, FileError> {
-    DataMap::from(pk2, "/server_dep/silkroad/textdata/skillmasterydata.txt")
+    let mut file = pk2.open_file("/server_dep/silkroad/textdata/skillmasterydata.txt")?;
+    let levels: Vec<RefMasteryData> = parse_file(&mut file)?;
+    let map = levels
+        .into_iter()
+        .filter(|mastery| mastery.secondary.is_none() || mastery.secondary.unwrap().get() == 1)
+        .collect();
+    Ok(DataMap::new(map))
 }
 
 pub struct RefMasteryData {
     ref_id: u16,
+    secondary: Option<NonZeroU8>,
     id: String,
     weapons: Vec<u8>,
 }
@@ -27,6 +35,7 @@ impl FromStr for RefMasteryData {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let elements = s.split('\t').collect::<Vec<&str>>();
+        let secondary: i8 = elements.get(1).ok_or(ParseError::MissingColumn(1))?.parse()?;
         let weapon1: u8 = elements.get(8).ok_or(ParseError::MissingColumn(8))?.parse()?;
         let weapon2: u8 = elements.get(9).ok_or(ParseError::MissingColumn(9))?.parse()?;
         let weapon3: u8 = elements.get(10).ok_or(ParseError::MissingColumn(10))?.parse()?;
@@ -36,6 +45,11 @@ impl FromStr for RefMasteryData {
             .collect();
         Ok(Self {
             ref_id: elements.get(0).ok_or(ParseError::MissingColumn(0))?.parse()?,
+            secondary: if secondary > 0 {
+                NonZeroU8::new(secondary as u8)
+            } else {
+                None
+            },
             id: elements.get(3).ok_or(ParseError::MissingColumn(3))?.to_string(),
             weapons,
         })

@@ -1,6 +1,6 @@
 const SCALING: f32 = 1.02;
 
-pub(crate) struct Stats {
+pub struct Stats {
     str: u16,
     int: u16,
 }
@@ -36,5 +36,17 @@ impl Stats {
 impl Default for Stats {
     fn default() -> Self {
         Self::new(20, 20)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_hp_mana() {
+        let default = Stats::default();
+        assert_eq!(200, default.max_health(1));
+        assert_eq!(200, default.max_mana(1));
     }
 }

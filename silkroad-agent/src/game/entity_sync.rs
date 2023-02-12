@@ -1,14 +1,12 @@
 use crate::comp::net::Client;
 use crate::comp::player::Player;
-use crate::comp::sync::{MovementUpdate, SkillUse, Synchronize};
+use crate::comp::sync::{ActionAnimation, MovementUpdate, Synchronize};
 use crate::comp::visibility::Visibility;
 use crate::comp::GameEntity;
 use bevy_ecs::prelude::*;
-use silkroad_protocol::combat::{ActionType, PerformActionUpdate};
 use silkroad_protocol::world::{
-    EntityUpdateState, MovementDestination, MovementSource, PlayerMovementResponse, UpdatedState,
+    EntityUpdateState, MovementDestination, MovementSource, PlayerMovementResponse, UnknownActionData, UpdatedState,
 };
-use tracing::debug;
 
 pub(crate) fn sync_changes_others(
     query: Query<(&Client, &Visibility), With<Player>>,
@@ -25,25 +23,19 @@ pub(crate) fn sync_changes_others(
                 update_movement_for(client, entity, movement);
             }
 
+            if let Some(rotation) = &synchronize.rotation {
+                update_movement_for(client, entity, &MovementUpdate::Turn(*rotation));
+            }
+
             for state in synchronize.state.iter() {
                 update_state(client, entity, *state);
             }
 
-            if let Some(skill_use) = &synchronize.skill {
-                use_skill_by(client, entity, skill_use);
+            for action in synchronize.actions.iter() {
+                update_animation(client, entity, action);
             }
         }
     }
-}
-
-fn use_skill_by(client: &Client, entity: &GameEntity, skill: &SkillUse) {
-    client.send(PerformActionUpdate::success(
-        skill.used.ref_id,
-        entity.ref_id,
-        0,
-        ActionType::None,
-        None,
-    ));
 }
 
 fn update_movement_for(client: &Client, entity: &GameEntity, movement: &MovementUpdate) {
@@ -61,8 +53,6 @@ fn update_movement_for(client: &Client, entity: &GameEntity, movement: &Movement
             ));
         },
         MovementUpdate::StartMoveTowards(current, direction) => {
-            let angle: u16 = (*direction).into();
-            debug!("Starting Movement: {}({})", direction.0, angle);
             client.send(PlayerMovementResponse::new(
                 entity.unique_id,
                 MovementDestination::direction(true, (*direction).into()),
@@ -96,6 +86,24 @@ fn update_movement_for(client: &Client, entity: &GameEntity, movement: &Movement
     }
 }
 
+fn update_state(client: &Client, entity: &GameEntity, state: UpdatedState) {
+    client.send(EntityUpdateState {
+        unique_id: entity.unique_id,
+        update: state,
+    });
+}
+
+fn update_animation(client: &Client, entity: &GameEntity, action: &ActionAnimation) {
+    match action {
+        ActionAnimation::Pickup => {
+            client.send(UnknownActionData {
+                entity: entity.unique_id,
+                unknown: 0,
+            });
+        },
+    }
+}
+
 pub(crate) fn update_client(query: Query<(&Client, &GameEntity, &Synchronize)>) {
     for (client, entity, sync) in query.iter() {
         if let Some(movement) = &sync.movement {
@@ -105,18 +113,7 @@ pub(crate) fn update_client(query: Query<(&Client, &GameEntity, &Synchronize)>) 
         for state in sync.state.iter() {
             update_state(client, entity, *state);
         }
-
-        if !sync.damage.is_empty() {
-            // ...
-        }
     }
-}
-
-pub(crate) fn update_state(client: &Client, entity: &GameEntity, state: UpdatedState) {
-    client.send(EntityUpdateState {
-        unique_id: entity.unique_id,
-        update: state,
-    });
 }
 
 pub(crate) fn clean_sync(mut query: Query<&mut Synchronize>) {

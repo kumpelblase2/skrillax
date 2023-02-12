@@ -1,4 +1,6 @@
-use crate::comp::drop::{Item, ItemDrop};
+use crate::agent::Agent;
+use crate::comp::drop::Drop;
+use crate::comp::inventory::PlayerInventory;
 use crate::comp::monster::Monster;
 use crate::comp::net::Client;
 use crate::comp::npc::NPC;
@@ -10,6 +12,7 @@ use crate::game::player_activity::PlayerActivity;
 use bevy_ecs::prelude::*;
 use cgmath::num_traits::Pow;
 use silkroad_data::DataEntry;
+use silkroad_game_base::ItemTypeData;
 use silkroad_navmesh::region::Region;
 use silkroad_protocol::inventory::CharacterSpawnItemData;
 use silkroad_protocol::world::{
@@ -18,64 +21,63 @@ use silkroad_protocol::world::{
     GuildInformation, InteractOptions, ItemSpawnData, JobType, PlayerKillState, PvpCape,
 };
 use std::collections::{BTreeMap, HashSet};
-use tracing::{trace, trace_span};
+use tracing::{instrument, trace};
 
 static EMPTY_VEC: Vec<(Entity, &Position, &GameEntity)> = vec![];
 
+#[instrument(level = "trace", skip_all)]
 pub(crate) fn visibility_update(
     activity: Res<PlayerActivity>,
     mut query: Query<(Entity, &GameEntity, &mut Visibility, &Position)>,
     lookup: Query<(Entity, &Position, &GameEntity)>,
 ) {
-    let span = trace_span!("visibility_update");
-    span.in_scope(|| {
-        let grouped = lookup
+    let grouped = lookup.iter().fold(
+        BTreeMap::new(),
+        |mut acc: BTreeMap<Region, Vec<(Entity, &Position, &GameEntity)>>, (entity, pos, game_entity)| {
+            acc.entry(pos.location.region())
+                .or_default()
+                .push((entity, pos, game_entity));
+            acc
+        },
+    );
+
+    query.par_for_each_mut(300, |(entity, game_entity, mut visibility, position)| {
+        let my_region = position.location.region();
+        let close_regions = my_region.with_grid_neighbours();
+        if close_regions.iter().any(|region| activity.is_region_active(region)) {
+            let entities_in_range: HashSet<EntityReference> = close_regions
                 .iter()
-                .fold(BTreeMap::new(), |mut acc: BTreeMap<Region, Vec<(Entity, &Position, &GameEntity)>>, (entity, pos, game_entity)| {
-                    acc.entry(pos.location.region()).or_default().push((entity, pos, game_entity));
-                    acc
-                });
+                .flat_map(|region| grouped.get(region).unwrap_or(&EMPTY_VEC))
+                .filter(|(other_entity, _, _)| other_entity.index() != entity.index())
+                .filter(|(_, other_position, _)| {
+                    position.distance_to(other_position) < (visibility.visibility_radius.pow(2))
+                })
+                .map(|(entity, _, game_entity)| EntityReference(*entity, **game_entity))
+                .collect();
 
-        query.par_for_each_mut(300, |(entity, game_entity, mut visibility, position)| {
-            let my_region = position.location.region();
-            let close_regions = my_region.with_grid_neighbours();
-            if close_regions.iter().any(|region| activity.is_region_active(&region)) {
-                let entities_in_range: HashSet<EntityReference> = close_regions
-                        .iter()
-                        .flat_map(|region| {
-                            grouped.get(region).unwrap_or(&EMPTY_VEC)
-                        })
-                        .filter(|(other_entity, _, _)| other_entity.index() != entity.index())
-                        .filter(|(_, other_position, _)| {
-                            position.distance_to(other_position) < (visibility.visibility_radius.pow(2))
-                        })
-                        .map(|(entity, _, game_entity)| EntityReference(*entity, **game_entity))
-                        .collect();
+            let removed: Vec<EntityReference> = visibility
+                .entities_in_radius
+                .difference(&entities_in_range)
+                .copied()
+                .collect();
+            let added: Vec<EntityReference> = entities_in_range
+                .difference(&visibility.entities_in_radius)
+                .copied()
+                .collect();
 
-                let removed: Vec<EntityReference> = visibility
-                        .entities_in_radius
-                        .difference(&entities_in_range)
-                        .copied()
-                        .collect();
-                let added: Vec<EntityReference> = entities_in_range
-                        .difference(&visibility.entities_in_radius)
-                        .copied()
-                        .collect();
-
-                for reference in removed.iter() {
-                    trace!(player = ?game_entity.unique_id, "Removed entity {} from visibility.", reference.1.unique_id);
-                    visibility.entities_in_radius.remove(reference);
-                }
-
-                for reference in added.iter() {
-                    trace!(player = ?game_entity.unique_id, "Added entity {} to visibility.", reference.1.unique_id);
-                    visibility.entities_in_radius.insert(*reference);
-                }
-
-                visibility.added_entities.extend(added);
-                visibility.removed_entities.extend(removed);
+            for reference in removed.iter() {
+                trace!(player = ?game_entity.unique_id, "Removed entity {} from visibility.", reference.1.unique_id);
+                visibility.entities_in_radius.remove(reference);
             }
-        });
+
+            for reference in added.iter() {
+                trace!(player = ?game_entity.unique_id, "Added entity {} to visibility.", reference.1.unique_id);
+                visibility.entities_in_radius.insert(*reference);
+            }
+
+            visibility.added_entities.extend(added);
+            visibility.removed_entities.extend(removed);
+        }
     });
 }
 
@@ -83,9 +85,11 @@ pub(crate) fn player_visibility_update(
     mut query: Query<(&Client, &mut Visibility)>,
     lookup: Query<(
         &Position,
+        Option<&PlayerInventory>,
+        Option<&Agent>,
         Option<&Player>,
         Option<&Monster>,
-        Option<&ItemDrop>,
+        Option<&Drop>,
         Option<&NPC>,
     )>,
 ) {
@@ -94,16 +98,19 @@ pub(crate) fn player_visibility_update(
         for reference in visibility.added_entities.iter() {
             let added = reference.0;
             let entity = reference.1;
-            if let Ok((pos, player_opt, monster_opt, item_opt, npc_opt)) = lookup.get(added) {
+            if let Ok((pos, inventory_opt, agent_opt, player_opt, monster_opt, item_opt, npc_opt)) = lookup.get(added) {
                 if let Some(player) = player_opt {
-                    let items = player
-                        .inventory
-                        .equipment_items()
-                        .map(|(_, item)| CharacterSpawnItemData {
-                            item_id: item.reference.ref_id(),
-                            upgrade_level: item.upgrade_level,
+                    let agent = agent_opt.unwrap();
+                    let items = inventory_opt
+                        .map(|inv| {
+                            inv.equipment_items()
+                                .map(|(_, item)| CharacterSpawnItemData {
+                                    item_id: item.reference.ref_id(),
+                                    upgrade_level: item.upgrade_level(),
+                                })
+                                .collect()
                         })
-                        .collect();
+                        .unwrap_or_default();
                     spawns.push(GroupSpawnDataContent::Spawn {
                         object_id: entity.ref_id,
                         data: EntityTypeSpawnData::Character {
@@ -113,24 +120,14 @@ pub(crate) fn player_visibility_update(
                             pvp_cape: PvpCape::None,
                             beginner: true,
                             title: 0,
-                            inventory_size: player.inventory.size() as u8,
+                            inventory_size: inventory_opt.map(|inv| inv.size() as u8).unwrap_or(0),
                             equipment: items,
                             avatar_inventory_size: 5,
                             avatar_items: vec![],
                             mask: None,
                             position: pos.as_protocol(),
                             movement: pos.as_standing(),
-                            entity_state: EntityState {
-                                alive: AliveState::Alive,
-                                unknown1: 0,
-                                action_state: ActionState::None,
-                                body_state: BodyState::None,
-                                unknown2: 0,
-                                walk_speed: 16.0,
-                                run_speed: 50.0,
-                                berserk_speed: 100.0,
-                                active_buffs: vec![],
-                            },
+                            entity_state: entity_state_from_agent(agent),
                             name: player.character.name.clone(),
                             job_type: JobType::None,
                             pk_state: PlayerKillState::None,
@@ -154,77 +151,34 @@ pub(crate) fn player_visibility_update(
                         },
                     });
                 } else if let Some(monster) = monster_opt {
+                    let agent = agent_opt.unwrap();
                     spawns.push(GroupSpawnDataContent::spawn(
                         entity.ref_id,
                         EntityTypeSpawnData::Monster {
                             unique_id: entity.unique_id,
                             position: pos.as_protocol(),
                             movement: pos.as_movement(),
-                            entity_state: EntityState {
-                                alive: AliveState::Alive,
-                                unknown1: 0,
-                                action_state: ActionState::None,
-                                body_state: BodyState::None,
-                                unknown2: 0,
-                                walk_speed: 16.0,
-                                run_speed: 40.0,
-                                berserk_speed: 80.0,
-                                active_buffs: vec![],
-                            },
+                            entity_state: entity_state_from_agent(agent),
                             interaction_options: InteractOptions::talk(vec![5]),
                             rarity: monster.rarity,
                             unknown: 0,
                         },
                     ));
-                } else if let Some(item) = item_opt {
-                    let spawn_data = match &item.item {
-                        Item::Gold(amount) => ItemSpawnData::Gold {
-                            amount: *amount,
-                            unique_id: entity.unique_id,
-                            position: pos.as_protocol(),
-                            owner: item.owner.map(|owner| owner.1.unique_id),
-                            rarity: 0,
-                        },
-                        Item::Consumable(_) => ItemSpawnData::Consumable {
-                            unique_id: entity.unique_id,
-                            position: pos.as_protocol(),
-                            owner: item.owner.map(|owner| owner.1.unique_id),
-                            rarity: 0,
-                            source: DroppedItemSource::None,
-                            source_id: 0,
-                        },
-                        Item::Equipment { upgrade } => ItemSpawnData::Equipment {
-                            upgrade: *upgrade,
-                            unique_id: entity.unique_id,
-                            position: pos.as_protocol(),
-                            owner: item.owner.map(|owner| owner.1.unique_id),
-                            rarity: 0,
-                            source: DroppedItemSource::None,
-                            source_id: 0,
-                        },
-                    };
+                } else if let Some(drop) = item_opt {
+                    let spawn_data = spawndata_from_item(entity, pos, drop);
                     spawns.push(GroupSpawnDataContent::Spawn {
                         object_id: entity.ref_id,
                         data: EntityTypeSpawnData::Item(spawn_data),
                     });
                 } else if let Some(_) = npc_opt {
+                    let agent = agent_opt.unwrap();
                     spawns.push(GroupSpawnDataContent::spawn(
                         entity.ref_id,
                         EntityTypeSpawnData::NPC {
                             unique_id: entity.unique_id,
                             position: pos.as_protocol(),
                             movement: pos.as_standing(),
-                            entity_state: EntityState {
-                                alive: AliveState::Alive,
-                                unknown1: 0,
-                                action_state: ActionState::None,
-                                body_state: BodyState::None,
-                                unknown2: 0,
-                                walk_speed: 0.0,
-                                run_speed: 0.0,
-                                berserk_speed: 100.0,
-                                active_buffs: vec![],
-                            },
+                            entity_state: entity_state_from_agent(agent),
                             interaction_options: InteractOptions::None,
                         },
                     ));
@@ -243,6 +197,49 @@ pub(crate) fn player_visibility_update(
 
         visibility.added_entities.clear();
         visibility.removed_entities.clear();
+    }
+}
+
+fn entity_state_from_agent(agent: &Agent) -> EntityState {
+    EntityState {
+        alive: AliveState::Alive,
+        unknown1: 0,
+        action_state: ActionState::None,
+        body_state: BodyState::None,
+        unknown2: 0,
+        walk_speed: agent.walking_speed,
+        run_speed: agent.running_speed,
+        berserk_speed: agent.berserk_speed,
+        active_buffs: vec![],
+    }
+}
+
+fn spawndata_from_item(entity: GameEntity, pos: &Position, drop: &Drop) -> ItemSpawnData {
+    match drop.item.type_data {
+        ItemTypeData::Equipment { upgrade_level } => ItemSpawnData::Equipment {
+            upgrade: upgrade_level,
+            unique_id: entity.unique_id,
+            position: pos.as_protocol(),
+            owner: drop.owner.map(|owner| owner.1.unique_id),
+            rarity: 0,
+            source: DroppedItemSource::None,
+            source_id: 0,
+        },
+        ItemTypeData::COS | ItemTypeData::Consumable { .. } => ItemSpawnData::Consumable {
+            unique_id: entity.unique_id,
+            position: pos.as_protocol(),
+            owner: drop.owner.map(|owner| owner.1.unique_id),
+            rarity: 0,
+            source: DroppedItemSource::None,
+            source_id: 0,
+        },
+        ItemTypeData::Gold { amount } => ItemSpawnData::Gold {
+            amount,
+            unique_id: entity.unique_id,
+            position: pos.as_protocol(),
+            owner: drop.owner.map(|owner| owner.1.unique_id),
+            rarity: 0,
+        },
     }
 }
 

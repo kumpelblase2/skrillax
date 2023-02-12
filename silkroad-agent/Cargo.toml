@@ -10,6 +10,7 @@ silkroad-protocol = { path = "../silkroad-protocol" }
 silkroad-rpc = { path = "../silkroad-rpc" }
 silkroad-navmesh = { path = "../silkroad-navmesh", features = ["pk2"] }
 silkroad-data = { path = "../silkroad-data" }
+silkroad-game-base = { path = "../silkroad-game-base" }
 tokio = { workspace = true }
 axum = "0.5.17"
 bytes = "1.1.0"
@@ -22,7 +23,6 @@ config = { workspace = true }
 sqlx = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true }
-serde_derive = { workspace = true }
 thiserror = { workspace = true }
 chrono = { workspace = true }
 itertools = "*"

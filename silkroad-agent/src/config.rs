@@ -49,6 +49,7 @@ pub(crate) struct GameConfig {
     pub(crate) desired_ticks: u32,
     pub(crate) deletion_time: u32,
     pub(crate) spawner: SpawnOptions,
+    pub(crate) max_follow_distance: f32,
 }
 
 #[derive(Deserialize, Default, Clone)]

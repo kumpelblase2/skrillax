@@ -258,6 +258,28 @@ pub enum InventoryOperationResult {
     Success(InventoryOperationResponseData),
 }
 
+impl InventoryOperationResult {
+    const GOLD_SLOT: u8 = 0xFE;
+
+    pub fn success_gain_gold(amount: u32) -> Self {
+        InventoryOperationResult::Success(InventoryOperationResponseData::PickupItem {
+            slot: Self::GOLD_SLOT,
+            item: ItemPickupData::Gold { amount },
+        })
+    }
+
+    pub fn success_gain_item(slot: u8, ref_id: u32, content: InventoryItemContentData) -> Self {
+        InventoryOperationResult::Success(InventoryOperationResponseData::PickupItem {
+            slot,
+            item: ItemPickupData::Item {
+                rent: RentInfo::Empty,
+                ref_id,
+                content,
+            },
+        })
+    }
+}
+
 #[derive(Clone, Serialize, ByteSize)]
 pub struct JobBagContent {
     pub items: Vec<InventoryItemData>,

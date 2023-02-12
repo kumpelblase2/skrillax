@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 config = { workspace = true }
 serde = { workspace = true }
-serde_derive = { workspace = true }
 tracing = { workspace = true }
 log = { workspace = true, default-features = false }
 chrono = { workspace = true }

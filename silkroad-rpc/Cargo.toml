@@ -7,4 +7,3 @@ edition = "2021"
 
 [dependencies]
 serde = { workspace = true }
-serde_derive = { workspace = true }

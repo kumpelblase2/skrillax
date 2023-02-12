@@ -13,6 +13,10 @@ pub enum ObjectInfoError {
     InvalidMagic,
     #[error("Couldn't parse number")]
     ParseError(#[from] ParseIntError),
+    #[error("The file didn't contain a count")]
+    MissingCount,
+    #[error("The file was too short")]
+    NotEnoughLines,
 }
 
 #[derive(Clone, Debug)]
@@ -46,11 +50,11 @@ impl ObjectInfo {
             return Err(ObjectInfoError::InvalidMagic);
         }
 
-        let count_str = lines.next().unwrap_or_else(|| todo!());
+        let count_str = lines.next().ok_or(ObjectInfoError::MissingCount)?;
         let count = usize::from_str(count_str)?;
         let mut entries = HashMap::with_capacity(count);
         for _ in 0..count {
-            let line = lines.next().unwrap_or_else(|| todo!());
+            let line = lines.next().ok_or(ObjectInfoError::NotEnoughLines)?;
             let split: Vec<&str> = line.splitn(3, ' ').collect();
             let id = u32::from_str(split[0])?;
             let flag = u32::from_str_radix(split[1].trim_start_matches("0x"), 16)?;
@@ -95,11 +99,11 @@ impl ObjectStringsInfo {
             return Err(ObjectInfoError::InvalidMagic);
         }
 
-        let count_str = lines.next().unwrap_or_else(|| todo!());
+        let count_str = lines.next().ok_or(ObjectInfoError::MissingCount)?;
         let count = usize::from_str(count_str)?;
         let mut objects = Vec::with_capacity(count);
         for _ in 0..count {
-            let line = lines.next().unwrap_or_else(|| todo!());
+            let line = lines.next().ok_or(ObjectInfoError::NotEnoughLines)?;
             let split: Vec<&str> = line.splitn(9, ' ').collect();
             let unique_id = u32::from_str_radix(split[0].trim_start_matches("0x"), 16)?;
             let flag = u32::from_str_radix(split[1].trim_start_matches("0x"), 16)?;

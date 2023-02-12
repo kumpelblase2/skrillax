@@ -3,7 +3,7 @@ use silkroad_serde::*;
 use silkroad_serde_derive::*;
 use std::fmt::{Display, Formatter};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Copy, Clone, Debug)]
 pub enum ActionTarget {
     #[silkroad(value = 0)]
     None,
@@ -50,24 +50,30 @@ pub enum PerformAction {
 }
 
 #[derive(Serialize, ByteSize)]
+pub enum DoActionResponseCode {
+    #[silkroad(value = 1)]
+    Success,
+    #[silkroad(value = 3)]
+    Error(u16),
+}
+
+#[derive(Serialize, ByteSize)]
 pub enum PerformActionResponse {
     #[silkroad(value = 1)]
-    Do(u8),
+    Do(DoActionResponseCode),
     #[silkroad(value = 2)]
     Stop(PerformActionError),
 }
 
 #[derive(Serialize, ByteSize)]
 pub struct DamageContent {
+    pub damage_instances: u8,
     #[silkroad(list_type = "length")]
-    pub instances: Vec<DamageInstance>,
+    pub entities: Vec<PerEntityDamage>,
 }
 
 #[derive(Serialize, ByteSize)]
-pub struct DamageInstance {
-    pub damage_count: u8,
-    pub unknown: u8,
-    // 0x1
+pub struct PerEntityDamage {
     pub target: u32,
     #[silkroad(list_type = "none")]
     pub damage: Vec<SkillPartDamage>,
@@ -82,25 +88,34 @@ pub enum DamageKind {
 }
 
 #[derive(Serialize, ByteSize)]
+pub struct DamageValue {
+    pub kind: DamageKind,
+    pub amount: u32,
+    pub unknown: u16,
+    // 0x0
+    pub unknown_2: u8, // 0x0
+}
+
+impl DamageValue {
+    pub fn new(kind: DamageKind, amount: u32) -> Self {
+        Self {
+            kind,
+            amount,
+            unknown: 0,
+            unknown_2: 0,
+        }
+    }
+}
+
+// Maybe this should be a bitflag instead?
+#[derive(Serialize, ByteSize)]
 pub enum SkillPartDamage {
     #[silkroad(value = 0)]
-    Default {
-        kind: DamageKind,
-        amount: u32,
-        unknown_2: u16,
-        // 0x0
-        unknown_3: u8, // 0x0
-    },
+    Default(DamageValue),
     #[silkroad(value = 0x80)]
-    KillingBlow {
-        kind: DamageKind,
-        amount: u32,
-        unknown_2: u16,
-        // 0x0
-        unknown_3: u8, // 0x0
-    },
+    KillingBlow(DamageValue),
     #[silkroad(value = 0x08)]
-    Empty,
+    Abort,
 }
 
 #[derive(Serialize, ByteSize)]
@@ -140,7 +155,7 @@ pub enum ActionType {
     #[silkroad(value = 0)]
     None,
     #[silkroad(value = 1)]
-    Attack,
+    Attack { damage: Option<DamageContent> },
     #[silkroad(value = 8)]
     Teleport,
 }
@@ -149,40 +164,30 @@ pub enum ActionType {
 pub enum PerformActionUpdate {
     #[silkroad(value = 1)]
     Success {
-        unknown: u8,
-        // 0x2
-        unknown_2: u8,
-        // 0x30,
+        unknown: u16,
+        // 0x3002 | 0x3000
         skill_id: u32,
         source: u32,
-        unknown_3: u32,
-        // 0x76034
+        instance: u32,
         unknown_4: u32,
-        // (0x27ef2b , 0x47c1f) 261713
+        // (0x27ef2b , 0x47c1f) 261713 0?
         target: u32,
         kind: ActionType,
-        unknown_5: u8,
-        // ??
-        #[silkroad(size = 0)]
-        damage: Option<DamageContent>,
     },
     #[silkroad(value = 2)]
     Error(PerformActionError),
 }
 
 impl PerformActionUpdate {
-    pub fn success(skill_id: u32, source: u32, target: u32, kind: ActionType, damage: Option<DamageContent>) -> Self {
+    pub fn success(skill_id: u32, source: u32, target: u32, instance: u32, kind: ActionType) -> Self {
         PerformActionUpdate::Success {
-            unknown: 0x2,
-            unknown_2: 0x30,
+            unknown: 0x3002,
             skill_id,
             source,
-            unknown_3: 0x076034,
-            unknown_4: 0x27ef2b,
+            instance,
+            unknown_4: 0,
             target,
             kind,
-            unknown_5: 0,
-            damage,
         }
     }
 }

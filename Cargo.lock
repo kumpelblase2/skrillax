@@ -2415,54 +2415,63 @@ dependencies = [
  "cgmath 0.18.0",
  "chrono",
  "config",
- "crossbeam-channel",
- "derive_more",
- "id-pool",
- "itertools",
- "log",
- "once_cell",
- "pk2",
- "rand 0.8.4",
- "serde",
- "serde_derive",
- "silkroad-data",
- "silkroad-navmesh",
- "silkroad-network",
- "silkroad-protocol",
- "silkroad-rpc",
- "sqlx",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-subscriber",
+    "crossbeam-channel",
+    "derive_more",
+    "id-pool",
+    "itertools",
+    "log",
+    "once_cell",
+    "pk2",
+    "rand 0.8.4",
+    "serde",
+    "silkroad-data",
+    "silkroad-game-base",
+    "silkroad-navmesh",
+    "silkroad-network",
+    "silkroad-protocol",
+    "silkroad-rpc",
+    "sqlx",
+    "thiserror",
+    "tokio",
+    "tracing",
+    "tracing-subscriber",
 ]
 
 [[package]]
 name = "silkroad-data"
 version = "0.1.0"
 dependencies = [
- "bitflags",
- "encoding_rs",
- "num_enum",
- "num_enum_derive",
- "pk2",
- "thiserror",
+    "bitflags",
+    "encoding_rs",
+    "num_enum",
+    "num_enum_derive",
+    "pk2",
+    "thiserror",
+]
+
+[[package]]
+name = "silkroad-game-base"
+version = "0.1.0"
+dependencies = [
+    "cgmath 0.18.0",
+    "rand 0.8.4",
+    "silkroad-data",
+    "silkroad-navmesh",
 ]
 
 [[package]]
 name = "silkroad-gateway"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "bcrypt",
- "chrono",
- "clap 4.0.26",
- "config",
+    "anyhow",
+    "bcrypt",
+    "chrono",
+    "clap 4.0.26",
+    "config",
  "crossbeam-channel",
  "log",
  "reqwest",
  "serde",
- "serde_derive",
  "silkroad-network",
  "silkroad-protocol",
  "silkroad-rpc",
@@ -2542,7 +2551,6 @@ name = "silkroad-rpc"
 version = "0.1.0"
 dependencies = [
  "serde",
- "serde_derive",
 ]
 
 [[package]]

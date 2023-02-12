@@ -401,10 +401,10 @@ pub enum SkillParam {
         max_level: u8,
         experience_restore: u8,
     },
-    // temp name
     PSOG(u8),
     // temp name
     NBUF,
+    // temp name
     Debuff,
     IncreaseTaunt {
         taunt_value: u32,
@@ -458,8 +458,8 @@ pub enum SkillParam {
         // always 16832
         unknown_2: u8, // always 50
     },
-    // temp name
     MaxLinks,
+    // temp name
     PetBuff {
         attribute: String,
         unknown: u8,

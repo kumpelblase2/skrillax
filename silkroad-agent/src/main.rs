@@ -1,9 +1,12 @@
+mod agent;
+mod chat;
 mod comp;
 mod config;
 mod db;
 mod event;
 mod ext;
 mod game;
+mod input;
 mod login;
 mod net;
 mod population;
@@ -11,10 +14,12 @@ mod server_plugin;
 mod tasks;
 mod world;
 
+use crate::agent::AgentPlugin;
 use crate::config::get_config;
 use crate::db::server::ServerRegistration;
 use crate::ext::DbPool;
 use crate::game::GamePlugin;
+use crate::input::ReceivePlugin;
 use crate::login::LoginPlugin;
 use crate::net::NetworkPlugin;
 use crate::population::{CapacityController, LoginQueue};
@@ -95,6 +100,8 @@ fn main() {
     App::new()
         .add_plugin(CorePlugin { ..Default::default() })
         .add_plugin(TimePlugin)
+        .add_plugin(ReceivePlugin)
+        .add_plugin(AgentPlugin)
         .insert_resource::<DbPool>(db_pool.into())
         .insert_resource::<TaskCreator>(runtime.into())
         .add_plugin(ServerPlugin::new(configuration.game.clone(), server_id))

@@ -24,6 +24,51 @@ pub enum GmCommand {
 }
 
 #[derive(Serialize, ByteSize)]
+#[silkroad(size = 2)]
+pub enum GmSuccessResult {
+    #[silkroad(value = 1)]
+    Message(String),
+    #[silkroad(value = 4)]
+    EntityIds { player: u32, mob: u32, item: u32 },
+    #[silkroad(value = 0x15)]
+    EventScriptRegisterOk,
+    #[silkroad(value = 0x16)]
+    EventScriptUnRegisterOk,
+    #[silkroad(value = 0x21)]
+    SiegeManagerOk,
+    #[silkroad(value = 0x31)]
+    ClearInventoryOk,
+    #[silkroad(value = 0x38)]
+    CheckMacroUserOk,
+}
+
+#[derive(Serialize, ByteSize)]
+pub enum GmResponseResult {
+    #[silkroad(value = 1)]
+    Success(GmSuccessResult),
+    #[silkroad(value = 0)]
+    Error,
+}
+
+#[derive(Serialize, ByteSize)]
 pub struct GmResponse {
-    pub result: bool,
+    pub result: GmResponseResult,
+}
+
+impl GmResponse {
+    pub fn success_message(message: String) -> Self {
+        GmResponse {
+            result: GmResponseResult::Success(GmSuccessResult::Message(message)),
+        }
+    }
+
+    pub fn print_entity_ids(player_id: u32, mob_id: u32, item_id: u32) -> Self {
+        GmResponse {
+            result: GmResponseResult::Success(GmSuccessResult::EntityIds {
+                player: player_id,
+                mob: mob_id,
+                item: item_id,
+            }),
+        }
+    }
 }
