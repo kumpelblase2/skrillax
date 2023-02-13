@@ -453,7 +453,7 @@ dependencies = [
 [[package]]
 name = "blowfish-compat"
 version = "0.1.0"
-source = "git+https://aura.eternalwings.de/tim/blowfish-compat.rs.git?branch=master#20b47fb8c170c458b9ced98969f927230d210970"
+source = "git+https://git.eternalwings.de/tim/blowfish-compat.rs.git?branch=master#20b47fb8c170c458b9ced98969f927230d210970"
 dependencies = [
  "blowfish 0.8.0",
 ]
@@ -2415,59 +2415,59 @@ dependencies = [
  "cgmath 0.18.0",
  "chrono",
  "config",
-    "crossbeam-channel",
-    "derive_more",
-    "id-pool",
-    "itertools",
-    "log",
-    "once_cell",
-    "pk2",
-    "rand 0.8.4",
-    "serde",
-    "silkroad-data",
-    "silkroad-game-base",
-    "silkroad-navmesh",
-    "silkroad-network",
-    "silkroad-protocol",
-    "silkroad-rpc",
-    "sqlx",
-    "thiserror",
-    "tokio",
-    "tracing",
-    "tracing-subscriber",
+ "crossbeam-channel",
+ "derive_more",
+ "id-pool",
+ "itertools",
+ "log",
+ "once_cell",
+ "pk2",
+ "rand 0.8.4",
+ "serde",
+ "silkroad-data",
+ "silkroad-game-base",
+ "silkroad-navmesh",
+ "silkroad-network",
+ "silkroad-protocol",
+ "silkroad-rpc",
+ "sqlx",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
 name = "silkroad-data"
 version = "0.1.0"
 dependencies = [
-    "bitflags",
-    "encoding_rs",
-    "num_enum",
-    "num_enum_derive",
-    "pk2",
-    "thiserror",
+ "bitflags",
+ "encoding_rs",
+ "num_enum",
+ "num_enum_derive",
+ "pk2",
+ "thiserror",
 ]
 
 [[package]]
 name = "silkroad-game-base"
 version = "0.1.0"
 dependencies = [
-    "cgmath 0.18.0",
-    "rand 0.8.4",
-    "silkroad-data",
-    "silkroad-navmesh",
+ "cgmath 0.18.0",
+ "rand 0.8.4",
+ "silkroad-data",
+ "silkroad-navmesh",
 ]
 
 [[package]]
 name = "silkroad-gateway"
 version = "0.1.0"
 dependencies = [
-    "anyhow",
-    "bcrypt",
-    "chrono",
-    "clap 4.0.26",
-    "config",
+ "anyhow",
+ "bcrypt",
+ "chrono",
+ "clap 4.0.26",
+ "config",
  "crossbeam-channel",
  "log",
  "reqwest",
