@@ -12,6 +12,7 @@ use crate::ext::{EntityIdPool, Navmesh, NpcPositionList};
 use crate::game::player_activity::PlayerActivity;
 use crate::world::WorldData;
 use bevy_ecs::prelude::*;
+use bevy_time::Time;
 use cgmath::Vector3;
 use id_pool::IdPool;
 use pk2::Pk2;
@@ -69,10 +70,10 @@ pub(crate) fn spawn_monsters(
     activity: Res<PlayerActivity>,
     mut navmesh: ResMut<Navmesh>,
     mut id_pool: ResMut<EntityIdPool>,
+    time: Res<Time>,
     despawn_query: Query<(Entity, &SpawnedBy)>,
 ) {
-    let current_time = Instant::now();
-
+    let delta = time.delta();
     let active_regions: HashSet<Region> = activity
         .active_regions()
         .flat_map(|region| region.with_grid_neighbours())
@@ -94,7 +95,7 @@ pub(crate) fn spawn_monsters(
             trace!(spawner = ?entity, "Deactivating spawner");
             deactivate_spawner(entity, &mut spawner, &mut commands, &despawn_query);
         } else if spawner.active {
-            if spawner.has_spots_available() && spawner.should_spawn(current_time) {
+            if spawner.has_spots_available() && spawner.should_spawn(delta) {
                 let empty_spots = spawner.target_amount - spawner.current_amount;
                 let max_spawn = min(empty_spots, 3); // Spawn at most 3 at once
                 let to_spawn = rand::thread_rng().gen_range(1..=max_spawn);

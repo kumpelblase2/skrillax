@@ -1,7 +1,8 @@
 use crate::config::SpawnOptions;
 use bevy_ecs_macros::Component;
+use bevy_time::{Timer, TimerMode};
 use rand::random;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 #[derive(Component)]
 pub struct Spawner {
@@ -10,8 +11,7 @@ pub struct Spawner {
     pub ref_id: u32,
     pub target_amount: usize,
     pub current_amount: usize,
-    last_spawn_check: Instant,
-    spawn_check_duration: Duration,
+    spawn_check_timer: Timer,
 }
 
 impl Spawner {
@@ -22,8 +22,7 @@ impl Spawner {
             target_amount: settings.amount,
             ref_id: spawned,
             current_amount: 0,
-            last_spawn_check: Instant::now(),
-            spawn_check_duration: Duration::from_secs(1),
+            spawn_check_timer: Timer::new(Duration::from_secs(1), TimerMode::Repeating),
         }
     }
 
@@ -31,9 +30,8 @@ impl Spawner {
         self.current_amount < self.target_amount
     }
 
-    pub fn should_spawn(&mut self, now: Instant) -> bool {
-        if now.duration_since(self.last_spawn_check) > self.spawn_check_duration {
-            self.last_spawn_check = now;
+    pub fn should_spawn(&mut self, delta: Duration) -> bool {
+        if self.spawn_check_timer.tick(delta).just_finished() {
             return random::<f32>() > 0.5;
         }
         false
