@@ -1,6 +1,6 @@
 on:
   push:
-    branches: [main, test-ci]
+    branches: [master]
   pull_request:
 
 name: check
