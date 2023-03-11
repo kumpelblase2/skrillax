@@ -1,0 +1,29 @@
+on:
+  push:
+    branches: [main, test-ci]
+  pull_request:
+
+name: check
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    name: nightly fmt
+    steps:
+      - uses: actions/checkout@v3
+      - name: install toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
+      - name: cargo fmt check
+        run: cargo +nightly fmt --check
+  clippy:
+    runs-on: ubuntu-latest
+    name: clippy
+    steps:
+      - uses: actions/checkout@v3
+      - name: install toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: cargo clippy
+        run: cargo clippy

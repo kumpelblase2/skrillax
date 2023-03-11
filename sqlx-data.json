@@ -1,0 +1,661 @@
+{
+  "db": "PostgreSQL",
+  "09a11418117d5182992d4606e13e7902c768b1ec7969094b2a92c2f061cd9bb1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "server_id",
+          "ordinal": 2,
+          "type_info": "Int4"
+        },
+        {
+          "name": "character_type",
+          "ordinal": 3,
+          "type_info": "Int4"
+        },
+        {
+          "name": "scale",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "level",
+          "ordinal": 5,
+          "type_info": "Int2"
+        },
+        {
+          "name": "exp",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "strength",
+          "ordinal": 7,
+          "type_info": "Int2"
+        },
+        {
+          "name": "intelligence",
+          "ordinal": 8,
+          "type_info": "Int2"
+        },
+        {
+          "name": "stat_points",
+          "ordinal": 9,
+          "type_info": "Int2"
+        },
+        {
+          "name": "current_hp",
+          "ordinal": 10,
+          "type_info": "Int4"
+        },
+        {
+          "name": "current_mp",
+          "ordinal": 11,
+          "type_info": "Int4"
+        },
+        {
+          "name": "charname",
+          "ordinal": 12,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "deletion_end",
+          "ordinal": 13,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sp",
+          "ordinal": 14,
+          "type_info": "Int4"
+        },
+        {
+          "name": "x",
+          "ordinal": 15,
+          "type_info": "Float4"
+        },
+        {
+          "name": "y",
+          "ordinal": 16,
+          "type_info": "Float4"
+        },
+        {
+          "name": "z",
+          "ordinal": 17,
+          "type_info": "Float4"
+        },
+        {
+          "name": "max_level",
+          "ordinal": 18,
+          "type_info": "Int2"
+        },
+        {
+          "name": "region",
+          "ordinal": 19,
+          "type_info": "Int2"
+        },
+        {
+          "name": "berserk_points",
+          "ordinal": 20,
+          "type_info": "Int2"
+        },
+        {
+          "name": "gold",
+          "ordinal": 21,
+          "type_info": "Int8"
+        },
+        {
+          "name": "sp_exp",
+          "ordinal": 22,
+          "type_info": "Int4"
+        },
+        {
+          "name": "beginner_mark",
+          "ordinal": 23,
+          "type_info": "Bool"
+        },
+        {
+          "name": "gm",
+          "ordinal": 24,
+          "type_info": "Bool"
+        },
+        {
+          "name": "last_logout",
+          "ordinal": 25,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "rotation",
+          "ordinal": 26,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT * FROM characters WHERE user_id = $1 AND server_id = $2 AND (deletion_end > NOW() OR deletion_end is null) ORDER BY id ASC"
+  },
+  "0cc5c4601f56468f8b198507236a3fd5ddd712b9a7e5c4eee3e711ce35d4e262": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Varchar"
+        ]
+      }
+    },
+    "query": "INSERT INTO users(username, password) values($1, $2)"
+  },
+  "177c963161e404e6961f097a33f89ae93761bb13833c8d38eaf06108d981bafc": {
+    "describe": {
+      "columns": [
+        {
+          "name": "count!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT COUNT(*) as \"count!\" FROM characters WHERE LOWER(charname) = LOWER($1) and server_id = $2"
+  },
+  "1c2d30bbd50763594c7e5d08776deb93663c58fee10a6feb6e4e31fa206d0335": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4",
+          "Varchar",
+          "Int4",
+          "Int2",
+          "Int2",
+          "Int2",
+          "Int2",
+          "Int2",
+          "Int2",
+          "Int4",
+          "Int4",
+          "Float4",
+          "Float4",
+          "Float4",
+          "Int2",
+          "Bool"
+        ]
+      }
+    },
+    "query": "INSERT INTO characters(user_id, server_id, charname, character_type, scale, level, max_level, strength, intelligence, stat_points, current_hp, current_mp, x, y, z, region, beginner_mark) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id"
+  },
+  "22d166c39ec367feaaad056fe3dbf10fac7dff9960bb14a77d4c8503f721e81a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      }
+    },
+    "query": "INSERT INTO user_servers(user_id, server_id) values($1, $2)"
+  },
+  "4017b3cff1ee8821720170787f6974a69bf3dce2087c08a4219ba5e38dbc1aa3": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "UPDATE characters SET last_logout = CURRENT_TIMESTAMP WHERE id = $1"
+  },
+  "473083826e7c774025f6104f56173ecdb8a62175ddd828f5faa1998a0b0f58df": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4",
+          "Text",
+          "Float8"
+        ]
+      }
+    },
+    "query": "UPDATE characters SET deletion_end = CURRENT_TIMESTAMP + ($4 * INTERVAL '1 minute') WHERE user_id = $1 AND server_id = $2 AND charname = $3"
+  },
+  "4b4a33f133ede745f060b20209972f5a63ee4fa2c59d21603126ab7dcfa89f9d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4",
+          "Int2",
+          "Int2"
+        ]
+      }
+    },
+    "query": "INSERT INTO character_items(character_id, item_obj_id, upgrade_level, slot) VALUES($1, $2, $3, $4)"
+  },
+  "52dd0b586e27ab4f094ec421c74ba02a5325ab606844641a88b149d145572a4d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "password",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "passcode",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT id, password, passcode FROM users WHERE username = $1"
+  },
+  "6600b1aa66449cd6c76d4afb27c22cfa7752e1f21c2a0af2078817f8120a13fc": {
+    "describe": {
+      "columns": [
+        {
+          "name": "title",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "body",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "date",
+          "ordinal": 2,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT title, body, date FROM news WHERE visible = true ORDER BY date ASC"
+  },
+  "6f1b25d041b581b038224e1d2fcab41c2f30945776c2b53f55340a2ac56dd8b8": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Varchar",
+          "Varchar"
+        ]
+      }
+    },
+    "query": "INSERT INTO users(username, password, passcode) values($1, $2, $3)"
+  },
+  "82b58fea3da5e84ff8cff6fda5c97e7921b039d23dd8fdbb3a28c0c1da234765": {
+    "describe": {
+      "columns": [
+        {
+          "name": "job",
+          "ordinal": 0,
+          "type_info": "Int2"
+        },
+        {
+          "name": "premium_type",
+          "ordinal": 1,
+          "type_info": "Int2"
+        },
+        {
+          "name": "premium_end",
+          "ordinal": 2,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT job, premium_type, premium_end FROM user_servers WHERE user_id = $1 AND server_id = $2"
+  },
+  "8e30f5ce998dcc071752d44d05ffc487acdf60fbcf1cf99a0f85d500be07f987": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE characters SET deletion_end = NULL WHERE user_id = $1 AND server_id = $2 AND charname = $3 AND deletion_end > CURRENT_TIMESTAMP"
+  },
+  "933f9c0f6831d6a2cf40bdb0ab651dd94ef31d55d1ce41855ecf53b5d0c41339": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "character_id",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "item_obj_id",
+          "ordinal": 2,
+          "type_info": "Int4"
+        },
+        {
+          "name": "upgrade_level",
+          "ordinal": 3,
+          "type_info": "Int2"
+        },
+        {
+          "name": "slot",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "variance",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "amount",
+          "ordinal": 6,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4Array"
+        ]
+      }
+    },
+    "query": "SELECT * FROM character_items WHERE character_id in (SELECT * FROM UNNEST($1::INTEGER[]))"
+  },
+  "a2a81375b495547004baa89da119c6085932e203d75ca981afc9202a040fe201": {
+    "describe": {
+      "columns": [
+        {
+          "name": "mastery_id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "character_id",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "level",
+          "ordinal": 2,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4Array"
+        ]
+      }
+    },
+    "query": "SELECT mastery_id, character_id, level FROM character_masteries WHERE character_id in (SELECT * FROM UNNEST($1::INTEGER[]))"
+  },
+  "abaf5e23602f362ebb7c58c45cbf5ff39a1ee9e6df4df575ec1693b7ac9fe6eb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "region",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "address",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "port",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "rpc_port",
+          "ordinal": 5,
+          "type_info": "Int2"
+        },
+        {
+          "name": "token",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id, name, region, address, port, rpc_port, token FROM servers"
+  },
+  "c8fabc599290bc2f9a95caa4b1c9eea3a78b36005a87ef1161f0bcc88c929799": {
+    "describe": {
+      "columns": [
+        {
+          "name": "count!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "job",
+          "ordinal": 1,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        null,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT COUNT(job) as \"count!\", job FROM user_servers WHERE job <> 0 AND server_id = $1 GROUP BY job"
+  },
+  "de3230de507ca1e11d2ca40bef8a5b8470628ddbaa454af4f49f6fe6953f9014": {
+    "describe": {
+      "columns": [
+        {
+          "name": "username",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT username FROM users WHERE id = $1"
+  },
+  "ef2e13e513f8f032becd602813b2fd4697210d43ad2b783211be49cdcc3784ff": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "password",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT id, password FROM users WHERE username = $1 and passcode = $2"
+  },
+  "f96fab931471e11b19b6a06f0d0d26e5e2d0ccf0ef8a496047c3f8f2dc16b36c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int2",
+          "Varchar",
+          "Varchar",
+          "Varchar",
+          "Int2",
+          "Varchar",
+          "Int2"
+        ]
+      }
+    },
+    "query": "INSERT INTO servers(identifier, name, region, address, port, token, rpc_port) VALUES($1, $2, $3, $4, $5, $6, $7) ON CONFLICT(identifier) DO UPDATE SET name = $2, region = $3, address = $4, port = $5, token = $6, rpc_port = $7"
+  }
+}
