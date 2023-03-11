@@ -11,11 +11,15 @@ static INSTANCE: Lazy<PassCodeDecoder> = Lazy::new(PassCodeDecoder::default);
 /// to decrypt passcodes.
 ///
 /// ```
+/// # use std::string::FromUtf8Error;
 /// # use silkroad_security::passcode::PassCodeDecoder;
+/// # fn test() -> Result<(), FromUtf8Error> {
 /// let input = [113, 42, 1, 64, 127, 104, 60, 94];
 /// let decoder = PassCodeDecoder::get();
 /// let decoded = decoder.decode_passcode(4, &input)?;
 /// assert_eq!(decoded, "1234");
+/// # Ok(())
+/// # }
 /// ```
 pub struct PassCodeDecoder {
     blowfish: BlowfishCompat,
