@@ -20,5 +20,5 @@ silkroad-rpc = { path = "../silkroad-rpc" }
 silkroad-security = { path = "../silkroad-security" }
 reqwest = { version = "0.11.11", features = ["json"] }
 clap = { version = "4", features = ["derive"] }
-anyhow = "1.0.66"
+anyhow = "1.0.69"
 bcrypt = "0.13"
