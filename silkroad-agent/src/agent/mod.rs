@@ -1,6 +1,6 @@
 use crate::agent::event::{ActionFinished, MovementFinished};
 use crate::agent::states::{
-    action, move_to_action, move_to_pickup, movement, pickup, turning, update_action_destination,
+    action, dead, move_to_action, move_to_pickup, movement, pickup, turning, update_action_destination,
     update_target_location,
 };
 use crate::agent::system::{
@@ -70,7 +70,8 @@ impl Plugin for AgentPlugin {
                     .with_system(move_to_pickup)
                     .with_system(pickup)
                     .with_system(action)
-                    .with_system(turning),
+                    .with_system(turning)
+                    .with_system(dead),
             );
     }
 }

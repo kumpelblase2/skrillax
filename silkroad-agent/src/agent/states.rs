@@ -1,10 +1,12 @@
 mod action;
+mod dead;
 mod idle;
 mod movement;
 mod sitting;
 
 pub(crate) use action::*;
 use bevy_ecs::prelude::*;
+pub(crate) use dead::*;
 use derive_more::{Deref, DerefMut};
 pub(crate) use idle::*;
 pub(crate) use movement::*;
@@ -23,6 +25,7 @@ pub(crate) enum StateChange {
     Action(Action),
     MoveToAction(MoveToAction),
     MoveToPickup(MoveToPickup),
+    Dead(Dead),
 }
 
 impl StateChange {
@@ -35,6 +38,7 @@ impl StateChange {
             StateChange::Action(inner) => entity_cmd.insert(inner),
             StateChange::MoveToAction(inner) => entity_cmd.insert(inner),
             StateChange::MoveToPickup(inner) => entity_cmd.insert(inner),
+            StateChange::Dead(inner) => entity_cmd.insert(inner),
         };
     }
 }
@@ -59,6 +63,7 @@ impl_state!(Action, 2, false);
 impl_state!(MoveToAction, 1, true);
 impl_state!(MoveToPickup, 1, true);
 impl_state!(Sitting, 1, true);
+impl_state!(Dead, 3, false);
 
 pub(crate) struct StateTransition {
     data: StateChange,

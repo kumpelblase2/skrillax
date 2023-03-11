@@ -9,6 +9,7 @@ pub struct Synchronize {
     pub rotation: Option<Heading>,
     pub state: Vec<UpdatedState>,
     pub actions: Vec<ActionAnimation>,
+    pub health: Option<u32>,
 }
 
 pub enum MovementUpdate {
@@ -40,6 +41,7 @@ impl Synchronize {
     pub fn clear(&mut self) {
         self.movement = None;
         self.rotation = None;
+        self.health = None;
         self.state.clear();
         self.actions.clear();
     }

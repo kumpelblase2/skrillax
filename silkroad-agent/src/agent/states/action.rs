@@ -5,23 +5,21 @@ use crate::comp::inventory::PlayerInventory;
 use crate::comp::net::Client;
 use crate::comp::pos::Position;
 use crate::comp::sync::{ActionAnimation, Synchronize};
-use crate::comp::{drop, GameEntity};
+use crate::comp::{drop, EntityReference, GameEntity};
 use crate::config::GameConfig;
+use crate::event::{AttackDefinition, DamageReceiveEvent};
 use crate::ext::Navmesh;
+use crate::game::attack::AttackInstanceCounter;
 use bevy_ecs::prelude::*;
 use bevy_ecs::query::QueryEntityError;
 use bevy_time::{Time, Timer, TimerMode};
 use cgmath::num_traits::Pow;
 use cgmath::InnerSpace;
 use derive_more::Deref;
-use rand::random;
 use silkroad_data::skilldata::{RefSkillData, SkillParam};
 use silkroad_data::DataEntry;
 use silkroad_game_base::{get_range_for_attack, GlobalLocation, GlobalPosition, ItemTypeData, Vector3Ext};
-use silkroad_protocol::combat::{
-    ActionType, DamageContent, DamageKind, DamageValue, PerEntityDamage, PerformActionError, PerformActionResponse,
-    PerformActionUpdate, SkillPartDamage,
-};
+use silkroad_protocol::combat::{PerformActionError, PerformActionResponse};
 use silkroad_protocol::inventory::{InventoryItemContentData, InventoryOperationError, InventoryOperationResult};
 use silkroad_protocol::world::UnknownActionData;
 use std::ops::Deref;
@@ -262,7 +260,9 @@ pub(crate) fn action(
     mut query: Query<(Entity, &GameEntity, &Client, &mut Action)>,
     target_query: Query<&GameEntity>,
     time: Res<Time>,
+    mut attack_instance_counter: ResMut<AttackInstanceCounter>,
     mut cmd: Commands,
+    mut damage_event: EventWriter<DamageReceiveEvent>,
 ) {
     let delta = time.delta();
     for (entity, game_entity, client, mut action) in query.iter_mut() {
@@ -285,24 +285,15 @@ pub(crate) fn action(
                                 panic!();
                             };
                             let target_ = target_query.get(target).unwrap();
-                            client.send(PerformActionUpdate::success(
-                                action.skill.ref_id,
-                                game_entity.unique_id,
-                                target_.unique_id,
-                                random(),
-                                ActionType::Attack {
-                                    damage: Some(DamageContent {
-                                        damage_instances: 1,
-                                        entities: vec![PerEntityDamage {
-                                            target: target_.unique_id,
-                                            damage: vec![SkillPartDamage::Default(DamageValue::new(
-                                                DamageKind::Standard,
-                                                10,
-                                            ))],
-                                        }],
-                                    }),
+                            damage_event.send(DamageReceiveEvent {
+                                source: EntityReference(entity, *game_entity),
+                                target: EntityReference(target, *target_),
+                                attack: AttackDefinition {
+                                    skill: action.skill,
+                                    instance: attack_instance_counter.next(),
                                 },
-                            ))
+                                amount: 10,
+                            });
                         },
                         _ => {},
                     }

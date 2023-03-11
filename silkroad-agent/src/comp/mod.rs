@@ -37,6 +37,14 @@ impl Health {
             max_health,
         }
     }
+
+    pub fn reduce(&mut self, amount: u32) {
+        self.current_health = self.current_health.saturating_sub(amount)
+    }
+
+    pub fn is_dead(&self) -> bool {
+        self.current_health == 0
+    }
 }
 
 #[derive(Hash, Copy, Clone, Eq, PartialEq)]

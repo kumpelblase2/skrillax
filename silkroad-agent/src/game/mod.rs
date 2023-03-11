@@ -1,7 +1,9 @@
 use crate::agent::AgentBroadcastLabel;
 use crate::chat::ChatPlugin;
-use crate::event::{LoadingFinishedEvent, PlayerLevelUp, UniqueKilledEvent};
+use crate::event::{DamageReceiveEvent, LoadingFinishedEvent, PlayerLevelUp, UniqueKilledEvent};
 use crate::game::action::handle_action;
+use crate::game::attack::AttackInstanceCounter;
+use crate::game::damage::handle_damage;
 use crate::game::daylight::{advance_daylight, DaylightCycle};
 use crate::game::drop::{create_drops, tick_drop, SpawnDrop};
 use crate::game::entity_sync::{clean_sync, sync_changes_others, update_client};
@@ -18,6 +20,8 @@ use bevy_app::{App, CoreStage, Plugin};
 use bevy_ecs::prelude::*;
 
 mod action;
+pub(crate) mod attack;
+mod damage;
 mod daylight;
 pub(crate) mod drop;
 mod entity_sync;
@@ -40,10 +44,12 @@ impl Plugin for GamePlugin {
         app.add_plugin(ChatPlugin)
             .insert_resource(PlayerActivity::default())
             .insert_resource(DaylightCycle::official())
+            .insert_resource(AttackInstanceCounter::default())
             .add_event::<PlayerLevelUp>()
             .add_event::<LoadingFinishedEvent>()
             .add_event::<UniqueKilledEvent>()
             .add_event::<SpawnDrop>()
+            .add_event::<DamageReceiveEvent>()
             .add_system_to_stage(CoreStage::PreUpdate, update_player_activity)
             .add_system(handle_inventory_input)
             .add_system(visibility_update)
@@ -60,6 +66,7 @@ impl Plugin for GamePlugin {
                     .with_system(sync_changes_others)
                     .with_system(update_client),
             )
+            .add_system(handle_damage)
             .add_system_to_stage(CoreStage::PostUpdate, player_visibility_update)
             .add_system_to_stage(CoreStage::PostUpdate, notify_levelup)
             .add_system_to_stage(CoreStage::PostUpdate, load_finished)
