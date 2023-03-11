@@ -41,17 +41,17 @@ pub(crate) fn visibility_update(
         },
     );
 
-    query.par_for_each_mut(300, |(entity, game_entity, mut visibility, position)| {
+    query.par_iter_mut().for_each_mut(|(entity, game_entity, mut visibility, position)| {
         let my_region = position.location.region();
         let close_regions = my_region.with_grid_neighbours();
         if close_regions.iter().any(|region| activity.is_region_active(region)) {
             let entities_in_range: HashSet<EntityReference> = close_regions
-                .iter()
-                .flat_map(|region| grouped.get(region).unwrap_or(&EMPTY_VEC))
-                .filter(|(other_entity, _, _)| other_entity.index() != entity.index())
-                .filter(|(_, other_position, _)| {
-                    position.distance_to(other_position) < (visibility.visibility_radius.pow(2))
-                })
+                    .iter()
+                    .flat_map(|region| grouped.get(region).unwrap_or(&EMPTY_VEC))
+                    .filter(|(other_entity, _, _)| other_entity.index() != entity.index())
+                    .filter(|(_, other_position, _)| {
+                        position.distance_to(other_position) < (visibility.visibility_radius.pow(2))
+                    })
                 .map(|(entity, _, game_entity)| EntityReference(*entity, **game_entity))
                 .collect();
 

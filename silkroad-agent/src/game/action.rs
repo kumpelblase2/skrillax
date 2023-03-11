@@ -14,7 +14,7 @@ use cgmath::num_traits::Pow;
 use cgmath::InnerSpace;
 use silkroad_data::skilldata::RefSkillData;
 use silkroad_data::{DataMap, ObjectEquippable, ObjectItem, ObjectType, ObjectWeaponType};
-use silkroad_game_base::{get_range_for_attack, EquipmentSlot, GlobalLocation, GlobalPosition, Item, Vector3Ext};
+use silkroad_game_base::{get_range_for_attack, EquipmentSlot, GlobalLocation, Item, Vector3Ext};
 use silkroad_protocol::combat::{
     ActionTarget, DoActionResponseCode, DoActionType, PerformAction, PerformActionError, PerformActionResponse,
 };

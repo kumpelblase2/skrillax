@@ -27,7 +27,7 @@ use crate::server_plugin::ServerPlugin;
 use crate::tasks::TaskCreator;
 use crate::world::WorldPlugin;
 use bevy_app::App;
-use bevy_core::CorePlugin;
+use bevy_core::TaskPoolPlugin;
 use bevy_time::TimePlugin;
 use login::web::WebServer;
 use rand::distributions::Alphanumeric;
@@ -98,7 +98,7 @@ fn main() {
 
     info!("Listening for clients");
     App::new()
-        .add_plugin(CorePlugin { ..Default::default() })
+        .add_plugin(TaskPoolPlugin::default())
         .add_plugin(TimePlugin)
         .add_plugin(ReceivePlugin)
         .add_plugin(AgentPlugin)

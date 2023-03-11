@@ -9,7 +9,7 @@ use crate::agent::system::{
     transition_from_move_to_action, transition_from_move_to_pickup, transition_from_moving, transition_from_sitting,
     transition_to_idle,
 };
-use bevy_app::{App, CoreStage, Plugin};
+use bevy_app::{App, CoreSet, Plugin};
 use bevy_ecs::prelude::*;
 pub(crate) use component::*;
 
@@ -20,58 +20,62 @@ mod system;
 
 pub(crate) struct AgentPlugin;
 
-#[derive(SystemLabel)]
-pub(crate) struct AgentTransitionLabel;
-
-#[derive(SystemLabel)]
-pub(crate) struct AgentBroadcastLabel;
-
-#[derive(SystemLabel)]
-pub(crate) struct AgentInputLabel;
+#[derive(SystemSet, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+pub(crate) enum AgentSet {
+    Input,
+    Transition,
+    Execute,
+    Broadcast,
+}
 
 impl Plugin for AgentPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<MovementFinished>()
             .add_event::<ActionFinished>()
-            .add_system_set_to_stage(
-                CoreStage::PreUpdate,
-                SystemSet::new().label(AgentInputLabel).with_system(movement_input),
+            .configure_set(AgentSet::Input.in_base_set(CoreSet::PreUpdate))
+            .configure_set(
+                AgentSet::Transition
+                    .in_base_set(CoreSet::PreUpdate)
+                    .after(AgentSet::Input),
             )
-            .add_system_set_to_stage(
-                CoreStage::PreUpdate,
-                SystemSet::new()
-                    .label(AgentTransitionLabel)
-                    .after(AgentInputLabel)
-                    .with_system(transition_to_idle)
-                    .with_system(transition_from_idle)
-                    .with_system(transition_from_moving)
-                    .with_system(transition_from_sitting)
-                    .with_system(transition_from_attacking)
-                    .with_system(transition_from_move_to_pickup)
-                    .with_system(transition_from_move_to_action),
+            .configure_set(AgentSet::Execute.in_base_set(CoreSet::Update))
+            .configure_set(AgentSet::Broadcast.in_base_set(CoreSet::PostUpdate))
+            .add_system(movement_input.in_set(AgentSet::Input))
+            .add_systems(
+                (
+                    transition_to_idle,
+                    transition_from_idle,
+                    transition_from_moving,
+                    transition_from_sitting,
+                    transition_from_attacking,
+                    transition_from_move_to_pickup,
+                    transition_from_move_to_action,
+                )
+                    .in_set(AgentSet::Transition),
             )
-            .add_system_set_to_stage(
-                CoreStage::PostUpdate,
-                SystemSet::new()
-                    .label(AgentBroadcastLabel)
-                    .with_system(broadcast_movement_stop)
-                    .with_system(broadcast_movement_begin)
-                    .with_system(broadcast_movement_from_pickup)
-                    .with_system(broadcast_movement_from_action)
-                    .with_system(broadcast_action_stop),
+            .add_systems(
+                (
+                    broadcast_movement_stop,
+                    broadcast_movement_begin,
+                    broadcast_movement_from_pickup,
+                    broadcast_movement_from_action,
+                    broadcast_action_stop,
+                )
+                    .in_set(AgentSet::Broadcast),
             )
-            .add_system_set_to_stage(
-                CoreStage::Update,
-                SystemSet::new()
-                    .with_system(update_target_location)
-                    .with_system(movement.after(update_target_location))
-                    .with_system(update_action_destination)
-                    .with_system(move_to_action.after(update_action_destination))
-                    .with_system(move_to_pickup)
-                    .with_system(pickup)
-                    .with_system(action)
-                    .with_system(turning)
-                    .with_system(dead),
+            .add_systems(
+                (
+                    update_target_location,
+                    movement.after(update_target_location),
+                    update_action_destination,
+                    move_to_action.after(update_action_destination),
+                    move_to_pickup,
+                    pickup,
+                    action,
+                    turning,
+                    dead,
+                )
+                    .in_set(AgentSet::Execute),
             );
     }
 }

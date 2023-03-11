@@ -24,7 +24,7 @@ use silkroad_navmesh::NavmeshLoader;
 use silkroad_protocol::world::EntityRarity;
 use std::cmp::min;
 use std::collections::HashSet;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tracing::trace;
 
 pub(crate) fn spawn_npcs(

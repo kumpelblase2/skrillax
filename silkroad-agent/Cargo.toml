@@ -26,12 +26,12 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 chrono = { workspace = true }
 itertools = "*"
-bevy_ecs = "0.9"
-bevy_ecs_macros = "0.9"
-bevy_core = "0.9"
-bevy_app = "0.9"
-bevy_tasks = "0.9"
-bevy_time = "0.9"
+bevy_ecs = "0.10"
+bevy_ecs_macros = "0.10"
+bevy_core = "0.10"
+bevy_app = "0.10"
+bevy_tasks = "0.10"
+bevy_time = "0.10"
 cgmath = "0.18.0"
 pk2 = "0.1.0"
 id-pool = { version = "0.2.1", features = ["u32"], default_features = false }

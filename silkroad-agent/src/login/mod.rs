@@ -5,7 +5,8 @@ use crate::login::jobs::{
     handle_character_restore,
 };
 use crate::LoginQueue;
-use bevy_app::{App, CoreStage, Plugin};
+use bevy_app::{App, CoreSet, Plugin};
+use bevy_ecs::prelude::*;
 
 pub mod character_loader;
 mod charselect;
@@ -24,7 +25,7 @@ impl Plugin for LoginPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(self.login_queue.clone())
             .insert_resource(JobDistribution::default())
-            .add_system_to_stage(CoreStage::PostUpdate, update_job_distribution)
+            .add_system(update_job_distribution.in_base_set(CoreSet::PostUpdate))
             .add_system(handle_character_create)
             .add_system(handle_character_restore)
             .add_system(handle_character_delete)
