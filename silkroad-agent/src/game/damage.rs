@@ -5,10 +5,10 @@ use crate::comp::player::Player;
 use crate::comp::sync::Synchronize;
 use crate::comp::Health;
 use crate::event::DamageReceiveEvent;
-use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::combat::{
-    ActionType, DamageContent, DamageKind, DamageValue, PerEntityDamage, PerformActionUpdate, SkillPartDamage,
+    ActionType, DamageContent, DamageKind, DamageValue, PerEntityDamage, PerformActionError, PerformActionUpdate,
+    SkillPartDamage,
 };
 use silkroad_protocol::world::{AliveState, UpdatedState};
 
@@ -22,7 +22,6 @@ pub(crate) fn handle_damage(
         Option<&Monster>,
     )>,
     mut sender_query: Query<Option<&Client>>,
-    mut cmd: Commands,
 ) {
     for damage_event in reader.iter() {
         let Ok((mut health, mut synchronize, mut controller, player, monster)) = receiver_query
@@ -33,6 +32,14 @@ pub(crate) fn handle_damage(
         let attacker_client = sender_query
             .get(damage_event.source.0)
             .expect("Sender for damage event should exist");
+
+        if health.is_dead() {
+            // TODO: this might be wrong
+            if let Some(client) = attacker_client {
+                client.send(PerformActionUpdate::Error(PerformActionError::Completed))
+            }
+            continue;
+        }
 
         health.reduce(damage_event.amount);
         synchronize.health = Some(health.current_health);
