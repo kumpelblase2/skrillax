@@ -262,8 +262,7 @@ fn main() {
         .arg(arg!([port] "Game server port.").value_parser(clap::value_parser!(u16).range(1..)))
         .arg(
             arg!(-t --threads <COUNT> "Sets the threads to use. Defaults to half the threads available ot the system.")
-                .value_parser(clap::value_parser!(u8).range(1..))
-                .required(false),
+                .value_parser(clap::value_parser!(u8).range(1..)),
         )
         .arg(arg!(-f --filter "Filters out unrelated packets").action(ArgAction::SetTrue))
         .arg(arg!(-v --verbose "Enables verbose output").action(ArgAction::SetTrue));
@@ -276,12 +275,12 @@ fn main() {
         .copied()
         .unwrap_or(num_cpus::get_physical() as u8);
     let decryption_orchestrator = DecryptionOrchestrator::new(threads);
-    let port = *matches.get_one::<u16>("port").unwrap_or(&15779);
+    let port = matches.get_one::<u16>("port").copied().unwrap_or(15779);
     let ports = vec![15779, port];
-    let verbose = *matches.get_one::<bool>("verbose").unwrap_or(&false);
+    let verbose = matches.get_one::<bool>("verbose").copied().unwrap_or(false);
     let filter_level = if verbose { LevelFilter::Debug } else { LevelFilter::Info };
     env_logger::builder().filter_level(filter_level).init();
-    let filter_other = *matches.get_one::<bool>("filter").unwrap_or(&false);
+    let filter_other = matches.get_one::<bool>("filter").copied().unwrap_or(false);
 
     let file_in_path = Path::new(file.as_str());
     let file_in_dir = file_in_path.parent().unwrap();
