@@ -13,7 +13,7 @@ pcap-file = "1.1.1"
 pktparse = "0.7.1"
 byteorder = { workspace = true }
 bytes = { workspace = true }
-clap = "3.2.8"
+clap = "4.0.26"
 env_logger = "0.9"
 log = { workspace = true }
 num_cpus = "1"
