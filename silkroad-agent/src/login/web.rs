@@ -1,34 +1,32 @@
 use crate::db::user::ServerUser;
 use crate::population::ReservationError;
 use crate::{CapacityController, LoginQueue};
+use axum::extract::{FromRef, State};
 use axum::http::HeaderMap;
 use axum::routing::{get, post};
-use axum::{Extension, Json, Router, Server};
+use axum::{Json, Router, Server};
 use silkroad_rpc::{ReserveRequest, ReserveResponse, ServerStatusReport};
 use sqlx::PgPool;
 use std::net::SocketAddr;
 use tracing::error;
 
 #[derive(Clone)]
-struct Capacity(CapacityController);
-
-#[derive(Clone)]
 struct Settings(u16, String);
 
-async fn handle_capacity(Extension(capacity): Extension<Capacity>) -> Json<ServerStatusReport> {
+async fn handle_capacity(State(capacity): State<CapacityController>) -> Json<ServerStatusReport> {
     let status = ServerStatusReport {
         healthy: true,
-        population: capacity.0.usage().into(),
+        population: capacity.usage().into(),
     };
     Json(status)
 }
 
 async fn handle_spot_request(
-    Extension(settings): Extension<Settings>,
-    Extension(pool): Extension<PgPool>,
-    Extension(login_queue): Extension<LoginQueue>,
-    Json(reservation): Json<ReserveRequest>,
+    State(settings): State<Settings>,
+    State(pool): State<PgPool>,
+    State(login_queue): State<LoginQueue>,
     headers: HeaderMap,
+    Json(reservation): Json<ReserveRequest>,
 ) -> Json<ReserveResponse> {
     let Some(passed_token) = headers.get("TOKEN") else {
         return Json(ReserveResponse::Error("Missing auth token.".to_string()));
@@ -62,6 +60,14 @@ async fn handle_spot_request(
 
 pub(crate) struct WebServer;
 
+#[derive(Clone, FromRef)]
+struct ServerState {
+    pool: PgPool,
+    login_queue: LoginQueue,
+    capacity: CapacityController,
+    settings: Settings,
+}
+
 impl WebServer {
     pub async fn run(
         server_id: u16,
@@ -71,13 +77,17 @@ impl WebServer {
         token: String,
         port: u16,
     ) {
+        let state = ServerState {
+            pool,
+            login_queue,
+            capacity,
+            settings: Settings(server_id, token),
+        };
+
         let router = Router::new()
             .route("/status", get(handle_capacity))
             .route("/request", post(handle_spot_request))
-            .layer(Extension(Capacity(capacity)))
-            .layer(Extension(Settings(server_id, token)))
-            .layer(Extension(login_queue))
-            .layer(Extension(pool));
+            .with_state(state);
 
         // TODO: this should be configurable on where it listens on
         let socket_addr = SocketAddr::from(([0, 0, 0, 0], port));

@@ -1,8 +1,8 @@
 use byteorder::ByteOrder;
 use clap::{arg, ArgAction};
 use log::{debug, error, LevelFilter};
-use pcap_file::pcap::Packet;
-use pcap_file::{PcapError, PcapReader, PcapWriter};
+use pcap_file::pcap::{PcapPacket, PcapReader, PcapWriter};
+use pcap_file::PcapError;
 use pktparse::ethernet::EtherType;
 use pktparse::ip::IPProtocol;
 use pktparse::ipv4::IPv4Header;
@@ -10,6 +10,7 @@ use pktparse::ipv6::IPv6Header;
 use pktparse::tcp::TcpHeader;
 use pktparse::{ethernet, ipv4, ipv6, tcp};
 use silkroad_security::security::SilkroadSecurity;
+use std::cell::RefCell;
 use std::fs::File;
 use std::path::Path;
 
@@ -109,13 +110,13 @@ struct SecurityData {
 }
 
 struct Rewriter {
-    read: PcapReader<File>,
-    write: PcapWriter<File>,
+    read: RefCell<PcapReader<File>>,
+    write: RefCell<PcapWriter<File>>,
     server_ports: Vec<u16>,
     filter_other: bool,
     decryption: DecryptionOrchestrator,
-    current_security: Option<SilkroadSecurity>,
-    security_initialization: Option<SecurityData>,
+    current_security: RefCell<Option<SilkroadSecurity>>,
+    security_initialization: RefCell<Option<SecurityData>>,
 }
 
 impl Rewriter {
@@ -127,18 +128,18 @@ impl Rewriter {
         decryption: DecryptionOrchestrator,
     ) -> Self {
         Self {
-            read,
-            write,
+            read: RefCell::new(read),
+            write: RefCell::new(write),
             server_ports,
             decryption,
             filter_other,
-            current_security: None,
-            security_initialization: None,
+            current_security: RefCell::new(None),
+            security_initialization: RefCell::new(None),
         }
     }
 
-    fn get_tcp_data<'a>(packet: &'a Packet) -> Option<(TcpHeader, &'a [u8])> {
-        if let Ok((remaining, ethernet_frame)) = ethernet::parse_ethernet_frame(&packet.data) {
+    fn get_tcp_data<'a>(data: &'a [u8]) -> Option<(TcpHeader, &'a [u8])> {
+        if let Ok((remaining, ethernet_frame)) = ethernet::parse_ethernet_frame(data) {
             if let Ok((remaining, ip_header)) = match ethernet_frame.ethertype {
                 EtherType::IPv4 => ipv4::parse_ipv4_header(remaining).map(|(rem, ip)| (rem, IpHeader::IPv4(ip))),
                 EtherType::IPv6 => ipv6::parse_ipv6_header(remaining).map(|(rem, ip)| (rem, IpHeader::IPv6(ip))),
@@ -158,7 +159,7 @@ impl Rewriter {
         (data[1] & 0x80) != 0
     }
 
-    fn handle_unencrypted(&mut self, tcp: &TcpHeader, data: &[u8]) {
+    fn handle_unencrypted(&self, tcp: &TcpHeader, data: &[u8]) {
         let opcode = byteorder::LittleEndian::read_u16(&data[2..4]);
         let data = data;
         if self.server_ports.contains(&tcp.source_port) {
@@ -178,7 +179,7 @@ impl Rewriter {
                         a,
                     };
                     debug!("Server handshake start encountered.");
-                    self.security_initialization = Some(init);
+                    *self.security_initialization.borrow_mut() = Some(init);
                 }
             }
         } else {
@@ -189,20 +190,21 @@ impl Rewriter {
                 let key = byteorder::LittleEndian::read_u64(&data[10..18]);
                 let init = self
                     .security_initialization
+                    .borrow_mut()
                     .take()
                     .expect("No handshake received from server yet.");
 
                 let result = self.decryption.break_security(&init, b, key);
-                self.current_security = result;
+                *self.current_security.borrow_mut() = result;
             }
         }
     }
 
-    fn handle_packet<'a>(&mut self, packet: &Packet, tcp: &TcpHeader, mut data: Vec<u8>) -> Packet<'a> {
+    fn handle_packet(&self, packet: PcapPacket, tcp: &TcpHeader, mut data: Vec<u8>) -> PcapPacket {
         let header_len = packet.data.len() - data.len();
         let mut header_data = packet.data[0..header_len].to_vec();
         if Self::is_packet_encrypted(&data) {
-            if let Some(ref security) = self.current_security {
+            if let Some(ref security) = *self.current_security.borrow() {
                 security
                     .decrypt_mut(&mut data[2..])
                     .expect("Security should have been initialized.");
@@ -212,22 +214,23 @@ impl Rewriter {
             self.handle_unencrypted(tcp, data.as_slice());
         }
         header_data.append(&mut data);
-        Packet::new_owned(
-            packet.header.ts_sec,
-            packet.header.ts_nsec,
-            header_data,
-            packet.header.orig_len,
-        )
+        PcapPacket::new_owned(packet.timestamp, packet.orig_len, header_data)
     }
 
     fn should_handle_packet(&self, tcp: &TcpHeader) -> bool {
         self.server_ports.contains(&tcp.source_port) || self.server_ports.contains(&tcp.dest_port)
     }
 
-    pub fn run(&mut self) -> Result<(), PcapError> {
-        while let Some(packet) = self.read.next() {
-            let packet = packet?;
-            if let Some((tcp, data)) = Self::get_tcp_data(&packet) {
+    pub fn run(&self) -> Result<(), PcapError> {
+        while let Some(packet) = self.read.borrow_mut().next_packet() {
+            let packet = match packet {
+                Ok(p) => p,
+                Err(e) => {
+                    error!("Skipping malformed packet: {:?}", e);
+                    continue;
+                },
+            };
+            if let Some((tcp, data)) = Self::get_tcp_data(&packet.data) {
                 if self.should_handle_packet(&tcp) {
                     if tcp.flag_psh && !data.is_empty() {
                         // How to deal with packets that are split?
@@ -237,17 +240,17 @@ impl Rewriter {
                         for by in data {
                             data_copy.push(*by);
                         }
-                        let result = self.handle_packet(&packet, &tcp, data_copy);
-                        self.write.write_packet(&result)?;
+                        let result = self.handle_packet(packet.clone(), &tcp, data_copy);
+                        self.write.borrow_mut().write_packet(&result)?;
                     } else {
-                        self.write.write_packet(&packet)?;
+                        self.write.borrow_mut().write_packet(&packet)?;
                     }
                     continue;
                 }
             }
 
             if !self.filter_other {
-                self.write.write_packet(&packet)?;
+                self.write.borrow_mut().write_packet(&packet)?;
             }
         }
 
@@ -292,7 +295,7 @@ fn main() {
     let pcap_reader = PcapReader::new(file_in).unwrap();
     let pcap_writer = PcapWriter::new(file_out).unwrap();
 
-    let mut rewriter = Rewriter::new(pcap_reader, pcap_writer, ports, filter_other, decryption_orchestrator);
+    let rewriter = Rewriter::new(pcap_reader, pcap_writer, ports, filter_other, decryption_orchestrator);
     match rewriter.run() {
         Ok(_) => {},
         Err(e) => {

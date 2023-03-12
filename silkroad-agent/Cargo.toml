@@ -12,7 +12,7 @@ silkroad-navmesh = { path = "../silkroad-navmesh", features = ["pk2"] }
 silkroad-data = { path = "../silkroad-data" }
 silkroad-game-base = { path = "../silkroad-game-base" }
 tokio = { workspace = true }
-axum = "0.5.17"
+axum = { version = "0.6.10", features = ["macros"] }
 bytes = "1.1.0"
 once_cell = { workspace = true }
 byteorder = { workspace = true }
@@ -33,6 +33,6 @@ bevy_app = "0.10"
 bevy_tasks = "0.10"
 bevy_time = "0.10"
 cgmath = "0.18.0"
-pk2 = "0.1.0"
+pk2 = { workspace = true }
 id-pool = { version = "0.2.1", features = ["u32"], default_features = false }
 derive_more = "0.99.17"

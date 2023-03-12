@@ -11,7 +11,7 @@ tracing = { workspace = true }
 rand = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["net", "sync", "macros", "rt"] }
-tokio-util = { version = "0.6.9", features = ["codec"] }
+tokio-util = { version = "0.7.7", features = ["codec"] }
 silkroad-protocol = { path = "../silkroad-protocol" }
 silkroad-security = { path = "../silkroad-security" }
 crossbeam-channel = "0.5.2"
