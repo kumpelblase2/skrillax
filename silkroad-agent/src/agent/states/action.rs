@@ -87,7 +87,7 @@ impl From<ActionDescription> for Action {
             target: value.1,
             state: ActionProgressState::Preparation,
             progress: Timer::new(
-                Duration::from_millis(value.0.timings.preparation_time as u64),
+                Duration::from_millis(value.0.timings.preparation_time.into()),
                 TimerMode::Once,
             ),
         }
@@ -139,7 +139,7 @@ pub(crate) fn pickup(
 
         match &drop.item.type_data {
             ItemTypeData::Gold { amount } => {
-                inventory.gold += (*amount) as u64;
+                inventory.gold += u64::from(*amount);
                 client.send(UnknownActionData {
                     entity: game_entity.ref_id,
                     unknown: 0,

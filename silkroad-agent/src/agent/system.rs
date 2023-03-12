@@ -124,16 +124,16 @@ pub(crate) fn broadcast_action_stop(mut query: Query<&mut Synchronize>, mut read
 
 pub(crate) fn movement_input(mut query: Query<(&Client, &PlayerInput, &mut StateTransitionQueue, &Position)>) {
     for (client, input, mut agent, position) in query.iter_mut() {
-        if let Some(ref kind) = input.movement {
+        if let Some(kind) = input.movement {
             match kind {
                 MovementTarget::TargetLocation { region, x, y, z } => {
                     let local_position = position.location.to_local();
-                    let target_pos = LocalPosition((*region).into(), Vector3::new(*x as f32, *y as f32, *z as f32));
+                    let target_pos = LocalPosition(region.into(), Vector3::new(x.into(), y.into(), z.into()));
                     debug!(id = ?client.id(), "Movement: {} -> {}", local_position, target_pos);
                     agent.request_transition(Moving(MovementGoal::Location(target_pos.to_global())));
                 },
                 MovementTarget::Direction { unknown, angle } => {
-                    let direction = Heading::from(*angle);
+                    let direction = Heading::from(angle);
                     debug!(id = ?client.id(), "Movement: {} / {}({})", unknown, direction.0, angle);
                     agent.request_transition(Moving(MovementGoal::Direction(direction)));
                 },

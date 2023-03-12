@@ -95,7 +95,7 @@ impl SilkroadSecurity {
         let value_x = random::<u32>() & 0x7FFFFFFF;
         let value_g = random::<u32>() & 0x7FFFFFFF;
         let value_p = random::<u32>() & 0x7FFFFFFF;
-        let value_a = g_pow_x_mod_p(value_p as i64, value_x, value_g);
+        let value_a = g_pow_x_mod_p(value_p.into(), value_x, value_g);
 
         self.state = SecurityState::HandshakeStarted {
             count_seed,
@@ -156,7 +156,7 @@ impl SilkroadSecurity {
             } => {
                 let span = span!(Level::TRACE, "security challenge start");
                 let _enter = span.enter();
-                let value_k = g_pow_x_mod_p(value_p as i64, value_x, value_b);
+                let value_k = g_pow_x_mod_p(value_p.into(), value_x, value_b);
                 let new_key = to_u64(value_a, value_b);
                 let new_key = transform_key(new_key, value_k, LOBYTE(LOWORD(value_k)) & 0x03);
                 let blowfish = blowfish_from_int(new_key);

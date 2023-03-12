@@ -146,7 +146,7 @@ fn generate_reader_for(field: &Field, ident: &Ident) -> TokenStream {
 
             quote_spanned! { field.span() =>
                 let len = u16::read_from(reader)?;
-                let mut bytes = Vec::with_capacity(len as usize);
+                let mut bytes = Vec::with_capacity(len.into());
                 #content
             }
         },
@@ -162,7 +162,7 @@ fn generate_reader_for(field: &Field, ident: &Ident) -> TokenStream {
             let inner = generate_reader_for_inner(ident, inner, &inner_ty);
             quote_spanned! { field.span() =>
                 let size = u8::read_from(reader)?;
-                let mut items = Vec::with_capacity(size as usize);
+                let mut items = Vec::with_capacity(size.into());
                 for _ in 0..size {
                     #inner
                     items.push(#ident);
@@ -227,7 +227,7 @@ fn generate_reader_for_inner(ident: &Ident, type_name: &Type, ty: &UsedType) -> 
         UsedType::String => {
             quote_spanned! { ident.span() =>
                 let len = u16::read_from(reader)?;
-                let mut bytes = Vec::with_capacity(len as usize);
+                let mut bytes = Vec::with_capacity(len.into());
                 for _ in 0..len {
                     bytes.push(u8::read_from(reader)?);
                 }
@@ -244,7 +244,7 @@ fn generate_reader_for_inner(ident: &Ident, type_name: &Type, ty: &UsedType) -> 
         UsedType::Collection(inner) => {
             quote_spanned! { ident.span() =>
                 let size = u8::read_from(reader)?;
-                let mut items = Vec::with_capacity(size as usize);
+                let mut items = Vec::with_capacity(size.into());
                 for _ in 0..size {
                     items.push(#inner::read_from(reader)?);
                 }

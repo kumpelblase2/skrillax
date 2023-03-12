@@ -103,7 +103,7 @@ pub(crate) fn receive_game_inputs(
             last_action.0 = last_tick_time;
         }
 
-        if last_tick_time.duration_since(last_action.0).as_secs() > settings.client_timeout as u64 {
+        if last_tick_time.duration_since(last_action.0).as_secs() > settings.client_timeout.into() {
             disconnect_events.send(ClientDisconnectedEvent(entity));
         }
     }
@@ -153,7 +153,7 @@ pub(crate) fn receive_login_inputs(
             last_action.0 = last_tick_time;
         }
 
-        if last_tick_time.duration_since(last_action.0).as_secs() > settings.client_timeout as u64 {
+        if last_tick_time.duration_since(last_action.0).as_secs() > settings.client_timeout.into() {
             disconnect_events.send(ClientDisconnectedEvent(entity));
         }
     }
