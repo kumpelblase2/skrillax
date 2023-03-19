@@ -62,7 +62,7 @@ impl GatewayServerConfig {
     pub(crate) fn load() -> Result<Self, ConfigError> {
         config::Config::builder()
             .add_source(config::File::with_name("configs/gateway_server"))
-            .add_source(config::Environment::with_prefix("SKRILLAX_GATEWAY"))
+            .add_source(config::Environment::with_prefix("SKRILLAX_GATEWAY").separator("_"))
             .build()
             .and_then(|c| c.try_deserialize())
     }

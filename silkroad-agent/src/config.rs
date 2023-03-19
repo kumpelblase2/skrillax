@@ -80,7 +80,7 @@ impl GameServerConfig {
         config::Config::builder()
             .add_source(config::File::from_str(DEFAULT_CONFIG, FileFormat::Toml))
             .add_source(config::File::with_name("configs/agent_server"))
-            .add_source(config::Environment::with_prefix("SKRILLAX_AGENT"))
+            .add_source(config::Environment::with_prefix("SKRILLAX_AGENT").separator("_"))
             .build()
             .and_then(|c| c.try_deserialize())
     }
