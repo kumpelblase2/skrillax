@@ -359,7 +359,7 @@ pub enum ActionState {
     Sitting,
 }
 
-#[derive(Clone, Serialize, Deserialize, ByteSize)]
+#[derive(Copy, Clone, Serialize, Deserialize, ByteSize)]
 pub enum MovementTarget {
     #[silkroad(value = 1)]
     TargetLocation { region: u16, x: u16, y: u16, z: u16 },
