@@ -211,6 +211,25 @@
     },
     "query": "SELECT COUNT(*) as \"count!\" FROM characters WHERE LOWER(charname) = LOWER($1) and server_id = $2"
   },
+  "1a4a9a3fb9bfc2d72d9827c532f2a1d4e1a951c2308a0ed5e15bfb8e099db7e1": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int2",
+          "Varchar",
+          "Varchar",
+          "Varchar",
+          "Int2",
+          "Varchar",
+          "Int2",
+          "Varchar"
+        ]
+      }
+    },
+    "query": "INSERT INTO servers(identifier, name, region, address, port, token, rpc_address, rpc_port) VALUES($1, $2, $3, $4, $5, $6, $8, $7) ON CONFLICT(identifier) DO UPDATE SET name = $2, region = $3, address = $4, port = $5, token = $6, rpc_address = $8, rpc_port = $7"
+  },
   "1c2d30bbd50763594c7e5d08776deb93663c58fee10a6feb6e4e31fa206d0335": {
     "describe": {
       "columns": [
@@ -513,60 +532,6 @@
     },
     "query": "SELECT mastery_id, character_id, level FROM character_masteries WHERE character_id in (SELECT * FROM UNNEST($1::INTEGER[]))"
   },
-  "abaf5e23602f362ebb7c58c45cbf5ff39a1ee9e6df4df575ec1693b7ac9fe6eb": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "region",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "address",
-          "ordinal": 3,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "port",
-          "ordinal": 4,
-          "type_info": "Int2"
-        },
-        {
-          "name": "rpc_port",
-          "ordinal": 5,
-          "type_info": "Int2"
-        },
-        {
-          "name": "token",
-          "ordinal": 6,
-          "type_info": "Varchar"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT id, name, region, address, port, rpc_port, token FROM servers"
-  },
   "c8fabc599290bc2f9a95caa4b1c9eea3a78b36005a87ef1161f0bcc88c929799": {
     "describe": {
       "columns": [
@@ -640,22 +605,64 @@
     },
     "query": "SELECT id, password FROM users WHERE username = $1 and passcode = $2"
   },
-  "f96fab931471e11b19b6a06f0d0d26e5e2d0ccf0ef8a496047c3f8f2dc16b36c": {
+  "f68ee0b0b84b743a7a6f27f082291f47464f2de2f28a6e115bde8d4e23ad22ba": {
     "describe": {
-      "columns": [],
-      "nullable": [],
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "region",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "address",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "port",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "rpc_address",
+          "ordinal": 5,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "rpc_port",
+          "ordinal": 6,
+          "type_info": "Int2"
+        },
+        {
+          "name": "token",
+          "ordinal": 7,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
       "parameters": {
-        "Left": [
-          "Int2",
-          "Varchar",
-          "Varchar",
-          "Varchar",
-          "Int2",
-          "Varchar",
-          "Int2"
-        ]
+        "Left": []
       }
     },
-    "query": "INSERT INTO servers(identifier, name, region, address, port, token, rpc_port) VALUES($1, $2, $3, $4, $5, $6, $7) ON CONFLICT(identifier) DO UPDATE SET name = $2, region = $3, address = $4, port = $5, token = $6, rpc_port = $7"
+    "query": "SELECT id, name, region, address, port, rpc_address, rpc_port, token FROM servers"
   }
 }

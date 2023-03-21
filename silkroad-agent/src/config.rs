@@ -65,6 +65,7 @@ pub(crate) struct GameServerConfig {
     pub(crate) listen_address: String,
     pub(crate) external_address: Option<String>,
     pub(crate) server_id: u16,
+    pub(crate) rpc_address: String,
     pub(crate) rpc_port: u16,
     pub(crate) max_player_count: u16,
     pub(crate) database: DbOptions,

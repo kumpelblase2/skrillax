@@ -10,6 +10,7 @@ impl ServerRegistration {
         server_name: String,
         region: String,
         listen: SocketAddr,
+        rpc_address: String,
         rpc_port: u16,
         token: String,
         pool: T,
@@ -18,16 +19,17 @@ impl ServerRegistration {
         let ip = listen.ip().to_string();
 
         sqlx::query!(
-            "INSERT INTO servers(identifier, name, region, address, port, token, rpc_port) \
-            VALUES($1, $2, $3, $4, $5, $6, $7) ON CONFLICT(identifier) DO UPDATE \
-            SET name = $2, region = $3, address = $4, port = $5, token = $6, rpc_port = $7",
+            "INSERT INTO servers(identifier, name, region, address, port, token, rpc_address, rpc_port) \
+            VALUES($1, $2, $3, $4, $5, $6, $8, $7) ON CONFLICT(identifier) DO UPDATE \
+            SET name = $2, region = $3, address = $4, port = $5, token = $6, rpc_address = $8, rpc_port = $7",
             server_id as i16,
             server_name,
             region,
             ip,
             port as i16,
             token,
-            rpc_port as i16
+            rpc_port as i16,
+            rpc_address
         )
         .execute(pool.borrow())
         .await?;

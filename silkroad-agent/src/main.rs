@@ -76,6 +76,7 @@ fn main() {
             configuration.name.clone(),
             configuration.region.clone(),
             external_addr,
+            configuration.rpc_address.clone(),
             configuration.rpc_port,
             token.clone(),
             db_pool.clone(),

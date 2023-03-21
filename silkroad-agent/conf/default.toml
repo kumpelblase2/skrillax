@@ -1,5 +1,6 @@
 server-id = 1
 name = "Skrillax"
+rpc-address = "localhost"
 rpc-port = 1337
 region = "EU"
 max-player-count = 10

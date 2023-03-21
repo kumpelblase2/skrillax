@@ -63,7 +63,7 @@ pub(crate) struct AgentServer {
     pub(crate) id: u16,
     pub(crate) name: String,
     pub(crate) address: SocketAddr,
-    pub(crate) rpc_address: SocketAddr,
+    pub(crate) rpc_address: String,
     pub(crate) region: ServerRegion,
     pub(crate) status: ServerStatus,
     pub(crate) token: String,
@@ -89,7 +89,7 @@ impl AgentServer {
         id: u16,
         name: String,
         address: SocketAddr,
-        rpc: SocketAddr,
+        rpc: String,
         region: ServerRegion,
         token: String,
     ) -> Self {
@@ -122,16 +122,17 @@ pub(crate) struct AgentServerManager {
 }
 
 async fn fetch_servers(pool: PgPool) -> Vec<AgentServer> {
-    let servers = match sqlx::query!("SELECT id, name, region, address, port, rpc_port, token FROM servers")
-        .fetch_all(&pool)
-        .await
-    {
-        Ok(servers) => servers,
-        Err(ref e) => {
-            error!(error = %e, "Could not load servers from database.");
-            Vec::default()
-        },
-    };
+    let servers =
+        match sqlx::query!("SELECT id, name, region, address, port, rpc_address, rpc_port, token FROM servers")
+            .fetch_all(&pool)
+            .await
+        {
+            Ok(servers) => servers,
+            Err(ref e) => {
+                error!(error = %e, "Could not load servers from database.");
+                Vec::default()
+            },
+        };
     servers
         .into_iter()
         .map(|row| {
@@ -144,7 +145,7 @@ async fn fetch_servers(pool: PgPool) -> Vec<AgentServer> {
                 row.id as u16,
                 row.name,
                 SocketAddr::new(ip, row.port as u16),
-                SocketAddr::new(ip, row.rpc_port as u16),
+                format!("{}:{}", row.rpc_address, row.rpc_port),
                 ServerRegion::from(row.region),
                 row.token,
             )
@@ -220,10 +221,10 @@ impl AgentServerManager {
             _ => return Ok(ReserveResponse::NotFound),
         };
         let token = server.token.clone();
-        let address = server.rpc_address;
+        let request_url = format!("http://{}/request", &server.rpc_address);
         drop(servers);
         let request = Client::new()
-            .post(&format!("http://{}/request", address))
+            .post(&request_url)
             .header("TOKEN", token)
             .json(&ReserveRequest {
                 user_id,
