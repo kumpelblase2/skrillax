@@ -210,7 +210,7 @@ pub(crate) fn update_action_destination(
                     let vector_pointing_to_player =
                         (own_position.location.to_flat_vec2() - pos.location.to_flat_vec2()).normalize();
                     let skill_range = get_range_for_attack(moving.2 .0, inventory.weapon().map(|item| item.reference));
-                    let position_offset = vector_pointing_to_player * skill_range.into();
+                    let position_offset = vector_pointing_to_player * skill_range;
                     let target_location = GlobalLocation(pos.location.to_flat_vec2() + position_offset);
                     let height = navmesh.height_for(target_location).unwrap_or(moving.1.y);
                     moving.1 = target_location.with_y(height);

@@ -69,11 +69,8 @@ impl SilkroadServer {
         })
     }
 
-    pub fn connected(&self) -> Option<Stream> {
-        match self.stream_receiver.try_recv() {
-            Ok(stream) => Some(stream),
-            Err(_) => None, // empty
-        }
+    pub fn connected(&self) -> impl Iterator<Item = Stream> + '_ {
+        self.stream_receiver.try_iter()
     }
 
     pub fn shutdown(&self) {

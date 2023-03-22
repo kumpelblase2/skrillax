@@ -1,12 +1,7 @@
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Default)]
 pub enum MovementSpeed {
+    #[default]
     Running,
     Walking,
     Berserk,
-}
-
-impl Default for MovementSpeed {
-    fn default() -> Self {
-        MovementSpeed::Running
-    }
 }

@@ -23,9 +23,9 @@ pub enum EquipmentSlot {
     Special,
 }
 
-impl Into<u8> for EquipmentSlot {
-    fn into(self) -> u8 {
-        match self {
+impl From<EquipmentSlot> for u8 {
+    fn from(slot: EquipmentSlot) -> u8 {
+        match slot {
             EquipmentSlot::Weapon => WEAPON_SLOT,
             EquipmentSlot::SecondaryWeapon => 7,
             EquipmentSlot::HeadArmor => 0,
@@ -137,9 +137,7 @@ impl Inventory {
     }
 
     fn non_equipment_slots(&self) -> impl Iterator<Item = u8> {
-        (0u8..(self.size as u8))
-            .into_iter()
-            .filter(|index| !Self::is_equipment_slot(*index))
+        (0u8..(self.size as u8)).filter(|index| !Self::is_equipment_slot(*index))
     }
 
     fn empty_slot(&self) -> Option<u8> {

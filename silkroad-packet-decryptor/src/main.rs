@@ -70,8 +70,8 @@ impl DecryptionOrchestrator {
 
         for thread in 0..thread_count {
             threads.push(std::thread::spawn(move || {
-                let start = (thread * steps) as u32;
-                let end = ((thread + 1) * steps) as u32;
+                let start = thread * steps;
+                let end = (thread + 1) * steps;
                 (start..end)
                     .rev()
                     .find(|&i| g_pow_x_mod_p(value_p as i64, i, value_g) == value_a)
@@ -138,7 +138,7 @@ impl Rewriter {
         }
     }
 
-    fn get_tcp_data<'a>(data: &'a [u8]) -> Option<(TcpHeader, &'a [u8])> {
+    fn get_tcp_data(data: &[u8]) -> Option<(TcpHeader, &[u8])> {
         if let Ok((remaining, ethernet_frame)) = ethernet::parse_ethernet_frame(data) {
             if let Ok((remaining, ip_header)) = match ethernet_frame.ethertype {
                 EtherType::IPv4 => ipv4::parse_ipv4_header(remaining).map(|(rem, ip)| (rem, IpHeader::IPv4(ip))),
@@ -290,8 +290,8 @@ fn main() {
     let file_in_name = file_in_path.file_stem().unwrap();
     let output_file = file_in_dir.join(format!("{}-decrypted.pcap", file_in_name.to_str().unwrap()));
 
-    let file_in = File::open(&file).expect("Error opening file");
-    let file_out = File::create(&output_file).expect("Cannot create output file");
+    let file_in = File::open(file).expect("Error opening file");
+    let file_out = File::create(output_file).expect("Cannot create output file");
     let pcap_reader = PcapReader::new(file_in).unwrap();
     let pcap_writer = PcapWriter::new(file_out).unwrap();
 

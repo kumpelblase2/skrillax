@@ -237,7 +237,7 @@ impl SilkroadSecurity {
             byte2 = 1;
         }
 
-        [(byte1 ^ byte2) as u8, byte2, byte1]
+        [(byte1 ^ byte2), byte2, byte1]
     }
 
     fn cycle_value(seed: u32) -> u32 {
@@ -368,7 +368,7 @@ impl SilkroadSecurity {
     pub fn generate_count_byte(&mut self) -> Result<u8, SilkroadSecurityError> {
         match &self.state {
             SecurityState::Established { mut count_seed, .. } => {
-                let result = count_seed[2] as u32 * (!count_seed[0] as u32 + count_seed[1] as u32) as u32;
+                let result = count_seed[2] as u32 * (!count_seed[0] as u32 + count_seed[1] as u32);
                 let result = (result ^ (result >> 4)) as u8;
                 count_seed[0] = result;
                 Ok(result)
