@@ -34,5 +34,5 @@ bevy_tasks = "0.10"
 bevy_time = "0.10"
 cgmath = "0.18.0"
 pk2 = { workspace = true }
-id-pool = { version = "0.2.1", features = ["u32"], default_features = false }
+id-pool = { version = "0.2.2", features = ["u32"], default_features = false }
 derive_more = "0.99.17"

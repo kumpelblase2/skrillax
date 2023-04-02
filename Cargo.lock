@@ -1318,9 +1318,9 @@ dependencies = [
 
 [[package]]
 name = "id-pool"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e33832e3000c359e3f67781634a5e6d58bffa8c5247c1464bd2e483f1a79cb0"
+checksum = "a8d0df4d8a768821ee4aa2e0353f67125c4586f0e13adbf95b8ebbf8d8fdb344"
 
 [[package]]
 name = "ident_case"
