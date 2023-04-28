@@ -20,6 +20,9 @@ static INSTANCE: Lazy<PassCodeDecoder> = Lazy::new(PassCodeDecoder::default);
 /// assert_eq!(decoded, "1234");
 /// # Ok(())
 /// # }
+/// # fn main() {
+/// #     test().unwrap();
+/// # }
 /// ```
 pub struct PassCodeDecoder {
     blowfish: BlowfishCompat,
@@ -50,19 +53,5 @@ impl Default for PassCodeDecoder {
         let blowfish_key: [u8; 8] = [0x0f, 0x07, 0x3d, 0x20, 0x56, 0x62, 0xc9, 0xeb];
         let blowfish = BlowfishCompat::new_from_slice(&blowfish_key).expect("Could not create blowfish key");
         PassCodeDecoder { blowfish }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_simple_decrypt() -> Result<(), FromUtf8Error> {
-        let input = [113, 42, 1, 64, 127, 104, 60, 94];
-        let decoder = PassCodeDecoder::get();
-        let decoded = decoder.decode_passcode(4, &input)?;
-        assert_eq!(decoded, "1234");
-        Ok(())
     }
 }
