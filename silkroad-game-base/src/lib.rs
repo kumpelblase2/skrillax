@@ -1,3 +1,4 @@
+mod changes;
 mod character;
 mod inventory;
 mod movement;
@@ -6,6 +7,7 @@ mod skill;
 mod stats;
 mod vec;
 
+pub use changes::*;
 pub use character::*;
 pub use inventory::*;
 pub use movement::*;
