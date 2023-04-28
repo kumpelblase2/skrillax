@@ -51,6 +51,12 @@ pub struct RefItemData {
     pub params: [isize; 4],
 }
 
+impl PartialEq for RefItemData {
+    fn eq(&self, other: &Self) -> bool {
+        self.ref_id() == other.ref_id()
+    }
+}
+
 impl DataEntry for RefItemData {
     fn ref_id(&self) -> u32 {
         self.common.ref_id
