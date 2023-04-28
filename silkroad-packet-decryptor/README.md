@@ -51,7 +51,8 @@ When examining the encryption using the protocol by Silkroad Online, a blowfish 
 block cypher, it requires that a key is shared between the two parties beforehand. This is often done through an
 asymmetric key exchange, where two parties create a public and private key material, exchange the public part and
 combine that with their private part to have a shared secret. Silkroad does this as well, however, only a small part of
-the full data is actually kept secret. In other sources that explain how the security works, this part is often called
+the full data is actually kept secret. In other sources[^1] that explain how the security works, this part is often
+called
 `x` and is used to derive a public value `a`. The other two parts that influence `a` are called `g` and `p` which are
 both publicly shared. Thus, to generate the secret key using the public parts `g`, `p`, and `a`, we only need to brute
 force `x`. `x` is a random 32bit number, however, only 31 bits are actually used. The operation performed to derive `a`
@@ -65,3 +66,5 @@ used in the exchange.
 On modern systems, this may only take a minute or two to go through 2^31 - or ~2*10^9 - possibilities and is thus quite
 acceptable for the breaking speed. This could be improved through GPU acceleration, but for the presented use case is
 enough to satisfy.
+
+[^1]: See [silkroad-security](../silkroad-serde) for references.
