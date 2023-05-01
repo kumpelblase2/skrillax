@@ -28,7 +28,7 @@ chrono = "0.4.22"
 bytes = "1.2.1"
 clap = "4.1.8"
 pk2 = "0.1.0"
-serde = { version = "1.0.144", features = ["derive"] }
+serde = { version = "1.0.160", features = ["derive"] }
 sqlx = { version = "0.6.2", default-features = false, features = ["runtime-tokio-native-tls", "postgres", "macros", "uuid", "chrono", "offline"] }
 
 [profile.dev]
