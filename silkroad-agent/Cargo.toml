@@ -12,7 +12,7 @@ silkroad-navmesh = { path = "../silkroad-navmesh", features = ["pk2"] }
 silkroad-data = { path = "../silkroad-data" }
 silkroad-game-base = { path = "../silkroad-game-base" }
 tokio = { workspace = true }
-axum = { version = "0.6.10", default-features = false, features = [ "http1", "json", "tokio", "tower-log", "macros"] }
+axum = { version = "0.6.18", default-features = false, features = [ "http1", "json", "tokio", "tower-log", "macros"] }
 bytes = "1.1.0"
 once_cell = { workspace = true }
 byteorder = { workspace = true }
