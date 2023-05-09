@@ -9,6 +9,6 @@ edition = "2021"
 pk2 = { workspace = true }
 thiserror = { workspace = true }
 encoding_rs = "0.8"
-num_enum = "0.5.7"
+num_enum = "0.6.1"
 num_enum_derive = "0.5.7"
 bitflags = "1.3"
