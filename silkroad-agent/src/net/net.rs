@@ -16,7 +16,7 @@ pub(crate) fn accept(
     time: Res<Time>,
     mut cmd: Commands,
 ) {
-    while let Some(client) = network.connected() {
+    for client in network.connected() {
         debug!(id = ?client.id(), "Accepted client");
 
         let entity = cmd
