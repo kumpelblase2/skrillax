@@ -1,10 +1,12 @@
-use config::ConfigError;
+use config::{ConfigError, FileFormat};
 use log::LevelFilter;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{ConnectOptions, PgPool};
 use std::fmt::Debug;
 use tracing::debug;
+
+static DEFAULT_CONFIG: &str = include_str!("../conf/default.toml");
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -61,6 +63,7 @@ pub(crate) struct GatewayServerConfig {
 impl GatewayServerConfig {
     pub(crate) fn load() -> Result<Self, ConfigError> {
         config::Config::builder()
+            .add_source(config::File::from_str(DEFAULT_CONFIG, FileFormat::Toml))
             .add_source(config::File::with_name("configs/gateway_server"))
             .add_source(config::Environment::with_prefix("SKRILLAX_GATEWAY").separator("_"))
             .build()

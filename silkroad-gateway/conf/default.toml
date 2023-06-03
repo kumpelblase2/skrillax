@@ -1,0 +1,7 @@
+agent-healthcheck-interval = 60
+
+[database]
+host = "localhost"
+user = "skrillax"
+password = "skrillax"
+database = "skrillax"
