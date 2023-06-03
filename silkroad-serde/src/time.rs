@@ -21,7 +21,7 @@ impl From<DateTime<Utc>> for SilkroadTime {
 
 impl From<Duration> for SilkroadTime {
     fn from(duration: Duration) -> Self {
-        let start = Utc.ymd(2000, 1, 1).and_hms(0, 0, 0);
+        let start = Utc.with_ymd_and_hms(2000, 1, 1, 0, 0, 0).unwrap();
         let new = start.add(CDuration::from_std(duration).unwrap());
         SilkroadTime(new)
     }
@@ -68,5 +68,33 @@ impl<T: TimeZone> Serialize for DateTime<T> {
 impl<T: TimeZone> ByteSize for DateTime<T> {
     fn byte_size(&self) -> usize {
         16
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    pub fn test_convert_time() {
+        let one_year = 60 * 60 * 24 * 366u64;
+        let one_day = 60 * 60 * 24u64;
+
+        let time_now = Duration::from_secs(one_year + one_day + 35);
+        let sro_time = SilkroadTime::from(time_now);
+        let mut bytes = BytesMut::new();
+        sro_time.write_to(&mut bytes);
+        let written_bytes = bytes.freeze();
+
+        assert_eq!(written_bytes.len(), 4);
+
+        let lowest = written_bytes[0];
+        assert_eq!(lowest, 1); // The lowest 6 bits contain the year since year 2000, thus should be 1
+
+        let second = written_bytes[1];
+        assert_eq!(second >> 2, 1); // We need to shift by two to get the day part from the second byte
+
+        let highest = written_bytes[3];
+        assert_eq!(highest >> 2, 35);
     }
 }
