@@ -19,6 +19,14 @@ impl Heightmap {
         self.size * self.tile_size
     }
 
+    /// Calculates the effective height for a specific location on the heightmap. The heightmap
+    /// only contains the location for specific values and therefor the effective height of a
+    /// given location needs to be calculated with respect to the nearest given height values.
+    ///
+    /// This is done by doing a bi-linear interpolation of the nearest four locations that are
+    /// close to the target location. As such, the point needs to be inside the grid, for the
+    /// calculation to work. If the point is outside of the grid, e.g. if `x < 0`, [None]
+    /// will be returned.
     pub fn height_at_position(&self, x: f32, y: f32) -> Option<f32> {
         if x < 0. || x > self.max_size() as f32 || y < 0. || y > self.max_size() as f32 {
             return None;
@@ -28,8 +36,8 @@ impl Heightmap {
         let left_corner_x = (x / size).floor() as usize;
         let top_corner_y = (y / size).floor() as usize;
 
-        let right_corner_x = min(left_corner_x + 1, self.size);
-        let bottom_corner_y = min(top_corner_y + 1, self.size);
+        let right_corner_x = min(left_corner_x + 1, self.size - 1);
+        let bottom_corner_y = min(top_corner_y + 1, self.size - 1);
 
         let top_left_height = self.height_of_vertex(left_corner_x, top_corner_y);
         let top_right_height = self.height_of_vertex(right_corner_x, top_corner_y);
@@ -47,5 +55,35 @@ impl Heightmap {
 
     fn height_of_vertex(&self, x: usize, y: usize) -> f32 {
         self.map[x + y * self.size]
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    pub fn test_empty_map() {
+        let data = Box::new([0.0f32, 0.0, 0.0, 0.0]);
+        let map = Heightmap::new(data, 2, 1);
+
+        assert_eq!(2, map.max_size());
+        assert_eq!(Some(0.0f32), map.height_at_position(0.0, 0.0));
+        assert_eq!(Some(0.0f32), map.height_at_position(1.0, 0.0));
+        assert_eq!(Some(0.0f32), map.height_at_position(0.0, 1.0));
+        assert_eq!(Some(0.0f32), map.height_at_position(1.9999, 1.9999));
+    }
+
+    #[test]
+    pub fn test_middle() {
+        let data = Box::new([0.0f32, 0.0, 0.0, 10.0]);
+        let map = Heightmap::new(data, 2, 1);
+
+        assert_eq!(Some(0.0f32), map.height_at_position(0.0, 0.0));
+        // we're in the middle between [0,1] and [1,1], where [0,1] is at height 0 and [1,1] is at height 10
+        // thus, we should be at 5 - the middle between these two
+        assert_eq!(Some(5.0), map.height_at_position(0.5, 1.0));
+        // Now we've moved a little bit further towards [0,2] compared to the previous location.
+        assert_eq!(Some(2.5), map.height_at_position(0.5, 0.5));
     }
 }

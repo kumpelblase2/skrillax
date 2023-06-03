@@ -11,7 +11,6 @@ use std::{fs, io};
 mod heightmap;
 pub mod map_info_ext;
 pub mod navmesh;
-pub mod navmesh_ext;
 pub mod object;
 pub mod object_info;
 mod object_mesh;
