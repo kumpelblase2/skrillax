@@ -1,6 +1,6 @@
 use crate::agent::AgentSet;
 use crate::chat::ChatPlugin;
-use crate::event::{DamageReceiveEvent, LoadingFinishedEvent, PlayerLevelUp, UniqueKilledEvent};
+use crate::event::{DamageReceiveEvent, EntityDeath, LoadingFinishedEvent, PlayerLevelUp, UniqueKilledEvent};
 use crate::game::action::handle_action;
 use crate::game::attack::AttackInstanceCounter;
 use crate::game::damage::handle_damage;
@@ -32,7 +32,7 @@ mod levelup;
 pub(crate) mod logout;
 mod movement;
 pub(crate) mod player_activity;
-mod target;
+pub(crate) mod target;
 mod unique;
 mod visibility;
 mod world;
@@ -50,6 +50,7 @@ impl Plugin for GamePlugin {
             .add_event::<UniqueKilledEvent>()
             .add_event::<SpawnDrop>()
             .add_event::<DamageReceiveEvent>()
+            .add_event::<EntityDeath>()
             .add_system(update_player_activity.in_base_set(CoreSet::PreUpdate))
             .add_system(handle_inventory_input)
             .add_system(visibility_update)

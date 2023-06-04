@@ -47,4 +47,13 @@ impl Agent {
             MovementSpeed::Berserk => self.berserk_speed,
         }
     }
+
+    pub(crate) fn set_speed(&mut self, speed: MovementSpeed, value: f32) {
+        match speed {
+            MovementSpeed::Running => self.running_speed = value,
+            MovementSpeed::Walking => self.walking_speed = value,
+            // Not sure how berserk is being
+            _ => {},
+        }
+    }
 }

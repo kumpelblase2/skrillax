@@ -1,5 +1,6 @@
 use crate::agent::states::StateTransitionQueue;
 use crate::agent::Agent;
+use crate::chat::command::Command;
 use crate::comp::monster::{Monster, MonsterBundle, RandomStroll, SpawnedBy};
 use crate::comp::net::Client;
 use crate::comp::player::Player;
@@ -7,6 +8,7 @@ use crate::comp::pos::Position;
 use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
+use crate::event::PlayerCommandEvent;
 use crate::ext::EntityIdPool;
 use crate::game::drop::SpawnDrop;
 use crate::input::PlayerInput;
@@ -18,21 +20,39 @@ use bevy_ecs::prelude::{Commands, Query, Res};
 use silkroad_data::{ObjectConsumable, ObjectConsumableCurrency, ObjectItem, ObjectType};
 use silkroad_game_base::{Item, ItemTypeData};
 use silkroad_protocol::chat::{
-    ChatErrorCode, ChatMessageResponse, ChatMessageResult, ChatSource, ChatTarget, ChatUpdate,
+    ChatErrorCode, ChatMessage, ChatMessageResponse, ChatMessageResult, ChatSource, ChatTarget, ChatUpdate,
 };
 use silkroad_protocol::gm::{GmCommand, GmResponse};
 use silkroad_protocol::world::{BodyState, UpdatedState};
 use std::time::Duration;
 use tracing::debug;
 
+fn can_send_message(message: &ChatMessage, player: &Player) -> bool {
+    match message.target {
+        ChatTarget::AllGm => player.character.gm,
+        ChatTarget::NPC | ChatTarget::Notice | ChatTarget::Global => false,
+        _ => true,
+    }
+}
+
 pub(crate) fn handle_chat(
-    mut query: Query<(&Client, &GameEntity, &PlayerInput, &Visibility, &Player)>,
+    mut query: Query<(Entity, &Client, &GameEntity, &PlayerInput, &Visibility, &Player)>,
     lookup: Res<EntityLookup>,
     others: Query<(&Client, &Player)>,
+    mut command_events: EventWriter<PlayerCommandEvent>,
 ) {
-    for (client, game_entity, input, visibility, player) in query.iter_mut() {
+    for (entity, client, game_entity, input, visibility, player) in query.iter_mut() {
         for message in input.chat.iter() {
             debug!(id = ?client.0.id(), "Received chat message: {} @ {}", message.message, message.index);
+            if !can_send_message(&message, &player) {
+                client.send(ChatMessageResponse::new(
+                    ChatMessageResult::error(ChatErrorCode::InvalidTarget),
+                    message.target,
+                    message.index,
+                ));
+                continue;
+            }
+
             match message.target {
                 ChatTarget::All => {
                     visibility
@@ -52,29 +72,34 @@ pub(crate) fn handle_chat(
                     ));
                 },
                 ChatTarget::AllGm => {
-                    if player.character.gm {
-                        others
-                            .iter()
-                            .filter(|(_, player)| player.character.gm)
-                            .filter(|(_, other)| other.user.id != player.user.id)
-                            .for_each(|(client, _)| {
-                                client.send(ChatUpdate::new(
-                                    ChatSource::allgm(game_entity.unique_id),
-                                    message.message.clone(),
-                                ));
-                            });
+                    if message.message.starts_with('.') {
+                        let message_without_dot = message.message.trim_start_matches('.');
+                        let cmd = Command::from(message_without_dot);
+                        command_events.send(PlayerCommandEvent(entity, cmd));
+
                         client.send(ChatMessageResponse::new(
                             ChatMessageResult::Success,
                             message.target,
                             message.index,
                         ));
-                    } else {
-                        client.send(ChatMessageResponse::new(
-                            ChatMessageResult::error(ChatErrorCode::InvalidTarget),
-                            message.target,
-                            message.index,
-                        ));
+                        continue;
                     }
+
+                    others
+                        .iter()
+                        .filter(|(_, player)| player.character.gm)
+                        .filter(|(_, other)| other.user.id != player.user.id)
+                        .for_each(|(client, _)| {
+                            client.send(ChatUpdate::new(
+                                ChatSource::allgm(game_entity.unique_id),
+                                message.message.clone(),
+                            ));
+                        });
+                    client.send(ChatMessageResponse::new(
+                        ChatMessageResult::Success,
+                        message.target,
+                        message.index,
+                    ));
                 },
                 ChatTarget::PrivateMessage => {
                     match message
@@ -102,13 +127,6 @@ pub(crate) fn handle_chat(
                             ));
                         },
                     }
-                },
-                ChatTarget::NPC | ChatTarget::Notice | ChatTarget::Global => {
-                    client.send(ChatMessageResponse::new(
-                        ChatMessageResult::error(ChatErrorCode::InvalidTarget),
-                        message.target,
-                        message.index,
-                    ));
                 },
                 _ => {},
             }

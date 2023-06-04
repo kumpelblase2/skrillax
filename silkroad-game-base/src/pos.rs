@@ -1,3 +1,4 @@
+use cgmath::num_traits::ToPrimitive;
 use cgmath::{Deg, InnerSpace, Vector2, Vector3};
 use silkroad_navmesh::region::Region;
 use std::fmt::{Display, Formatter};
@@ -53,6 +54,12 @@ impl GlobalLocation {
         let local_x = self.0.x % 1920.;
         let local_z = self.0.y % 1920.;
         LocalLocation(region, Vector2::new(local_x, local_z))
+    }
+
+    pub fn from_ingame_location(x: f32, z: f32) -> GlobalLocation {
+        let x = x * 10.0 + (0x87 as f32 * 1920.0);
+        let z = z * 10.0 + (0x5C as f32 * 1920.0);
+        GlobalLocation(Vector2::new(x, z))
     }
 
     pub fn with_y(&self, y: f32) -> GlobalPosition {
@@ -127,6 +134,12 @@ impl GlobalPosition {
     pub fn to_location(&self) -> GlobalLocation {
         GlobalLocation(Vector2::new(self.0.x, self.0.z))
     }
+
+    pub fn from_ingame_position(x: f32, y: f32, z: f32) -> GlobalPosition {
+        let x = x * 10.0 + (0x87 as f32 * 1920.0);
+        let z = z * 10.0 + (0x5C as f32 * 1920.0);
+        GlobalPosition(Vector3::new(x, y, z))
+    }
 }
 
 impl From<GlobalPosition> for LocalPosition {
@@ -167,5 +180,20 @@ impl Into<u16> for Heading {
         }
         let percentage = (360. - self.0) / 360.0;
         (percentage * (u16::MAX as f32)) as u16
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    pub fn test_convert_global() {
+        let global = GlobalLocation::from_ingame_location(6047.0, 1144.0);
+        let local = global.to_local();
+
+        assert_eq!(local.0, Region::from(24998));
+        assert_eq!(local.1.x, 950.0);
+        assert_eq!(local.1.y, 1840.0);
     }
 }

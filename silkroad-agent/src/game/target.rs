@@ -17,6 +17,12 @@ const MAX_TARGET_DISTANCE: f32 = 500. * 500.;
 #[component(storage = "SparseSet")]
 pub(crate) struct Target(Entity);
 
+impl Target {
+    pub fn entity(&self) -> Entity {
+        self.0
+    }
+}
+
 pub(crate) fn player_update_target(
     query: Query<(Entity, &Client, &PlayerInput, &Position, Option<&Target>)>,
     mut cmd: Commands,
