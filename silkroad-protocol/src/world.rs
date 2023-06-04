@@ -1312,3 +1312,10 @@ pub struct UnknownActionData {
     pub entity: u32,
     pub unknown: u8,
 }
+
+#[derive(Serialize, ByteSize)]
+pub struct ChangeSpeed {
+    pub entity: u32,
+    pub walk_speed: f32,
+    pub running_speed: f32,
+}
