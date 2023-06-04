@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd, Debug)]
 pub struct Region(u16);
 
 impl Display for Region {
