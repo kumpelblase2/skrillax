@@ -1,6 +1,7 @@
 pub mod characterdata;
 pub mod common;
 pub mod datamap;
+pub mod entity_rarity;
 pub mod gold;
 pub mod itemdata;
 pub mod level;

@@ -1,4 +1,5 @@
 use crate::common::RefCommon;
+use crate::entity_rarity::EntityRarity;
 use crate::{DataEntry, DataMap, FileError, ParseError};
 use pk2::Pk2;
 use std::str::FromStr;
@@ -10,23 +11,26 @@ pub fn load_character_map(pk2: &Pk2) -> Result<DataMap<RefCharacterData>, FileEr
 #[derive(Clone)]
 pub struct RefCharacterData {
     pub common: RefCommon,
-    pub level: u8,
+    // column 16
+    pub rarity: EntityRarity,
     // column 57
-    pub exp: u32,
+    pub level: u8,
     // column 79
-    pub hp: u32,
+    pub exp: u32,
     // column 59
-    pub base_range: u16,
+    pub hp: u32,
     // column 50
-    pub walk_speed: u32,
+    pub base_range: u16,
     // column 46
-    pub run_speed: u32,
+    pub walk_speed: u32,
     // column 47
-    pub berserk_speed: u32,
+    pub run_speed: u32,
     // column 48
-    pub aggressive: bool,
+    pub berserk_speed: u32,
     // column 93
-    pub skills: Vec<u32>, // column 83-92
+    pub aggressive: bool,
+    // column 83-92
+    pub skills: Vec<u32>,
 }
 
 impl DataEntry for RefCharacterData {
@@ -55,6 +59,7 @@ impl FromStr for RefCharacterData {
         }
         Ok(Self {
             common,
+            rarity: elements.get(16).ok_or(ParseError::MissingColumn(16))?.parse()?,
             level: elements.get(57).ok_or(ParseError::MissingColumn(57))?.parse()?,
             exp: elements.get(79).ok_or(ParseError::MissingColumn(79))?.parse()?,
             hp: elements.get(59).ok_or(ParseError::MissingColumn(59))?.parse()?,

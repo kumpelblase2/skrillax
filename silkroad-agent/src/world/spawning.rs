@@ -17,11 +17,12 @@ use cgmath::Vector3;
 use id_pool::IdPool;
 use pk2::Pk2;
 use rand::Rng;
+use silkroad_data::entity_rarity::EntityRarity;
 use silkroad_data::type_id::{ObjectEntity, ObjectMonster, ObjectNonPlayer, ObjectType};
 use silkroad_game_base::{GlobalLocation, Heading, LocalPosition, Vector2Ext};
 use silkroad_navmesh::region::Region;
 use silkroad_navmesh::NavmeshLoader;
-use silkroad_protocol::world::EntityRarity;
+use silkroad_protocol::world::EntityRarity as ProtocolRarity;
 use std::cmp::min;
 use std::collections::HashSet;
 use std::time::Duration;
@@ -55,11 +56,13 @@ pub(crate) fn spawn_npcs(
                 ObjectMonster::General
             )))
         ) {
-            let position = Position {
-                location: LocalPosition(spawn.region.into(), Vector3::new(spawn.x, spawn.y, spawn.z)).to_global(),
-                rotation: Heading(0.0),
-            };
-            commands.spawn((Spawner::new(&settings.spawner, spawn.npc_id), position));
+            if character_data.rarity == EntityRarity::Normal {
+                let position = Position {
+                    location: LocalPosition(spawn.region.into(), Vector3::new(spawn.x, spawn.y, spawn.z)).to_global(),
+                    rotation: Heading(0.0),
+                };
+                commands.spawn((Spawner::new(&settings.spawner, spawn.npc_id), position));
+            }
         }
     }
 }
@@ -208,7 +211,7 @@ fn spawn_monster(
     MonsterBundle {
         monster: Monster {
             target: None,
-            rarity: EntityRarity::Normal,
+            rarity: ProtocolRarity::Normal,
         },
         health: Health::new(health),
         position: target_location,
