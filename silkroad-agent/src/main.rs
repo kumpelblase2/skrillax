@@ -8,6 +8,7 @@ mod ext;
 mod game;
 mod input;
 mod login;
+mod mall;
 mod net;
 mod population;
 mod server_plugin;
@@ -21,6 +22,7 @@ use crate::ext::DbPool;
 use crate::game::GamePlugin;
 use crate::input::ReceivePlugin;
 use crate::login::LoginPlugin;
+use crate::mall::MallPlugin;
 use crate::net::NetworkPlugin;
 use crate::population::{CapacityController, LoginQueue};
 use crate::server_plugin::ServerPlugin;
@@ -110,5 +112,6 @@ fn main() {
         .add_plugin(NetworkPlugin::new(network))
         .add_plugin(LoginPlugin::new(queue))
         .add_plugin(GamePlugin)
+        .add_plugin(MallPlugin)
         .run();
 }

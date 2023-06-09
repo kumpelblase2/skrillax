@@ -2,12 +2,13 @@ use crate::comp::net::{Client, LastAction};
 use crate::config::GameConfig;
 use crate::event::{ClientDisconnectedEvent, LoadingFinishedEvent};
 use crate::input::{LoginInput, PlayerInput};
+use crate::mall::event::MallOpenRequestEvent;
 use bevy_ecs::prelude::*;
 use bevy_time::Time;
 use silkroad_network::stream::{SendResult, Stream, StreamError};
 use silkroad_protocol::character::{CharacterListRequest, GameGuideResponse, UpdateGameGuide};
 use silkroad_protocol::general::IdentityInformation;
-use silkroad_protocol::inventory::{ConsignmentResponse, OpenItemMallResponse, OpenItemMallResult};
+use silkroad_protocol::inventory::{ConsignmentResponse};
 use silkroad_protocol::world::PlayerMovementRequest;
 use silkroad_protocol::ClientPacket;
 use std::time::Instant;
@@ -29,6 +30,7 @@ pub(crate) fn receive_game_inputs(
     settings: Res<GameConfig>,
     mut loading_events: EventWriter<LoadingFinishedEvent>,
     mut disconnect_events: EventWriter<ClientDisconnectedEvent>,
+    mut mall_events: EventWriter<MallOpenRequestEvent>,
 ) {
     for (entity, client, mut input, mut last_action) in query.iter_mut() {
         let mut had_action = false;
@@ -62,10 +64,7 @@ pub(crate) fn receive_game_inputs(
                             input.gm = Some(command);
                         },
                         ClientPacket::OpenItemMall(_) => {
-                            client.send(OpenItemMallResponse(OpenItemMallResult::Success {
-                                jid: 123,
-                                token: "123".to_string(),
-                            }));
+                            mall_events.send(MallOpenRequestEvent(entity));
                         },
                         ClientPacket::InventoryOperation(inventory) => {
                             input.inventory = Some(inventory);
