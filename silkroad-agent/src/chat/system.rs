@@ -44,7 +44,7 @@ pub(crate) fn handle_chat(
     for (entity, client, game_entity, input, visibility, player) in query.iter_mut() {
         for message in input.chat.iter() {
             debug!(id = ?client.0.id(), "Received chat message: {} @ {}", message.message, message.index);
-            if !can_send_message(&message, &player) {
+            if !can_send_message(message, player) {
                 client.send(ChatMessageResponse::new(
                     ChatMessageResult::error(ChatErrorCode::InvalidTarget),
                     message.target,

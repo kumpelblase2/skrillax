@@ -12,7 +12,7 @@ impl<'a> EnabledRegions<'a> {
         Self {
             region_data,
             current_region: 0,
-            ended: region_data.len() == 0,
+            ended: region_data.is_empty(),
         }
     }
 

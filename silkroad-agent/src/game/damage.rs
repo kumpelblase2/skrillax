@@ -21,7 +21,7 @@ pub(crate) fn handle_damage(
         Option<&Player>,
         Option<&Monster>,
     )>,
-    mut sender_query: Query<Option<&Client>>,
+    sender_query: Query<Option<&Client>>,
 ) {
     for damage_event in reader.iter() {
         let Ok((mut health, mut synchronize, mut controller, player, monster)) = receiver_query

@@ -262,10 +262,9 @@ impl Change for InventoryChange {
                         MergeResult::Incompatible(self, other)
                     }
                 },
-                InventoryChange::MoveItem {
-                    source_slot,
-                    target_slot,
-                } if *source_slot == *slot => MergeResult::Incompatible(self, other),
+                InventoryChange::MoveItem { source_slot, .. } if *source_slot == *slot => {
+                    MergeResult::Incompatible(self, other)
+                },
                 InventoryChange::RemoveItem { slot: removed_slot } if *slot == *removed_slot => {
                     MergeResult::Merged(other)
                 },
@@ -400,7 +399,7 @@ impl Inventory {
     fn find_slots_matching(&self, item: Item) -> impl Iterator<Item = u8> + '_ {
         self.items
             .iter()
-            .filter(move |(slot, existing)| existing.reference == item.reference && existing.variance == item.variance)
+            .filter(move |(_, existing)| existing.reference == item.reference && existing.variance == item.variance)
             .map(|(slot, _)| slot)
             .copied()
     }
@@ -472,7 +471,7 @@ impl Inventory {
         let mut to_remove = item.stack_size();
         let mut removed = 0;
         for i in self.find_slots_matching(item).collect::<Vec<_>>() {
-            let mut existing = self
+            let existing = self
                 .items
                 .get_mut(&i)
                 .expect("Item should still exist just after checking");

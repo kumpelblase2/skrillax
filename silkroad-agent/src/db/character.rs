@@ -63,11 +63,13 @@ impl CharacterData {
     }
 
     pub async fn update_last_played_of<T: Borrow<PgPool>>(character_id: u32, pool: T) {
-        let _ = sqlx::query!(
+        sqlx::query!(
             "UPDATE characters SET last_logout = CURRENT_TIMESTAMP WHERE id = $1",
             character_id as i32
         )
-        .execute(pool.borrow());
+        .execute(pool.borrow())
+        .await
+        .expect("Should be able to update last played.");
     }
 }
 

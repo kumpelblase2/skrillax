@@ -78,29 +78,23 @@ impl LoginProvider {
     pub async fn register(&self, username: &str, password: &str, passcode: Option<&str>) -> bool {
         let password_hash = hash(password, DEFAULT_COST).expect("Should be able to hash password");
         match passcode {
-            Some(code) => {
-                let result = sqlx::query!(
-                    "INSERT INTO users(username, password, passcode) values($1, $2, $3)",
-                    username,
-                    password_hash,
-                    code
-                )
-                .execute(&self.pool)
-                .await
-                .is_ok();
-                result
-            },
-            None => {
-                let result = sqlx::query!(
-                    "INSERT INTO users(username, password) values($1, $2)",
-                    username,
-                    password_hash
-                )
-                .execute(&self.pool)
-                .await
-                .is_ok();
-                result
-            },
+            Some(code) => sqlx::query!(
+                "INSERT INTO users(username, password, passcode) values($1, $2, $3)",
+                username,
+                password_hash,
+                code
+            )
+            .execute(&self.pool)
+            .await
+            .is_ok(),
+            None => sqlx::query!(
+                "INSERT INTO users(username, password) values($1, $2)",
+                username,
+                password_hash
+            )
+            .execute(&self.pool)
+            .await
+            .is_ok(),
         }
     }
 }

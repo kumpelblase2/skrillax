@@ -145,7 +145,7 @@ impl Client {
                             let response = LoginResponse::error(SecurityError::Blocked {
                                 reason: BlockReason::Punishment {
                                     reason: "You have been blocked.".to_string(),
-                                    end: Utc.ymd(2099, 12, 31).and_hms(23, 59, 59),
+                                    end: Utc.with_ymd_and_hms(2099, 12, 31, 23, 59, 59).unwrap(),
                                 },
                             });
                             writer.send(response).await?;

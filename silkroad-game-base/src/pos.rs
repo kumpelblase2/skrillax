@@ -1,4 +1,3 @@
-use cgmath::num_traits::ToPrimitive;
 use cgmath::{Deg, InnerSpace, Vector2, Vector3};
 use silkroad_navmesh::region::Region;
 use std::fmt::{Display, Formatter};
