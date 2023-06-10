@@ -1,0 +1,39 @@
+version: "3"
+
+services:
+  db:
+    image: postgres
+    ports:
+      - "127.0.0.1:15432:5432"
+    environment:
+      - POSTGRES_USER=skrillax
+      - POSTGRES_DB=skrillax
+      - POSTGRES_PASSWORD=skrillax
+
+  agent:
+    image: kumpelblase2/skrillax
+    environment:
+      - SKRILLAX_AGENT_DATABASE_HOST=db
+      - SKRILLAX_AGENT_GAME_DATA-LOCATION=/usr/silkroad
+      - SKRILLAX_AGENT_RPC-ADDRESS=agent
+      - SERVER=/usr/local/bin/silkroad-agent
+    ports:
+      - "15780:15780"
+    depends_on:
+      - db
+    volumes:
+      - "<silkroad game location>:/usr/silkroad"
+      - "<configuration location>:/opt/skrillax/configs:r"
+
+  gateway:
+    image: kumpelblase2/skrillax
+    environment:
+      - SKRILLAX_GATEWAY_DATABASE_HOST=db
+      - SERVER=/usr/local/bin/silkroad-gateway
+    ports:
+      - "15779:15779"
+    volumes:
+      - "<configuration location>:/opt/skrillax/configs:r"
+    depends_on:
+      - db
+      - agent

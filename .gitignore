@@ -2,3 +2,4 @@
 */target
 /patch-files
 /.env
+/docker-compose.yml
