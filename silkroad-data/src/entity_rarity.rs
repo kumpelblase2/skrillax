@@ -7,7 +7,8 @@ use std::str::FromStr;
 pub enum EntityRarity {
     Normal = 0,
     Champion,
-    Unique = 3,
+    UnknownCOS,
+    Unique,
     Giant,
     Titan,
     Elite,

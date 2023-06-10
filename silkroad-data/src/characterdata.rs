@@ -59,7 +59,7 @@ impl FromStr for RefCharacterData {
         }
         Ok(Self {
             common,
-            rarity: elements.get(16).ok_or(ParseError::MissingColumn(16))?.parse()?,
+            rarity: elements.get(15).ok_or(ParseError::MissingColumn(16))?.parse()?,
             level: elements.get(57).ok_or(ParseError::MissingColumn(57))?.parse()?,
             exp: elements.get(79).ok_or(ParseError::MissingColumn(79))?.parse()?,
             hp: elements.get(59).ok_or(ParseError::MissingColumn(59))?.parse()?,
