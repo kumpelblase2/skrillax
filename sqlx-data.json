@@ -279,6 +279,45 @@
     },
     "query": "INSERT INTO user_servers(user_id, server_id) values($1, $2)"
   },
+  "2372b7af24957b6302f6dbd7b071f0c99b57cdc8c7cdc8515e4c9d8271021790": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4"
+        ]
+      }
+    },
+    "query": "DELETE FROM user_item_mall WHERE user_id = $1 and server_id = $2"
+  },
+  "34effd3541e1e989208a02a76de6cd40ffd85def57cd9586432a35b45fa5f0bb": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "DELETE FROM user_item_mall WHERE expiry <= NOW()"
+  },
+  "3c9d895da29be79c6c48fa3ae4690c3eb16fbd770582ea8931358c7d3143efe1": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4",
+          "Int4",
+          "Varchar",
+          "Timestamptz"
+        ]
+      }
+    },
+    "query": "INSERT INTO user_item_mall(user_id, character_id, server_id, key, expiry) VALUES($1, $2, $3, $4, $5)"
+  },
   "4017b3cff1ee8821720170787f6974a69bf3dce2087c08a4219ba5e38dbc1aa3": {
     "describe": {
       "columns": [],
