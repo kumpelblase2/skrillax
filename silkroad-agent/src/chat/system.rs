@@ -1,5 +1,5 @@
 use crate::agent::states::StateTransitionQueue;
-use crate::agent::Agent;
+use crate::agent::{Agent, MovementState};
 use crate::chat::command::Command;
 use crate::comp::monster::{Monster, MonsterBundle, RandomStroll, SpawnedBy};
 use crate::comp::net::Client;
@@ -164,6 +164,7 @@ pub(crate) fn handle_gm_commands(
                             sync: Default::default(),
                             stroll: RandomStroll::new(position.location.to_location(), 100., Duration::from_secs(1)),
                             state_queue: StateTransitionQueue::default(),
+                            movement_state: MovementState::default_monster(),
                         };
                         commands.spawn(bundle);
                     }

@@ -1,5 +1,5 @@
 use crate::agent::states::StateTransitionQueue;
-use crate::agent::Agent;
+use crate::agent::{Agent, MovementState};
 use crate::comp::monster::{Monster, MonsterBundle, RandomStroll, SpawnedBy};
 use crate::comp::npc::NpcBundle;
 use crate::comp::pos::Position;
@@ -222,5 +222,6 @@ fn spawn_monster(
         sync: Synchronize::default(),
         stroll: RandomStroll::new(spawn_center, 100.0, Duration::from_secs(2)),
         state_queue: StateTransitionQueue::default(),
+        movement_state: MovementState::default_monster(),
     }
 }

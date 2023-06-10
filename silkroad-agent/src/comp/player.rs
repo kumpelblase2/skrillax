@@ -88,7 +88,7 @@ impl PlayerBundle {
             sync: Default::default(),
             input: Default::default(),
             state_queue: Default::default(),
-            speed: Default::default(),
+            speed: MovementState::default_player(),
         }
     }
 }

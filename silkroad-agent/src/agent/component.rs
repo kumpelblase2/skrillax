@@ -3,8 +3,18 @@ use derive_more::{Deref, DerefMut};
 use silkroad_data::characterdata::RefCharacterData;
 use silkroad_game_base::MovementSpeed;
 
-#[derive(Deref, DerefMut, Component, Default)]
+#[derive(Deref, DerefMut, Component)]
 pub(crate) struct MovementState(MovementSpeed);
+
+impl MovementState {
+    pub fn default_monster() -> Self {
+        MovementState(MovementSpeed::Walking)
+    }
+
+    pub fn default_player() -> Self {
+        MovementState(MovementSpeed::Running)
+    }
+}
 
 #[derive(Component)]
 pub(crate) struct Agent {
