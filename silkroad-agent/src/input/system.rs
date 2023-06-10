@@ -8,7 +8,7 @@ use bevy_time::Time;
 use silkroad_network::stream::{SendResult, Stream, StreamError};
 use silkroad_protocol::character::{CharacterListRequest, GameGuideResponse, UpdateGameGuide};
 use silkroad_protocol::general::IdentityInformation;
-use silkroad_protocol::inventory::{ConsignmentResponse};
+use silkroad_protocol::inventory::ConsignmentResponse;
 use silkroad_protocol::world::PlayerMovementRequest;
 use silkroad_protocol::ClientPacket;
 use std::time::Instant;
