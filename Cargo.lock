@@ -2674,6 +2674,7 @@ dependencies = [
  "rand 0.8.5",
  "serde",
  "silkroad-data",
+ "silkroad-definitions",
  "silkroad-game-base",
  "silkroad-navmesh",
  "silkroad-network",
@@ -2695,7 +2696,19 @@ dependencies = [
  "num_enum",
  "num_enum_derive",
  "pk2",
+ "silkroad-definitions",
  "thiserror",
+]
+
+[[package]]
+name = "silkroad-definitions"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "num_enum",
+ "num_enum_derive",
+ "silkroad-serde",
 ]
 
 [[package]]
@@ -2706,6 +2719,7 @@ dependencies = [
  "once_cell",
  "rand 0.8.5",
  "silkroad-data",
+ "silkroad-definitions",
  "silkroad-navmesh",
 ]
 
@@ -2745,6 +2759,7 @@ dependencies = [
  "navmesh",
  "nom",
  "pk2",
+ "silkroad-definitions",
  "sr_formats",
  "thiserror",
 ]
@@ -2791,6 +2806,7 @@ dependencies = [
  "byteorder",
  "bytes",
  "chrono",
+ "silkroad-definitions",
  "silkroad-serde",
  "silkroad-serde-derive",
  "thiserror",

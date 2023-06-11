@@ -1,5 +1,5 @@
 use cgmath::{Deg, InnerSpace, Vector2, Vector3};
-use silkroad_navmesh::region::Region;
+use silkroad_definitions::Region;
 use std::fmt::{Display, Formatter};
 use std::ops::{Add, Deref};
 

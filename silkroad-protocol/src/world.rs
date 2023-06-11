@@ -1,5 +1,6 @@
 use crate::inventory::{CharacterSpawnItemData, InventoryAvatarItemData, InventoryItemData};
 use chrono::{DateTime, Utc};
+use silkroad_definitions::rarity::EntityRarity;
 use silkroad_serde::*;
 use silkroad_serde_derive::*;
 use std::fmt::{Display, Formatter};
@@ -102,40 +103,6 @@ pub enum GroupSpawnType {
     Spawn,
     #[silkroad(value = 2)]
     Despawn,
-}
-
-#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Deserialize, Serialize, ByteSize)]
-pub enum EntityRarity {
-    #[silkroad(value = 0)]
-    Normal,
-    #[silkroad(value = 1)]
-    Champion,
-    #[silkroad(value = 3)]
-    Unique,
-    #[silkroad(value = 4)]
-    Giant,
-    #[silkroad(value = 5)]
-    Titan,
-    #[silkroad(value = 6)]
-    Elite,
-    #[silkroad(value = 7)]
-    EliteString,
-    #[silkroad(value = 8)]
-    Unique2,
-    #[silkroad(value = 16)]
-    NormalParty,
-    #[silkroad(value = 17)]
-    ChampionParty,
-    #[silkroad(value = 19)]
-    UniqueParty,
-    #[silkroad(value = 20)]
-    GiantParty,
-    #[silkroad(value = 21)]
-    TitanParty,
-    #[silkroad(value = 21)]
-    EliteParty,
-    #[silkroad(value = 24)]
-    Unique2Party,
 }
 
 #[derive(Clone, Serialize, ByteSize)]

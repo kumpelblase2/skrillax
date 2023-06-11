@@ -1,7 +1,7 @@
 use crate::common::RefCommon;
-use crate::entity_rarity::EntityRarity;
 use crate::{DataEntry, DataMap, FileError, ParseError};
 use pk2::Pk2;
+use silkroad_definitions::rarity::EntityRarity;
 use std::str::FromStr;
 
 pub fn load_character_map(pk2: &Pk2) -> Result<DataMap<RefCharacterData>, FileError> {
@@ -49,6 +49,7 @@ impl FromStr for RefCharacterData {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let elements = s.split('\t').collect::<Vec<&str>>();
         let common = RefCommon::from_columns(&elements)?;
+        let rarity_kind: u8 = elements.get(15).ok_or(ParseError::MissingColumn(16))?.parse()?;
         let aggressive: u8 = elements.get(93).ok_or(ParseError::MissingColumn(94))?.parse()?;
         let mut skills: Vec<u32> = Vec::new();
         for i in 83..=92 {
@@ -59,7 +60,7 @@ impl FromStr for RefCharacterData {
         }
         Ok(Self {
             common,
-            rarity: elements.get(15).ok_or(ParseError::MissingColumn(16))?.parse()?,
+            rarity: EntityRarity::try_from(rarity_kind)?,
             level: elements.get(57).ok_or(ParseError::MissingColumn(57))?.parse()?,
             exp: elements.get(79).ok_or(ParseError::MissingColumn(79))?.parse()?,
             hp: elements.get(59).ok_or(ParseError::MissingColumn(59))?.parse()?,

@@ -11,7 +11,8 @@ members = [
     "silkroad-serde-derive",
     "silkroad-data",
     "silkroad-packet-decryptor",
-    "silkroad-game-base"
+    "silkroad-game-base",
+    "silkroad-definitions"
 ]
 
 [workspace.dependencies]

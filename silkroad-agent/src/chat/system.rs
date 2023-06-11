@@ -17,7 +17,7 @@ use bevy_ecs::change_detection::ResMut;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::event::EventWriter;
 use bevy_ecs::prelude::{Commands, Query, Res};
-use silkroad_data::{ObjectConsumable, ObjectConsumableCurrency, ObjectItem, ObjectType};
+use silkroad_definitions::type_id::{ObjectConsumable, ObjectConsumableCurrency, ObjectItem, ObjectType};
 use silkroad_game_base::{Item, ItemTypeData};
 use silkroad_protocol::chat::{
     ChatErrorCode, ChatMessage, ChatMessageResponse, ChatMessageResult, ChatSource, ChatTarget, ChatUpdate,
@@ -150,7 +150,7 @@ pub(crate) fn handle_gm_commands(
                         let bundle = MonsterBundle {
                             monster: Monster {
                                 target: None,
-                                rarity: *rarity,
+                                rarity: character_def.rarity,
                             },
                             health: Health::new(character_def.hp),
                             position: position.clone(),

@@ -6,8 +6,8 @@ use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use bevy_ecs::prelude::*;
 use bevy_time::{Timer, TimerMode};
+use silkroad_definitions::rarity::EntityRarity;
 use silkroad_game_base::GlobalLocation;
-use silkroad_protocol::world::EntityRarity;
 use std::time::Duration;
 
 #[derive(Component)]

@@ -1,72 +1,12 @@
 use crate::{Change, ChangeTracked, MergeResult};
 use silkroad_data::itemdata::RefItemData;
 use silkroad_data::DataEntry;
+use silkroad_definitions::inventory::EquipmentSlot;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 
 pub const WEAPON_SLOT: u8 = 6;
 pub const GOLD_SLOT: u8 = 0xFE;
-
-#[derive(Copy, Clone, Eq, PartialOrd, PartialEq)]
-pub enum EquipmentSlot {
-    HeadArmor,
-    ShoulderArmor,
-    WristArmor,
-    ChestArmor,
-    LegArmor,
-    FootArmor,
-    Weapon,
-    SecondaryWeapon,
-    Earring,
-    Necklace,
-    LeftRing,
-    RightRing,
-    Special,
-}
-
-impl From<EquipmentSlot> for u8 {
-    fn from(slot: EquipmentSlot) -> u8 {
-        match slot {
-            EquipmentSlot::Weapon => WEAPON_SLOT,
-            EquipmentSlot::SecondaryWeapon => 7,
-            EquipmentSlot::HeadArmor => 0,
-            EquipmentSlot::ShoulderArmor => 1,
-            EquipmentSlot::WristArmor => 3,
-            EquipmentSlot::ChestArmor => 2,
-            EquipmentSlot::LegArmor => 4,
-            EquipmentSlot::FootArmor => 5,
-            EquipmentSlot::Earring => 8,
-            EquipmentSlot::Necklace => 9,
-            EquipmentSlot::LeftRing => 10,
-            EquipmentSlot::RightRing => 11,
-            EquipmentSlot::Special => 12,
-        }
-    }
-}
-
-impl TryFrom<u8> for EquipmentSlot {
-    type Error = ();
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        let value = match value {
-            0 => EquipmentSlot::HeadArmor,
-            1 => EquipmentSlot::ShoulderArmor,
-            2 => EquipmentSlot::ChestArmor,
-            3 => EquipmentSlot::WristArmor,
-            4 => EquipmentSlot::LegArmor,
-            5 => EquipmentSlot::FootArmor,
-            6 => EquipmentSlot::Weapon,
-            7 => EquipmentSlot::SecondaryWeapon,
-            8 => EquipmentSlot::Earring,
-            9 => EquipmentSlot::Necklace,
-            10 => EquipmentSlot::LeftRing,
-            11 => EquipmentSlot::RightRing,
-            12 => EquipmentSlot::Special,
-            _ => return Err(()),
-        };
-        Ok(value)
-    }
-}
 
 #[derive(Copy, Clone)]
 pub struct Item {
@@ -527,7 +467,7 @@ mod test {
     use once_cell::sync::Lazy;
     use silkroad_data::common::{RefCommon, RefOrigin};
     use silkroad_data::itemdata::RefBiologicalType;
-    use silkroad_data::{ObjectConsumable, ObjectConsumableRecovery, ObjectItem, ObjectType};
+    use silkroad_definitions::type_id::{ObjectConsumable, ObjectConsumableRecovery, ObjectItem, ObjectType};
     use std::ops::Deref;
 
     static FIRST_ITEM_DATA: Lazy<RefItemData> = Lazy::new(|| RefItemData {

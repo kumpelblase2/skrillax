@@ -2,7 +2,7 @@ use crate::db::character::CharacterItem;
 use crate::world::WorldData;
 use bevy_ecs::prelude::*;
 use silkroad_data::itemdata::RefItemData;
-use silkroad_data::{ObjectItem, ObjectType};
+use silkroad_definitions::type_id::{ObjectItem, ObjectType};
 use silkroad_game_base::{Inventory, Item, ItemTypeData};
 use std::ops::{Deref, DerefMut};
 

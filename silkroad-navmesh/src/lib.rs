@@ -1,6 +1,6 @@
 use crate::navmesh::NavmeshContainer;
 use crate::object_mesh::ObjectMesh;
-use crate::region::Region;
+use silkroad_definitions::Region;
 use sr_formats::jmxvnvm::JmxNvm;
 use std::collections::HashMap;
 use std::io::ErrorKind;

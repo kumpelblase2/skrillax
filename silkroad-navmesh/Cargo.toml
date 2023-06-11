@@ -16,6 +16,7 @@ nom = "7"
 pk2 = { workspace = true, optional = true }
 mint = "0.5.9"
 navmesh = "0.12.1"
+silkroad-definitions = { path = "../silkroad-definitions" }
 
 [features]
 pk2 = ["dep:pk2"]

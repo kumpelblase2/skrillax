@@ -13,8 +13,10 @@ use bevy_ecs::prelude::*;
 use cgmath::num_traits::Pow;
 use cgmath::InnerSpace;
 use silkroad_data::skilldata::RefSkillData;
-use silkroad_data::{DataMap, ObjectEquippable, ObjectItem, ObjectType, ObjectWeaponType};
-use silkroad_game_base::{get_range_for_attack, EquipmentSlot, GlobalLocation, Item, Vector3Ext};
+use silkroad_data::DataMap;
+use silkroad_definitions::inventory::EquipmentSlot;
+use silkroad_definitions::type_id::{ObjectEquippable, ObjectItem, ObjectType, ObjectWeaponType};
+use silkroad_game_base::{get_range_for_attack, GlobalLocation, Item, Vector3Ext};
 use silkroad_protocol::combat::{
     ActionTarget, DoActionResponseCode, DoActionType, PerformAction, PerformActionError, PerformActionResponse,
 };

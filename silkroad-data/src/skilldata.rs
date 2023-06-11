@@ -1,8 +1,8 @@
-use crate::type_id::{ObjectConsumable, ObjectEquippable, ObjectWeaponType};
 use crate::{DataEntry, DataMap, FileError, ParseError};
 use bitflags::bitflags;
 use num_enum::TryFromPrimitive;
 use pk2::Pk2;
+use silkroad_definitions::type_id::{ObjectConsumable, ObjectEquippable, ObjectWeaponType};
 use std::num::{NonZeroU16, NonZeroU32, NonZeroU8};
 use std::ops::Deref;
 use std::str::FromStr;

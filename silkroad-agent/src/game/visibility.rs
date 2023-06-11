@@ -12,8 +12,9 @@ use crate::game::player_activity::PlayerActivity;
 use bevy_ecs::prelude::*;
 use cgmath::num_traits::Pow;
 use silkroad_data::DataEntry;
+use silkroad_definitions::Region;
 use silkroad_game_base::ItemTypeData;
-use silkroad_navmesh::region::Region;
+use silkroad_navmesh::region::GridRegion;
 use silkroad_protocol::inventory::CharacterSpawnItemData;
 use silkroad_protocol::world::{
     ActionState, ActiveScroll, AliveState, BodyState, DroppedItemSource, EntityState, EntityTypeSpawnData,

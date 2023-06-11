@@ -1,4 +1,4 @@
-use crate::region::Region;
+use silkroad_definitions::Region;
 use sr_formats::jmxvmfo::JmxMapInfo;
 
 pub struct EnabledRegions<'a> {

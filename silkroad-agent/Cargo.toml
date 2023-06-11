@@ -11,6 +11,7 @@ silkroad-rpc = { path = "../silkroad-rpc" }
 silkroad-navmesh = { path = "../silkroad-navmesh", features = ["pk2"] }
 silkroad-data = { path = "../silkroad-data" }
 silkroad-game-base = { path = "../silkroad-game-base" }
+silkroad-definitions = { path = "../silkroad-definitions" }
 tokio = { workspace = true }
 axum = { version = "0.6.18", default-features = false, features = [ "http1", "json", "tokio", "tower-log", "macros"] }
 bytes = "1.1.0"

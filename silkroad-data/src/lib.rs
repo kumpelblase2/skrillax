@@ -1,14 +1,12 @@
 pub mod characterdata;
 pub mod common;
 pub mod datamap;
-pub mod entity_rarity;
 pub mod gold;
 pub mod itemdata;
 pub mod level;
 pub mod masterydata;
 pub mod npc_pos;
 pub mod skilldata;
-pub mod type_id;
 
 pub use datamap::*;
 use encoding_rs::WINDOWS_1252;
@@ -20,7 +18,6 @@ use std::io::Read;
 use std::num::{ParseFloatError, ParseIntError};
 use std::str::{FromStr, ParseBoolError};
 use thiserror::Error;
-pub use type_id::*;
 
 pub(crate) fn load_lines<T: FromStr>(source: &str) -> Result<Vec<T>, T::Err> {
     let mut all_lines = Vec::new();

@@ -1,5 +1,6 @@
-use crate::{ParseError, TypeId};
+use crate::ParseError;
 use num_enum_derive::TryFromPrimitive;
+use silkroad_definitions::TypeId;
 use std::str::FromStr;
 use std::time::Duration;
 

@@ -1,7 +1,7 @@
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
 use bevy_ecs::prelude::*;
-use silkroad_navmesh::region::Region;
+use silkroad_definitions::Region;
 use std::collections::HashSet;
 
 #[derive(Default, Resource)]

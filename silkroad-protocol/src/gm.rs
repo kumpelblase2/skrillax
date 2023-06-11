@@ -1,4 +1,4 @@
-use crate::EntityRarity;
+use silkroad_definitions::rarity::EntityRarity;
 use silkroad_serde::*;
 use silkroad_serde_derive::*;
 
