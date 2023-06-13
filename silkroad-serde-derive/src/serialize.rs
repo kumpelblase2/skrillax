@@ -151,7 +151,7 @@ fn generate_for_field(field: &Field, ident: TokenStream) -> TokenStream {
                 },
                 _ => abort!(field, "Cannot nest collection-like types"),
             };
-            if args.when.is_some() {
+            if args.when.is_some() || args.size.unwrap_or(1) == 0 {
                 quote_spanned! {field.span() =>
                     match &#ident {
                         Some(inner) => {
