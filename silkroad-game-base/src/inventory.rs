@@ -104,6 +104,10 @@ pub enum InventoryChange {
     RemoveItem {
         slot: u8,
     },
+    Swap {
+        first_slot: u8,
+        second_slot: u8,
+    },
 }
 
 impl Change for InventoryChange {
@@ -139,6 +143,15 @@ impl Change for InventoryChange {
                         },
                     })
                 },
+                InventoryChange::Swap {
+                    first_slot,
+                    second_slot,
+                } if *first_slot == *slot || *second_slot == *slot => {
+                    // The swap operation cannot really be merged with anything
+                    // else and thus we want to prevent more checks by making
+                    // them incompatible.
+                    MergeResult::Incompatible(self, other)
+                },
                 _ => MergeResult::Unchanged(self, other),
             },
             InventoryChange::RemoveItem { slot } => match &other {
@@ -160,6 +173,13 @@ impl Change for InventoryChange {
                     // Again something that should never happen - we cannot change an empty slot.
                     MergeResult::Incompatible(self, other)
                 },
+                InventoryChange::Swap {
+                    first_slot,
+                    second_slot,
+                } if *first_slot == *slot || *second_slot == *slot => {
+                    // see above.
+                    MergeResult::Incompatible(self, other)
+                },
                 _ => MergeResult::Unchanged(self, other),
             },
             InventoryChange::MoveItem {
@@ -179,6 +199,17 @@ impl Change for InventoryChange {
                 }),
                 InventoryChange::RemoveItem { slot } if *slot == *target_slot => {
                     MergeResult::Merged(InventoryChange::RemoveItem { slot: *source_slot })
+                },
+                InventoryChange::Swap {
+                    first_slot,
+                    second_slot,
+                } if *second_slot == *target_slot
+                    || *first_slot == *target_slot
+                    || *second_slot == *source_slot
+                    || *first_slot == *source_slot =>
+                {
+                    // We cannot merge a move followed by a swap.
+                    MergeResult::Incompatible(self, other)
                 },
                 _ => MergeResult::Unchanged(self, other),
             },
@@ -207,6 +238,55 @@ impl Change for InventoryChange {
                 },
                 InventoryChange::RemoveItem { slot: removed_slot } if *slot == *removed_slot => {
                     MergeResult::Merged(other)
+                },
+                InventoryChange::Swap {
+                    first_slot,
+                    second_slot,
+                } if *first_slot == *slot || *second_slot == *slot => {
+                    // see above
+                    MergeResult::Incompatible(self, other)
+                },
+                _ => MergeResult::Unchanged(self, other),
+            },
+            InventoryChange::Swap {
+                first_slot,
+                second_slot,
+            } => match &other {
+                InventoryChange::AddItem { slot, .. }
+                | InventoryChange::ChangeTypeData { slot, .. }
+                | InventoryChange::RemoveItem { slot, .. }
+                    if *slot == *first_slot || *slot == *second_slot =>
+                {
+                    // This would mean the item would be overwritten - shouldn't happen
+                    MergeResult::Incompatible(self, other)
+                },
+                InventoryChange::MoveItem {
+                    source_slot,
+                    target_slot,
+                } if *first_slot == *source_slot
+                    || *first_slot == *target_slot
+                    || *second_slot == *source_slot
+                    || *second_slot == *target_slot =>
+                {
+                    MergeResult::Incompatible(self, other)
+                },
+                InventoryChange::Swap {
+                    first_slot: other_first_slot,
+                    second_slot: other_second_slot,
+                } => {
+                    if (*first_slot == *other_first_slot && *second_slot == *other_first_slot)
+                        || (*first_slot == *other_second_slot && *second_slot == *other_first_slot)
+                    {
+                        MergeResult::Cancelled
+                    } else if *first_slot == *other_first_slot
+                        || *first_slot == *other_second_slot
+                        || *second_slot == *other_first_slot
+                        || *second_slot == *other_second_slot
+                    {
+                        MergeResult::Incompatible(self, other)
+                    } else {
+                        MergeResult::Unchanged(self, other)
+                    }
                 },
                 _ => MergeResult::Unchanged(self, other),
             },
@@ -306,7 +386,10 @@ impl Inventory {
                         return Ok(available_on_target_stack);
                     }
                 } else {
-                    // TODO: how will I reflect this in the changes? we can't do two moves
+                    self.changes.push(InventoryChange::Swap {
+                        first_slot: source,
+                        second_slot: target,
+                    });
                     self.items.insert(target, source_item);
                     self.items.insert(source, target_item);
                 }
