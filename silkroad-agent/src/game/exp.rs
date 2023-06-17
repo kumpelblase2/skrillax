@@ -2,13 +2,14 @@ use crate::comp::damage::DamageReceiver;
 use crate::comp::net::Client;
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
+use crate::comp::sync::Synchronize;
 use crate::comp::{EntityReference, GameEntity, Health};
 use crate::event::EntityDeath;
 use crate::world::{EntityLookup, WorldData};
 use bevy_ecs::prelude::*;
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::world::{
-    CharacterPointsUpdate, EntityBarUpdateSource, EntityBarUpdates, EntityBarsUpdate, LevelUpEffect, ReceiveExperience,
+    CharacterPointsUpdate, EntityBarUpdateSource, EntityBarUpdates, EntityBarsUpdate, ReceiveExperience,
 };
 use tracing::debug;
 
@@ -55,12 +56,12 @@ pub(crate) fn distribute_experience(
 
 pub(crate) fn receive_experience(
     mut experience_events: EventReader<ReceiveExperienceEvent>,
-    mut query: Query<(&GameEntity, &Client, &mut Player, &mut Health)>,
+    mut query: Query<(&GameEntity, &Client, &mut Player, &mut Health, &mut Synchronize)>,
 ) {
     let level_map = WorldData::levels();
 
     for event in experience_events.iter() {
-        let Ok((entity, client, mut player, mut health)) = query.get_mut(event.target.0) else {
+        let Ok((entity, client, mut player, mut health, mut sync)) = query.get_mut(event.target.0) else {
             continue;
         };
 
@@ -98,9 +99,7 @@ pub(crate) fn receive_experience(
             health.max_health = player.character.max_hp();
             health.current_health = health.max_health;
 
-            client.send(LevelUpEffect {
-                entity: entity.unique_id,
-            });
+            sync.did_level = true;
 
             client.send(CharacterStatsMessage {
                 phys_attack_min: 100,

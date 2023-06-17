@@ -5,7 +5,8 @@ use crate::comp::visibility::Visibility;
 use crate::comp::GameEntity;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::world::{
-    EntityUpdateState, MovementDestination, MovementSource, PlayerMovementResponse, UnknownActionData, UpdatedState,
+    EntityUpdateState, LevelUpEffect, MovementDestination, MovementSource, PlayerMovementResponse, UnknownActionData,
+    UpdatedState,
 };
 
 pub(crate) fn sync_changes_others(
@@ -33,6 +34,12 @@ pub(crate) fn sync_changes_others(
 
             for action in synchronize.actions.iter() {
                 update_animation(client, entity, action);
+            }
+
+            if synchronize.did_level {
+                client.send(LevelUpEffect {
+                    entity: entity.unique_id,
+                });
             }
         }
     }
@@ -112,6 +119,12 @@ pub(crate) fn update_client(query: Query<(&Client, &GameEntity, &Synchronize)>) 
 
         for state in sync.state.iter() {
             update_state(client, entity, *state);
+        }
+
+        if sync.did_level {
+            client.send(LevelUpEffect {
+                entity: entity.unique_id,
+            });
         }
     }
 }
