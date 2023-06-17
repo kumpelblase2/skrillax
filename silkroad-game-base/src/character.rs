@@ -1,5 +1,6 @@
 use crate::{Race, SpawningState, Stats};
 use silkroad_data::masterydata::RefMasteryData;
+use std::cmp::max;
 
 pub struct Character {
     pub id: u32,
@@ -30,5 +31,12 @@ impl Character {
 
     pub fn max_mp(&self) -> u32 {
         self.stats.max_mana(self.level)
+    }
+
+    pub fn increase_level(&mut self) {
+        self.level += 1;
+        self.max_level = max(self.max_level, self.level);
+        self.stats.increase_strength(1);
+        self.stats.increase_intelligence(1);
     }
 }

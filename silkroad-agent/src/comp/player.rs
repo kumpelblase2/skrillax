@@ -1,10 +1,11 @@
 use crate::agent::states::StateTransitionQueue;
 use crate::agent::{Agent, MovementState};
+use crate::comp::damage::DamageReceiver;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::pos::Position;
 use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
-use crate::comp::GameEntity;
+use crate::comp::{GameEntity, Health};
 use crate::db::character::CharacterData;
 use crate::db::user::ServerUser;
 use crate::input::PlayerInput;
@@ -66,6 +67,8 @@ pub(crate) struct PlayerBundle {
     input: PlayerInput,
     state_queue: StateTransitionQueue,
     speed: MovementState,
+    damage_receiver: DamageReceiver,
+    health: Health,
 }
 
 impl PlayerBundle {
@@ -77,6 +80,7 @@ impl PlayerBundle {
         pos: Position,
         visibility: Visibility,
     ) -> Self {
+        let max_hp = player.character.max_hp();
         Self {
             player,
             game_entity,
@@ -89,6 +93,8 @@ impl PlayerBundle {
             input: Default::default(),
             state_queue: Default::default(),
             speed: MovementState::default_player(),
+            damage_receiver: DamageReceiver::default(),
+            health: Health::new(max_hp),
         }
     }
 }

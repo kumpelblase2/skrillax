@@ -1,5 +1,6 @@
 use crate::agent::states::StateTransitionQueue;
 use crate::agent::{Agent, MovementState};
+use crate::comp::damage::DamageReceiver;
 use crate::comp::pos::Position;
 use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
@@ -34,6 +35,7 @@ pub struct MonsterBundle {
     pub(crate) stroll: RandomStroll,
     pub(crate) state_queue: StateTransitionQueue,
     pub(crate) movement_state: MovementState,
+    pub(crate) damage_receiver: DamageReceiver,
 }
 
 #[derive(Component)]

@@ -33,4 +33,7 @@ pub(crate) struct PlayerCommandEvent(pub Entity, pub Command);
 
 pub(crate) struct PlayerTeleportEvent(pub Entity, pub GlobalPosition);
 
-pub(crate) struct EntityDeath(pub Entity);
+pub(crate) struct EntityDeath {
+    pub died: Entity,
+    pub killer: Option<Entity>,
+}

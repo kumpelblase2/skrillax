@@ -31,6 +31,14 @@ impl Stats {
         let result = (SCALING.powi((level - 1) as i32)) * (self.int * 10) as f32;
         result as u32
     }
+
+    pub fn increase_strength(&mut self, amount: u16) {
+        self.str += amount
+    }
+
+    pub fn increase_intelligence(&mut self, amount: u16) {
+        self.int += amount
+    }
 }
 
 impl Default for Stats {

@@ -33,7 +33,7 @@ pub(crate) fn handle_logout(
                 logout.mode,
             )));
             cmd.entity(entity)
-                .insert(Logout::new(Duration::from_secs(settings.logout_duration as u64)));
+                .insert(Logout::from_seconds(settings.logout_duration as u64));
         }
     }
 }

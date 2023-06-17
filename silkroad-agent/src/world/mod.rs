@@ -40,6 +40,7 @@ impl Plugin for WorldPlugin {
             .add_system(maintain_entities.in_base_set(CoreSet::First))
             .add_system(collect_entities.in_base_set(CoreSet::Last))
             .add_system(spawning::spawn_monsters)
+            .add_system(spawning::collect_monster_deaths.in_base_set(CoreSet::Last))
             .insert_resource::<Navmesh>(NavmeshLoader::new(data_pk2).into());
     }
 }

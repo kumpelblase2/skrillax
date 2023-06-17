@@ -1,3 +1,4 @@
+pub(crate) mod damage;
 pub(crate) mod drop;
 pub(crate) mod inventory;
 pub(crate) mod monster;
@@ -44,6 +45,11 @@ impl Health {
 
     pub fn is_dead(&self) -> bool {
         self.current_health == 0
+    }
+
+    pub fn upgrade(&mut self, new_max: u32) {
+        self.max_health = new_max;
+        self.current_health = new_max;
     }
 }
 

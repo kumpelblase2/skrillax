@@ -1,16 +1,15 @@
 use crate::agent::states::{Dead, StateTransitionQueue};
-use crate::comp::monster::Monster;
+use crate::comp::damage::DamageReceiver;
 use crate::comp::net::Client;
 use crate::comp::player::Player;
 use crate::comp::sync::Synchronize;
-use crate::comp::Health;
-use crate::event::DamageReceiveEvent;
+use crate::comp::{GameEntity, Health};
+use crate::event::{DamageReceiveEvent, EntityDeath};
 use bevy_ecs::prelude::*;
 use silkroad_protocol::combat::{
     ActionType, DamageContent, DamageKind, DamageValue, PerEntityDamage, PerformActionError, PerformActionUpdate,
     SkillPartDamage,
 };
-use silkroad_protocol::world::{AliveState, UpdatedState};
 
 pub(crate) fn handle_damage(
     mut reader: EventReader<DamageReceiveEvent>,
@@ -18,18 +17,19 @@ pub(crate) fn handle_damage(
         &mut Health,
         &mut Synchronize,
         &mut StateTransitionQueue,
+        &mut DamageReceiver,
         Option<&Player>,
-        Option<&Monster>,
     )>,
-    sender_query: Query<Option<&Client>>,
+    sender_query: Query<(&GameEntity, Option<&Client>)>,
+    mut entity_died: EventWriter<EntityDeath>,
 ) {
     for damage_event in reader.iter() {
-        let Ok((mut health, mut synchronize, mut controller, player, monster)) = receiver_query
+        let Ok((mut health, mut synchronize, mut controller, mut receiver, player)) = receiver_query
                 .get_mut(damage_event.target.0) else {
             continue;
         };
 
-        let attacker_client = sender_query
+        let (attacker, attacker_client) = sender_query
             .get(damage_event.source.0)
             .expect("Sender for damage event should exist");
 
@@ -41,6 +41,7 @@ pub(crate) fn handle_damage(
             continue;
         }
 
+        receiver.record_damage(attacker.unique_id, damage_event.amount as u64);
         health.reduce(damage_event.amount);
         synchronize.health = Some(health.current_health);
         let damage_data = if health.is_dead() {
@@ -67,8 +68,10 @@ pub(crate) fn handle_damage(
         }
 
         if health.is_dead() {
-            // TODO: this should be done by the state transition
-            synchronize.state.push(UpdatedState::Life(AliveState::Dead));
+            entity_died.send(EntityDeath {
+                died: damage_event.target.0,
+                killer: Some(damage_event.source.0),
+            });
             let dead_state = if player.is_some() {
                 Dead::new_player()
             } else {

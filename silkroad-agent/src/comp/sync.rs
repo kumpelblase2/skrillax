@@ -13,9 +13,13 @@ pub struct Synchronize {
 }
 
 pub enum MovementUpdate {
+    /// This entity has started moving from the given location towards the given target location.
     StartMove(LocalPosition, LocalPosition),
+    /// This entity has started moving from the given location towards the given direction.
     StartMoveTowards(LocalPosition, Heading),
+    /// This entity has finished its movement and stopped at the given location with the given rotation.
     StopMove(LocalPosition, Heading),
+    /// This entity has turned and is now facing the given direction.
     Turn(Heading),
 }
 

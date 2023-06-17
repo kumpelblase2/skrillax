@@ -1,5 +1,6 @@
-use crate::agent::states::StateTransitionQueue;
+use crate::agent::states::{Dead, StateTransitionQueue};
 use crate::agent::{Agent, MovementState};
+use crate::comp::damage::DamageReceiver;
 use crate::comp::monster::{Monster, MonsterBundle, RandomStroll, SpawnedBy};
 use crate::comp::npc::NpcBundle;
 use crate::comp::pos::Position;
@@ -63,7 +64,7 @@ pub(crate) fn spawn_npcs(
                     location: LocalPosition(spawn.region.into(), Vector3::new(spawn.x, spawn.y, spawn.z)).to_global(),
                     rotation: Heading(0.0),
                 };
-                commands.spawn((Spawner::new(&settings.spawner, spawn.npc_id), position));
+                commands.spawn((Spawner::new(&settings.spawner, character_data), position));
             }
         }
     }
@@ -100,8 +101,8 @@ pub(crate) fn spawn_monsters(
             trace!(spawner = ?entity, "Deactivating spawner");
             deactivate_spawner(entity, &mut spawner, &mut commands, &despawn_query);
         } else if spawner.active {
-            if spawner.has_spots_available() && spawner.should_spawn(delta) {
-                let empty_spots = spawner.target_amount - spawner.current_amount;
+            if spawner.should_spawn(delta) {
+                let empty_spots = spawner.available_spots();
                 let max_spawn = min(empty_spots, 3); // Spawn at most 3 at once
                 let to_spawn = rand::thread_rng().gen_range(1..=max_spawn);
 
@@ -114,7 +115,7 @@ pub(crate) fn spawn_monsters(
                     position,
                     to_spawn,
                 );
-                spawner.current_amount += spawned_amount;
+                spawner.increase_alive_by(spawned_amount);
             }
         }
     }
@@ -132,7 +133,7 @@ fn spawn_n_monsters(
     let spawned = (0..to_spawn)
         .map(|_| generate_position(position, spawner.radius))
         .filter_map(|loc| to_position(loc, navmesh))
-        .map(|pos| spawn_monster(spawner_entity, spawner.ref_id, id_pool.request_id().unwrap(), 54, pos))
+        .map(|pos| spawn_monster(spawner_entity, spawner.reference, id_pool.request_id().unwrap(), pos))
         .collect::<Vec<MonsterBundle>>();
 
     let spawned_amount = spawned.len();
@@ -159,8 +160,8 @@ fn activate_spawner(
         position,
         spawner.target_amount,
     );
+    spawner.increase_alive_by(spawned);
     spawner.active = true;
-    spawner.current_amount = spawned;
 }
 
 fn deactivate_spawner(
@@ -174,8 +175,7 @@ fn deactivate_spawner(
             commands.entity(spawned_entity).despawn();
         }
     }
-    spawner.current_amount = 0;
-    spawner.active = false;
+    spawner.deactivate();
 }
 
 fn generate_position(source_position: &Position, radius: f32) -> GlobalLocation {
@@ -204,9 +204,8 @@ fn to_position(location: GlobalLocation, navmesh: &mut NavmeshLoader<Pk2>) -> Op
 
 fn spawn_monster(
     spawner: Entity,
-    ref_id: u32,
+    reference: &RefCharacterData,
     unique_id: u32,
-    health: u32,
     target_location: Position,
 ) -> MonsterBundle {
     let spawn_center = target_location.location.to_location();
@@ -215,9 +214,12 @@ fn spawn_monster(
             target: None,
             rarity: EntityRarityType::Normal.into(),
         },
-        health: Health::new(health),
+        health: Health::new(reference.hp),
         position: target_location,
-        entity: GameEntity { ref_id, unique_id },
+        entity: GameEntity {
+            ref_id: reference.ref_id(),
+            unique_id,
+        },
         visibility: Visibility::with_radius(100.0),
         spawner: SpawnedBy { spawner },
         navigation: Agent::default(),
@@ -225,5 +227,19 @@ fn spawn_monster(
         stroll: RandomStroll::new(spawn_center, 100.0, Duration::from_secs(2)),
         state_queue: StateTransitionQueue::default(),
         movement_state: MovementState::default_monster(),
+        damage_receiver: DamageReceiver::default(),
+    }
+}
+
+pub(crate) fn collect_monster_deaths(
+    mut spawner_query: Query<&mut Spawner>,
+    entity_query: Query<&SpawnedBy, (With<Monster>, Added<Dead>)>,
+) {
+    for spawned_by in entity_query.iter() {
+        let Ok(mut spawner) = spawner_query.get_mut(spawned_by.spawner) else {
+            continue;
+        };
+
+        spawner.decrease_alive();
     }
 }

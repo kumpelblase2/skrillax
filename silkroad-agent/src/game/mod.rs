@@ -7,9 +7,9 @@ use crate::game::damage::handle_damage;
 use crate::game::daylight::{advance_daylight, DaylightCycle};
 use crate::game::drop::{create_drops, tick_drop, SpawnDrop};
 use crate::game::entity_sync::{clean_sync, sync_changes_others, update_client};
+use crate::game::exp::{distribute_experience, receive_experience, ReceiveExperienceEvent};
 use crate::game::inventory::handle_inventory_input;
 use crate::game::join::load_finished;
-use crate::game::levelup::notify_levelup;
 use crate::game::logout::{handle_logout, tick_logout};
 use crate::game::movement::movement_monster;
 use crate::game::player_activity::{update_player_activity, PlayerActivity};
@@ -25,10 +25,10 @@ mod damage;
 mod daylight;
 pub(crate) mod drop;
 mod entity_sync;
+mod exp;
 mod gold;
 pub(crate) mod inventory;
 mod join;
-mod levelup;
 pub(crate) mod logout;
 mod movement;
 pub(crate) mod player_activity;
@@ -51,6 +51,7 @@ impl Plugin for GamePlugin {
             .add_event::<SpawnDrop>()
             .add_event::<DamageReceiveEvent>()
             .add_event::<EntityDeath>()
+            .add_event::<ReceiveExperienceEvent>()
             .add_system(update_player_activity.in_base_set(CoreSet::PreUpdate))
             .add_system(handle_inventory_input)
             .add_system(visibility_update)
@@ -60,16 +61,17 @@ impl Plugin for GamePlugin {
             .add_system(handle_action)
             .add_system(tick_logout)
             .add_system(player_update_target)
+            .add_system(handle_damage)
+            .add_system(distribute_experience.after(handle_damage))
+            .add_system(receive_experience.after(distribute_experience))
             .add_systems(
                 (sync_changes_others, update_client)
                     .in_base_set(CoreSet::PostUpdate)
                     .after(AgentSet::Broadcast),
             )
-            .add_system(handle_damage)
             .add_systems(
                 (
                     player_visibility_update,
-                    notify_levelup,
                     load_finished,
                     unique_spawned,
                     unique_killed,

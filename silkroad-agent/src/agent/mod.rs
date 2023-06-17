@@ -1,6 +1,6 @@
 use crate::agent::event::{ActionFinished, MovementFinished};
 use crate::agent::states::{
-    action, dead, move_to_action, move_to_pickup, movement, pickup, turning, update_action_destination,
+    action, broadcast_dead, dead, move_to_action, move_to_pickup, movement, pickup, turning, update_action_destination,
     update_target_location,
 };
 use crate::agent::system::{
@@ -60,6 +60,7 @@ impl Plugin for AgentPlugin {
                     broadcast_movement_from_pickup,
                     broadcast_movement_from_action,
                     broadcast_action_stop,
+                    broadcast_dead,
                 )
                     .in_set(AgentSet::Broadcast),
             )
