@@ -158,7 +158,9 @@ server_packets! {
     0xB0EA => GameGuideResponse,
     0xB023 => EntityMovementInterrupt,
     0x3036 => UnknownActionData,
-    0x30D0 => ChangeSpeed
+    0x30D0 => ChangeSpeed,
+    0x3054 => LevelUpEffect,
+    0x3056 => ReceiveExperience
 }
 
 impl ServerPacket {

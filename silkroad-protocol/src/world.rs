@@ -1274,6 +1274,12 @@ pub enum CharacterPointsUpdate {
     Berserk { amount: u8, source: u32 },
 }
 
+impl CharacterPointsUpdate {
+    pub fn sp(amount: u32) -> CharacterPointsUpdate {
+        Self::SP { amount, display: false }
+    }
+}
+
 #[derive(Serialize, ByteSize)]
 pub struct UnknownActionData {
     pub entity: u32,
@@ -1285,4 +1291,25 @@ pub struct ChangeSpeed {
     pub entity: u32,
     pub walk_speed: f32,
     pub running_speed: f32,
+}
+
+#[derive(Serialize, ByteSize)]
+pub struct ReceiveExperience {
+    /// Unique ID of the entity that provided the experience
+    pub exp_origin: u32,
+    /// The amount of experience points
+    pub experience: u64,
+    /// the amount of skill experience points
+    pub sp: u64,
+    // Some kind of flag for reading additional data (either 4 or 8 bytes)
+    pub unknown: u8,
+    /// If the player reached a new level thanks to this experience and what the new level is
+    #[silkroad(size = 0)]
+    pub new_level: Option<u16>,
+}
+
+#[derive(Serialize, ByteSize)]
+pub struct LevelUpEffect {
+    /// Unique ID of the entity that levelled up
+    pub entity: u32,
 }
