@@ -9,39 +9,55 @@ use tracing::trace_span;
 
 const MASSIVE_PACKET_OPCODE: u16 = 0x600D;
 
+/// A 'frame' denotes the most fundamental block of data that can be sent between
+/// the client and the server. Any and all operations or data exchanges are built
+/// on top of a frame.
+///
+/// There are two types of frames: a basic frame and a massive frame. The latter
+/// is split into a frame for the header and a frame for the data. Only a basic
+/// frame may be encrypted. All server bound frames also contain an encryption-based
+/// counter to avoid replay attacks and a one byte CRC checksum for integrity
+/// checks.
 pub enum SilkroadFrame {
+    /// The most basic frame containing exactly one operation identified
+    /// by its opcode.
     Packet {
         count: u8,
         crc: u8,
         opcode: u16,
         encrypted: bool,
+        /// The contained data. If this frame was marked encrypted, this
+        /// already contains the decrypted data.
         data: Bytes,
     },
+    /// The header portion of a massive packet which contains information
+    /// that is necessary for the identification and usage of the followed
+    /// [SilkroadFrame::MassiveContainer] frame.
     MassiveHeader {
         count: u8,
         crc: u8,
         contained_opcode: u16,
         contained_count: u16,
     },
-    MassiveContainer {
-        count: u8,
-        crc: u8,
-        inner: Bytes,
-    },
+    /// The data container portion of a massive packet. Must come after
+    /// a [SilkroadFrame::MassiveHeader]. Given the opcode and included
+    /// count specified in the header frame, contains the data for `n`
+    /// operations of the same opcode.
+    MassiveContainer { count: u8, crc: u8, inner: Bytes },
 }
 
 #[derive(Error, Debug)]
 pub enum FrameError {
     #[error("I/O error when reading/writing from/to stream")]
     IoError(#[from] std::io::Error),
+    /// A frame always starts with its size. This error occurs if the provided
+    /// buffer is not large enough given the spezified size.
     #[error("The frame has not been completely transmitted yet")]
     Incomplete,
     #[error("The frame is encrypted, but no security was provided")]
     MissingSecurity,
     #[error("Error when encrypting/decrypting the frame")]
     SecurityError(#[from] SilkroadSecurityError),
-    #[error("Expected the packet to be massive")]
-    ExpectedMassivePacket,
 }
 
 impl SilkroadFrame {
@@ -49,6 +65,9 @@ impl SilkroadFrame {
         SilkroadSecurity::find_encrypted_length(length)
     }
 
+    /// Creates the necessary frames for the given [ServerPacket]. This will either return
+    /// a [Vec] of size `1` (if it's not a massive packet) or `1+n` (for massive packets), where
+    /// `n` depends on the size of the data packets.
     pub fn create_for(packet: ServerPacket) -> Vec<SilkroadFrame> {
         if packet.is_massive() {
             let (opcode, mut bytes) = packet.into_serialize();
@@ -81,6 +100,10 @@ impl SilkroadFrame {
         }
     }
 
+    /// Tries to parse the first possible frame from the given data slice.
+    /// It will also try to decrypt the frame, if it's encrypted. In
+    /// addition to the created frame, it will also return the size of
+    /// consumed bytes by the frame.
     pub fn parse(
         data: &[u8],
         security: &Option<Arc<RwLock<SilkroadSecurity>>>,
@@ -159,6 +182,11 @@ impl SilkroadFrame {
         }
     }
 
+    /// Computes the size that should be used for the length header field.
+    /// Depending on the type of frame this is either:
+    /// - The size of the contained data (basic frame)
+    /// - A fixed size (massive header frame)
+    /// - Container and data size (massive container frame)
     pub fn content_size(&self) -> usize {
         match &self {
             SilkroadFrame::Packet { data, .. } => data.len(),
@@ -175,6 +203,10 @@ impl SilkroadFrame {
         }
     }
 
+    /// Computes the total size of the network packet for this frame.
+    /// This is different from [Self::content_size] as it includes
+    /// the size of the header as well as the correct size for
+    /// encrypted packets.
     pub fn packet_size(&self) -> usize {
         6 + match &self {
             SilkroadFrame::Packet { data, encrypted, .. } => {

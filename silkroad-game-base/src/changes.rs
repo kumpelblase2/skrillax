@@ -1,5 +1,6 @@
 use std::collections::LinkedList;
 
+/// Defines something that tracks its changes, i.e. has a list of [Change] elements.
 pub trait ChangeTracked {
     type ChangeItem: Change;
     /// Returns any changes that have occurred in the time since the last request.
@@ -12,14 +13,22 @@ pub enum MergeResult<T> {
     Unchanged(T, T),
     /// Same as [MergeResult::Unchanged], but also that the left change
     /// would be disrupted by the right change. I.e. if the change would be
-    /// reordered, the changes would result in different outcomes.
+    /// reordered, the changes would result in different outcomes or could
+    /// become impossible.
     Incompatible(T, T),
-    /// The changes could be merged together
+    /// The changes could be merged together while the result of the merged
+    /// change would end up with the same value as the two changes applied
+    /// individually.
     Merged(T),
-    /// The two changes were opposite each other and thus cancelled each other out
+    /// The two changes were opposite each other and thus cancelled each
+    /// other out. In other words, if the two changes were to be applied,
+    /// the object they were applied to would be equal to the object before
+    /// the changes were applied.
     Cancelled,
 }
 
+/// An element that denotes a single, atomic change that has been or can be applied a given
+/// object.
 pub trait Change: Sized {
     /// Try and merge the `other` element with this element.
     /// There are several valid outcomes from this merge. For one, these elements could be the direct
@@ -37,6 +46,14 @@ pub trait Change: Sized {
     fn merge(self, other: Self) -> MergeResult<Self>;
 }
 
+/// Abstraction generally for things that contain [Change]s but are capable of
+/// working through these to optimize them by running [Change::merge] on them
+/// as much as possible to result in an optimized version of the changes.
+///
+/// When a list of changes is optimized, the end result may contain less entries
+/// then before. However, if both the unoptimized list of changes and the
+/// optimized list were to be applied to an object, the end result would be
+/// identical between the two versions.
 pub trait ToOptimizedChange {
     /// Optimize the set of contained changes by merging them
     /// as much as possible.

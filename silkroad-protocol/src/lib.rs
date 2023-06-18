@@ -82,11 +82,13 @@ client_packets! {
 
 macro_rules! server_packets {
     ($($opcode:literal => $name:ident),*) => {
+        /// The list of available packets that can be sent from the server.
         pub enum ServerPacket {
             $($name($name)),*
         }
 
         impl ServerPacket {
+            /// Serializes the given packet into its binary representation.
             pub fn into_serialize(self) -> (u16, Bytes) {
                 match self {
                     $(ServerPacket::$name(data) => ($opcode, data.into()),)*

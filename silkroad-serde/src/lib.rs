@@ -29,16 +29,36 @@ macro_rules! implement_primitive {
     };
 }
 
+/// The `Serialize` trait allows an item to be serialized into a binary
+/// representation of itself, which may then be used send it off over
+/// the network. This trait requires the [ByteSize] trait to also be
+/// present in order to pre-allocate the necessary amount of space for
+/// the serialized data.
+///
+/// `Serialize` only provides one method: [Serialize::write_to]. This
+/// method is used to serialize the data and write it into the given
+/// buffer. This buffer may already contain data unrelated to this item
+/// and may have more space available for more items to follow. However,
+/// it is always at least the size provided by [ByteSize].
 pub trait Serialize: ByteSize {
     fn write_to(&self, writer: &mut BytesMut);
 }
 
+/// `Deserialize` allows an item to be created from a binary representation.
+/// Given that there are many different ways such a conversion may fail, this
+/// operation will always yield a [Result]. It is not even sure that there
+/// are enough bytes available to be read for the deserialization of this
+/// item to completed successfully.
 pub trait Deserialize {
     fn read_from<T: Read + ReadBytesExt>(reader: &mut T) -> Result<Self, SerializationError>
     where
-        Self: Sized;
+        Self: Sized; // Technically, we don't care about being `Sized`, but unfortunately, Result does.
 }
 
+/// An item having a [ByteSize] implementation specifies it has a known
+/// size, independent of if it's [Sized] or not. The size reported by
+/// [ByteSize] may sometimes not be the same as [std::mem::size_of], as
+/// alignment should not be taken into account for [ByteSize].
 pub trait ByteSize {
     fn byte_size(&self) -> usize;
 }

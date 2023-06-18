@@ -2,6 +2,7 @@ use std::io;
 use std::string::{FromUtf16Error, FromUtf8Error};
 use thiserror::Error;
 
+/// Any kind of problem that may occur when trying to deserialize data.
 #[derive(Error, Debug)]
 pub enum SerializationError {
     #[error("I/O error when serialize/deserializing packet")]
