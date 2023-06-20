@@ -9,8 +9,11 @@ services:
       - POSTGRES_USER=skrillax
       - POSTGRES_DB=skrillax
       - POSTGRES_PASSWORD=skrillax
+    volumes:
+      - "./migrations:/docker-entrypoint-initdb.d:r"
 
   agent:
+    build: .
     image: kumpelblase2/skrillax
     environment:
       - SKRILLAX_AGENT_DATABASE_HOST=db
@@ -23,9 +26,10 @@ services:
       - db
     volumes:
       - "<silkroad game location>:/usr/silkroad"
-      - "<configuration location>:/opt/skrillax/configs:r"
+      - "./configs:/opt/skrillax/configs:r"
 
   gateway:
+    build: .
     image: kumpelblase2/skrillax
     environment:
       - SKRILLAX_GATEWAY_DATABASE_HOST=db
@@ -33,7 +37,7 @@ services:
     ports:
       - "15779:15779"
     volumes:
-      - "<configuration location>:/opt/skrillax/configs:r"
+      - "./configs:/opt/skrillax/configs:r"
     depends_on:
       - db
       - agent

@@ -1,4 +1,5 @@
 external-address = "127.0.0.1:15780"
+rpc-address = "agent"
 
 [game]
 data-location = "/usr/silkroad"
