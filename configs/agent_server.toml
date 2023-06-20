@@ -1,7 +1,4 @@
 external-address = "127.0.0.1:15780"
 
-[database]
-host = "localhost"
-user = "skrillax"
-password = "skrillax"
-database = "skrillax"
+[game]
+data-location = "/usr/silkroad"
