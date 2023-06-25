@@ -1,3 +1,6 @@
+use crate::comp::player::Player;
+use crate::comp::pos::Position;
+use crate::comp::Health;
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use sqlx::{Error, PgPool};
@@ -43,7 +46,7 @@ impl CharacterData {
     ) -> Result<Vec<CharacterData>, Error> {
         sqlx::query_as!(
             CharacterData,
-            "SELECT * FROM characters WHERE user_id = $1 AND server_id = $2 AND (deletion_end > NOW() OR deletion_end is null) ORDER BY id ASC",
+            "SELECT id, user_id, server_id, charname, character_type, scale, level, max_level, exp, sp, sp_exp, strength, intelligence, stat_points, current_hp, current_mp, deletion_end, x, y, z, rotation, region, berserk_points, gold, beginner_mark, gm, last_logout FROM characters WHERE user_id = $1 AND server_id = $2 AND (deletion_end > NOW() OR deletion_end is null) ORDER BY id ASC",
             user,
             shard as i32
         ).fetch_all(pool.borrow()).await
@@ -70,6 +73,34 @@ impl CharacterData {
         .execute(pool.borrow())
         .await
         .expect("Should be able to update last played.");
+    }
+
+    pub(crate) async fn update_character_info<T: Borrow<PgPool>>(
+        player: Player,
+        health: Health,
+        pos: Position,
+        pool: T,
+    ) {
+        let position = pos.location.to_local();
+        sqlx::query!(
+            "UPDATE characters SET level = $1, exp = $2, strength = $3, intelligence = $4, current_hp = $5, x = $6, y = $7, z = $8, region = $9, sp = $10, sp_exp = $11, stat_points = $12 WHERE id = $13",
+            player.character.level as i16,
+            player.character.exp as i64,
+            player.character.stats.strength() as i16,
+            player.character.stats.intelligence() as i16,
+            health.current_health as i32,
+            position.1.x as f32,
+            position.1.y as f32,
+            position.1.z as f32,
+            position.0.id() as i16,
+            player.character.sp as i32,
+            player.character.sp_exp as i32,
+            player.character.stat_points as i16,
+            player.character.id as i32
+        )
+        .execute(pool.borrow())
+        .await
+        .expect("Should be able to update stats of player");
     }
 }
 

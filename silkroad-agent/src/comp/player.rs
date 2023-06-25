@@ -12,7 +12,7 @@ use crate::input::PlayerInput;
 use bevy_ecs::prelude::*;
 use silkroad_game_base::{Character, Race, SpawningState, Stats};
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub(crate) struct Player {
     pub user: ServerUser,
     pub character: Character,
@@ -32,8 +32,6 @@ impl Player {
             sp_exp: data.sp_exp as u32,
             stats: Stats::new_preallocated(data.strength as u16, data.intelligence as u16),
             stat_points: data.stat_points as u16,
-            current_hp: data.current_hp as u32,
-            current_mp: data.current_mp as u32,
             berserk_points: data.berserk_points as u8,
             gold: data.gold as u64,
             beginner_mark: data.beginner_mark,
@@ -56,30 +54,32 @@ pub(crate) struct Buffed {
 
 #[derive(Bundle)]
 pub(crate) struct PlayerBundle {
-    player: Player,
-    inventory: PlayerInventory,
-    game_entity: GameEntity,
-    agent: Agent,
-    sync: Synchronize,
-    pos: Position,
-    buff: Buffed,
-    visibility: Visibility,
-    input: PlayerInput,
-    state_queue: StateTransitionQueue,
-    speed: MovementState,
-    damage_receiver: DamageReceiver,
-    health: Health,
+    pub player: Player,
+    pub inventory: PlayerInventory,
+    pub game_entity: GameEntity,
+    pub agent: Agent,
+    pub sync: Synchronize,
+    pub pos: Position,
+    pub buff: Buffed,
+    pub visibility: Visibility,
+    pub input: PlayerInput,
+    pub state_queue: StateTransitionQueue,
+    pub speed: MovementState,
+    pub damage_receiver: DamageReceiver,
+    pub health: Health,
 }
 
 impl PlayerBundle {
     pub fn new(
-        player: Player,
+        server_user: ServerUser,
+        character: &CharacterData,
         game_entity: GameEntity,
         inventory: PlayerInventory,
         agent: Agent,
         pos: Position,
         visibility: Visibility,
     ) -> Self {
+        let player = Player::from_db_data(server_user, &character);
         let max_hp = player.character.max_hp();
         Self {
             player,
@@ -94,7 +94,7 @@ impl PlayerBundle {
             state_queue: Default::default(),
             speed: MovementState::default_player(),
             damage_receiver: DamageReceiver::default(),
-            health: Health::new(max_hp),
+            health: Health::new_with_current(character.current_hp as u32, max_hp),
         }
     }
 }

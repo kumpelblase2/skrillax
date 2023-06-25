@@ -1,5 +1,6 @@
 const SCALING: f32 = 1.02;
 
+#[derive(Copy, Clone)]
 pub struct Stats {
     str: u16,
     int: u16,
