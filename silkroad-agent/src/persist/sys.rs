@@ -1,6 +1,6 @@
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
-use crate::comp::Health;
+use crate::comp::{Health, Mana};
 use crate::config::GameConfig;
 use crate::db::character::CharacterData;
 use crate::event::ClientDisconnectedEvent;
@@ -23,20 +23,20 @@ pub(crate) fn run_persistence(
     runtime: Res<TaskCreator>,
     delta: Res<Time>,
     db_pool: Res<DbPool>,
-    mut query: Query<(&mut Persistable, &Health, &Player, &Position)>,
+    mut query: Query<(&mut Persistable, &Health, &Mana, &Player, &Position)>,
 ) {
     let duration = delta.delta();
-    let mut updates: Vec<(Health, Player, Position)> = Vec::new();
-    for (mut persistable, health, player, position) in query.iter_mut() {
+    let mut updates: Vec<(Health, Mana, Player, Position)> = Vec::new();
+    for (mut persistable, health, mana, player, position) in query.iter_mut() {
         if persistable.should_persist(duration) {
-            updates.push((*health, player.clone(), *position));
+            updates.push((*health, *mana, player.clone(), *position));
         }
     }
 
     let pool = db_pool.clone();
     runtime.spawn(async move {
-        for (health, player, position) in updates.into_iter() {
-            CharacterData::update_character_info(player, health, position, &pool).await;
+        for (health, mana, player, position) in updates.into_iter() {
+            CharacterData::update_character_info(player, health, mana, position, &pool).await;
         }
     });
 }
@@ -44,18 +44,19 @@ pub(crate) fn run_persistence(
 pub(crate) fn run_exit_persistence(
     runtime: Res<TaskCreator>,
     db_pool: Res<DbPool>,
-    query: Query<(&Health, &Player, &Position)>,
+    query: Query<(&Health, &Mana, &Player, &Position)>,
     mut disconnect_events: EventReader<ClientDisconnectedEvent>,
 ) {
     for event in disconnect_events.iter() {
         match query.get(event.0) {
-            Ok((health, player, position)) => {
+            Ok((health, mana, player, position)) => {
                 let health = *health;
                 let player = player.clone();
                 let position = *position;
                 let pool = db_pool.clone();
+                let mana = *mana;
                 runtime.spawn(async move {
-                    CharacterData::update_character_info(player, health, position, pool).await;
+                    CharacterData::update_character_info(player, health, mana, position, pool).await;
                 });
             },
             Err(QueryEntityError::NoSuchEntity(_)) => {

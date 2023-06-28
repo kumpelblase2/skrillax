@@ -60,6 +60,26 @@ impl Health {
     }
 }
 
+#[derive(Component, Copy, Clone)]
+pub struct Mana {
+    pub current_mana: u32,
+    pub max_mana: u32,
+}
+
+impl Mana {
+    pub fn new_with_current(current: u32, max: u32) -> Mana {
+        Self {
+            current_mana: current,
+            max_mana: max,
+        }
+    }
+
+    pub fn upgrade(&mut self, new_max: u32) {
+        self.max_mana = new_max;
+        self.current_mana = new_max;
+    }
+}
+
 #[derive(Hash, Copy, Clone, Eq, PartialEq)]
 pub struct EntityReference(pub Entity, pub(crate) GameEntity);
 

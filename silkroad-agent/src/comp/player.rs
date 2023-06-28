@@ -5,7 +5,7 @@ use crate::comp::inventory::PlayerInventory;
 use crate::comp::pos::Position;
 use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
-use crate::comp::{GameEntity, Health};
+use crate::comp::{GameEntity, Health, Mana};
 use crate::db::character::CharacterData;
 use crate::db::user::ServerUser;
 use crate::input::PlayerInput;
@@ -67,6 +67,7 @@ pub(crate) struct PlayerBundle {
     pub speed: MovementState,
     pub damage_receiver: DamageReceiver,
     pub health: Health,
+    pub mana: Mana,
 }
 
 impl PlayerBundle {
@@ -81,6 +82,7 @@ impl PlayerBundle {
     ) -> Self {
         let player = Player::from_db_data(server_user, &character);
         let max_hp = player.character.max_hp();
+        let max_mp = player.character.max_mp();
         Self {
             player,
             game_entity,
@@ -95,6 +97,7 @@ impl PlayerBundle {
             speed: MovementState::default_player(),
             damage_receiver: DamageReceiver::default(),
             health: Health::new_with_current(character.current_hp as u32, max_hp),
+            mana: Mana::new_with_current(character.current_mp as u32, max_mp),
         }
     }
 }

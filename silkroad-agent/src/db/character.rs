@@ -1,6 +1,6 @@
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
-use crate::comp::Health;
+use crate::comp::{Health, Mana};
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use sqlx::{Error, PgPool};
@@ -78,6 +78,7 @@ impl CharacterData {
     pub(crate) async fn update_character_info<T: Borrow<PgPool>>(
         player: Player,
         health: Health,
+        mana: Mana,
         pos: Position,
         pool: T,
     ) {

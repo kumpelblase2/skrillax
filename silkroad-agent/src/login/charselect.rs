@@ -297,6 +297,7 @@ fn send_spawn(client: &Client, bundle: &PlayerBundle, max_level: u8) {
     let inventory = &bundle.inventory;
     let entity = &bundle.game_entity;
     let health = &bundle.health;
+    let mana = &bundle.mana;
 
     let entity_state = EntityState {
         alive: AliveState::Spawning,
@@ -342,7 +343,7 @@ fn send_spawn(client: &Client, bundle: &PlayerBundle, max_level: u8) {
         character_data.stat_points,
         character_data.berserk_points,
         health.current_health,
-        character_data.stats.max_mana(character_data.level),
+        mana.current_mana,
         character_data.beginner_mark,
         0,
         0,
