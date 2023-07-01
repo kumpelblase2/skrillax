@@ -2,6 +2,7 @@ use crate::{Race, SpawningState, Stats};
 use silkroad_data::masterydata::RefMasteryData;
 use std::cmp::max;
 
+#[derive(Clone)]
 pub struct Character {
     pub id: u32,
     pub name: String,
@@ -14,8 +15,6 @@ pub struct Character {
     pub sp_exp: u32,
     pub stats: Stats,
     pub stat_points: u16,
-    pub current_hp: u32,
-    pub current_mp: u32,
     pub berserk_points: u8,
     pub gold: u64,
     pub beginner_mark: bool,

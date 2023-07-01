@@ -10,6 +10,7 @@ mod input;
 mod login;
 mod mall;
 mod net;
+mod persist;
 mod population;
 mod server_plugin;
 mod tasks;
@@ -24,6 +25,7 @@ use crate::input::ReceivePlugin;
 use crate::login::LoginPlugin;
 use crate::mall::MallPlugin;
 use crate::net::NetworkPlugin;
+use crate::persist::PersistencePlugin;
 use crate::population::{CapacityController, LoginQueue};
 use crate::server_plugin::ServerPlugin;
 use crate::tasks::TaskCreator;
@@ -105,6 +107,7 @@ fn main() {
         .add_plugin(TimePlugin)
         .add_plugin(ReceivePlugin)
         .add_plugin(AgentPlugin)
+        .add_plugin(PersistencePlugin)
         .insert_resource::<DbPool>(db_pool.into())
         .insert_resource::<TaskCreator>(runtime.into())
         .add_plugin(ServerPlugin::new(configuration.game.clone(), server_id))

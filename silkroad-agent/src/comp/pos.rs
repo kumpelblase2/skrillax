@@ -3,7 +3,7 @@ use cgmath::{MetricSpace, Vector2};
 use silkroad_game_base::{GlobalPosition, Heading};
 use silkroad_protocol::world::{EntityMovementState, MovementType};
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Copy)]
 pub(crate) struct Position {
     pub location: GlobalPosition,
     pub rotation: Heading,

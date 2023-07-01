@@ -25,13 +25,20 @@ pub(crate) struct GameEntity {
 #[derive(Component)]
 pub(crate) struct Playing(pub(crate) ServerUser, pub(crate) PlayingToken);
 
-#[derive(Component)]
+#[derive(Component, Copy, Clone)]
 pub(crate) struct Health {
     pub current_health: u32,
     pub max_health: u32,
 }
 
 impl Health {
+    pub fn new_with_current(current: u32, max: u32) -> Self {
+        Self {
+            current_health: current,
+            max_health: max,
+        }
+    }
+
     pub fn new(max_health: u32) -> Self {
         Self {
             current_health: max_health,
@@ -50,6 +57,26 @@ impl Health {
     pub fn upgrade(&mut self, new_max: u32) {
         self.max_health = new_max;
         self.current_health = new_max;
+    }
+}
+
+#[derive(Component, Copy, Clone)]
+pub struct Mana {
+    pub current_mana: u32,
+    pub max_mana: u32,
+}
+
+impl Mana {
+    pub fn new_with_current(current: u32, max: u32) -> Mana {
+        Self {
+            current_mana: current,
+            max_mana: max,
+        }
+    }
+
+    pub fn upgrade(&mut self, new_max: u32) {
+        self.max_mana = new_max;
+        self.current_mana = new_max;
     }
 }
 

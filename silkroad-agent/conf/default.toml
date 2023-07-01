@@ -14,6 +14,7 @@ desired-ticks = 128
 client-timeout = 30
 deletion-time = 10080
 max-follow-distance = 300.0
+auto-save-interval = 30
 
 [game.spawner]
 radius = 500

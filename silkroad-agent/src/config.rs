@@ -50,6 +50,7 @@ pub(crate) struct GameConfig {
     pub(crate) deletion_time: u32,
     pub(crate) spawner: SpawnOptions,
     pub(crate) max_follow_distance: f32,
+    pub(crate) auto_save_interval: u32,
 }
 
 #[derive(Deserialize, Default, Clone)]

@@ -3,7 +3,7 @@ use crate::comp::net::Client;
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
 use crate::comp::sync::Synchronize;
-use crate::comp::{EntityReference, GameEntity, Health};
+use crate::comp::{EntityReference, GameEntity, Health, Mana};
 use crate::event::EntityDeath;
 use crate::world::{EntityLookup, WorldData};
 use bevy_ecs::prelude::*;
@@ -56,12 +56,19 @@ pub(crate) fn distribute_experience(
 
 pub(crate) fn receive_experience(
     mut experience_events: EventReader<ReceiveExperienceEvent>,
-    mut query: Query<(&GameEntity, &Client, &mut Player, &mut Health, &mut Synchronize)>,
+    mut query: Query<(
+        &GameEntity,
+        &Client,
+        &mut Player,
+        &mut Health,
+        &mut Mana,
+        &mut Synchronize,
+    )>,
 ) {
     let level_map = WorldData::levels();
 
     for event in experience_events.iter() {
-        let Ok((entity, client, mut player, mut health, mut sync)) = query.get_mut(event.target.0) else {
+        let Ok((entity, client, mut player, mut health, mut mana, mut sync)) = query.get_mut(event.target.0) else {
             continue;
         };
 
@@ -96,8 +103,11 @@ pub(crate) fn receive_experience(
                 "Levelled up! New level: {}", player.character.level
             );
 
-            health.max_health = player.character.max_hp();
-            health.current_health = health.max_health;
+            let new_max_hp = player.character.max_hp();
+            health.upgrade(new_max_hp);
+
+            let new_max_mp = player.character.max_mp();
+            mana.upgrade(new_max_mp);
 
             sync.did_level = true;
 
@@ -110,8 +120,8 @@ pub(crate) fn receive_experience(
                 mag_defense: 100,
                 hit_rate: 100,
                 parry_rate: 100,
-                max_hp: player.character.stats.max_health(player.character.level),
-                max_mp: player.character.stats.max_mana(player.character.level),
+                max_hp: player.character.max_hp(),
+                max_mp: player.character.max_mp(),
                 strength: player.character.stats.strength(),
                 intelligence: player.character.stats.intelligence(),
             });
@@ -121,7 +131,7 @@ pub(crate) fn receive_experience(
                 source: EntityBarUpdateSource::LevelUp,
                 updates: EntityBarUpdates::Both {
                     hp: health.current_health,
-                    mp: player.character.max_mp(),
+                    mp: mana.current_mana,
                 },
             })
         }

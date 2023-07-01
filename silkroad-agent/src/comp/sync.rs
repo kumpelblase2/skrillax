@@ -10,6 +10,7 @@ pub struct Synchronize {
     pub state: Vec<UpdatedState>,
     pub actions: Vec<ActionAnimation>,
     pub health: Option<u32>,
+    pub mana: Option<u32>,
     pub did_level: bool,
 }
 

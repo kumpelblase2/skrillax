@@ -1,7 +1,7 @@
 use crate::agent::Agent;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::net::Client;
-use crate::comp::player::{Player, PlayerBundle};
+use crate::comp::player::PlayerBundle;
 use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Playing};
@@ -167,22 +167,8 @@ pub(crate) fn handle_join(
                         continue;
                     }
 
-                    let mut player = Player::from_db_data(playing.0.clone(), &character.character_data);
                     let inventory =
                         PlayerInventory::from_db(&character.items, 45, character.character_data.gold as u64);
-
-                    player.character.masteries = character
-                        .masteries
-                        .iter()
-                        .map(|mastery| {
-                            (
-                                WorldData::masteries()
-                                    .find_id(mastery.mastery_id as u32)
-                                    .expect("Mastery should exist"),
-                                mastery.level as u8,
-                            )
-                        })
-                        .collect::<Vec<_>>();
 
                     let data = &character.character_data;
 
@@ -201,19 +187,33 @@ pub(crate) fn handle_join(
 
                     client.send(CharacterJoinResponse::success());
 
-                    send_spawn(client, &game_entity, &player, &inventory, &position, settings.max_level);
+                    let mut bundle = PlayerBundle::new(
+                        playing.0.clone(),
+                        &character.character_data,
+                        game_entity,
+                        inventory,
+                        agent,
+                        position.clone(),
+                        Visibility::with_radius(500.),
+                    );
+                    bundle.player.character.masteries = character
+                        .masteries
+                        .iter()
+                        .map(|mastery| {
+                            (
+                                WorldData::masteries()
+                                    .find_id(mastery.mastery_id as u32)
+                                    .expect("Mastery should exist"),
+                                mastery.level as u8,
+                            )
+                        })
+                        .collect::<Vec<_>>();
+                    send_spawn(client, &bundle, settings.max_level);
 
                     client.send(MacroStatus::Possible(MACRO_POTION | MACRO_HUNT | MACRO_SKILL, 0));
 
                     cmd.entity(entity)
-                        .insert(PlayerBundle::new(
-                            player,
-                            game_entity,
-                            inventory,
-                            agent,
-                            position.clone(),
-                            Visibility::with_radius(500.),
-                        ))
+                        .insert(bundle)
                         .remove::<CharacterSelect>()
                         .remove::<LoginInput>();
                 },
@@ -289,17 +289,15 @@ fn send_job_spread(client: &Client, hunters: u8, thieves: u8) {
     ));
 }
 
-fn send_spawn(
-    client: &Client,
-    entity: &GameEntity,
-    player: &Player,
-    inventory: &PlayerInventory,
-    position: &Position,
-    max_level: u8,
-) {
+fn send_spawn(client: &Client, bundle: &PlayerBundle, max_level: u8) {
     client.send(CharacterSpawnStart);
 
-    let character_data = &player.character;
+    let character_data = &bundle.player.character;
+    let position = &bundle.pos;
+    let inventory = &bundle.inventory;
+    let entity = &bundle.game_entity;
+    let health = &bundle.health;
+    let mana = &bundle.mana;
 
     let entity_state = EntityState {
         alive: AliveState::Spawning,
@@ -344,8 +342,8 @@ fn send_spawn(
         character_data.sp,
         character_data.stat_points,
         character_data.berserk_points,
-        character_data.current_hp,
-        character_data.current_mp,
+        health.current_health,
+        mana.current_mana,
         character_data.beginner_mark,
         0,
         0,
@@ -360,8 +358,7 @@ fn send_spawn(
         inventory_items,
         5,
         Vec::new(),
-        player
-            .character
+        character_data
             .masteries
             .iter()
             .map(|(mastery, level)| MasteryData {
@@ -388,7 +385,7 @@ fn send_spawn(
         false,
         0,
         0xFF,
-        player.user.id as u32,
+        bundle.player.user.id as u32,
         character_data.gm,
         Vec::new(),
         0,
