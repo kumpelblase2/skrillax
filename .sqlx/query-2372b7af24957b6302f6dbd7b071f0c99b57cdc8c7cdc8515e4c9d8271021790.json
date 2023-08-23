@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM user_item_mall WHERE user_id = $1 and server_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2372b7af24957b6302f6dbd7b071f0c99b57cdc8c7cdc8515e4c9d8271021790"
+}

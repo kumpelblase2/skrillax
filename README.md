@@ -27,25 +27,14 @@ two ways to go from here: Either you run the servers in a container or you run t
 steps for the method you chose below.
 
 In both cases you also need a working Silkroad Online installation. This needs to also be accessible by the server, 
-as this provides most of the data (skills, characters, items, world mesh).
+as this provides most of the data (skills, characters, items, world mesh). Unlike many previous implementations, 
+this currently uses a (mostly) recent iSro version (around v1.600). Currently, it will accept any version 
 
 ### via Docker
 
 If you want to run the servers in a docker container, ensure docker is already installed as well as docker-compose. 
 Next, copy the `docker-compose.yml.example` to `docker-compose.yml`. Now adjust the `<silkroad game location>` to 
-match the path of your silkroad directory (e.g. `/home/me/games/silkroad`) and `<configuration location>` to be the 
-path to the `configs` dir in this repository (e.g. `/home/me/projects/skrillax/configs`). Notice there are two 
-instances of the configuration location you have to fill in.
-
-Before we can start the compose file, please create the docker image first, as it's used by both game and agent 
-server. To do this, run the following command:
-```shell
-$ docker build -t kumpelblase2/skrillax .
-```
-This might take a while, depending on your system and internet connection, as this downloads all necessary 
-dependencies as well as build the binary.
-
-After this has completed, you can run:
+match the path of your silkroad directory (e.g. `/home/me/games/silkroad`). Then you can simply run
 ```shell
 $ docker-compose up
 ```

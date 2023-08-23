@@ -16,7 +16,7 @@ use crate::game::player_activity::{update_player_activity, PlayerActivity};
 use crate::game::target::player_update_target;
 use crate::game::unique::{unique_killed, unique_spawned};
 use crate::game::visibility::{clear_visibility, player_visibility_update, visibility_update};
-use bevy_app::{App, CoreSet, Plugin};
+use bevy_app::{App, Last, Plugin, PostUpdate, PreUpdate, Update};
 use bevy_ecs::prelude::*;
 
 mod action;
@@ -41,7 +41,7 @@ pub(crate) struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(ChatPlugin)
+        app.add_plugins(ChatPlugin)
             .insert_resource(PlayerActivity::default())
             .insert_resource(DaylightCycle::official())
             .insert_resource(AttackInstanceCounter::default())
@@ -52,24 +52,29 @@ impl Plugin for GamePlugin {
             .add_event::<DamageReceiveEvent>()
             .add_event::<EntityDeath>()
             .add_event::<ReceiveExperienceEvent>()
-            .add_system(update_player_activity.in_base_set(CoreSet::PreUpdate))
-            .add_system(handle_inventory_input)
-            .add_system(visibility_update)
-            .add_system(movement_monster)
-            .add_system(tick_drop)
-            .add_system(handle_logout)
-            .add_system(handle_action)
-            .add_system(tick_logout)
-            .add_system(player_update_target)
-            .add_system(handle_damage)
-            .add_system(distribute_experience.after(handle_damage))
-            .add_system(receive_experience.after(distribute_experience))
+            .add_systems(PreUpdate, update_player_activity)
             .add_systems(
-                (sync_changes_others, update_client)
-                    .in_base_set(CoreSet::PostUpdate)
-                    .after(AgentSet::Broadcast),
+                Update,
+                (
+                    handle_inventory_input,
+                    visibility_update,
+                    movement_monster,
+                    tick_drop,
+                    handle_logout,
+                    handle_action,
+                    tick_logout,
+                    player_update_target,
+                    handle_damage,
+                    distribute_experience.after(handle_damage),
+                    receive_experience.after(distribute_experience),
+                ),
             )
             .add_systems(
+                PostUpdate,
+                (sync_changes_others, update_client).after(AgentSet::Broadcast),
+            )
+            .add_systems(
+                PostUpdate,
                 (
                     player_visibility_update,
                     load_finished,
@@ -77,9 +82,8 @@ impl Plugin for GamePlugin {
                     unique_killed,
                     advance_daylight,
                     create_drops,
-                )
-                    .in_base_set(CoreSet::PostUpdate),
+                ),
             )
-            .add_systems((clean_sync, clear_visibility).in_base_set(CoreSet::Last));
+            .add_systems(Last, (clean_sync, clear_visibility));
     }
 }

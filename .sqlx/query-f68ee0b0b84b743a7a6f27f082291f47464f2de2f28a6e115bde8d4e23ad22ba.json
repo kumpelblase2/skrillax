@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, region, address, port, rpc_address, rpc_port, token FROM servers",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "region",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "port",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "rpc_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "rpc_port",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "token",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f68ee0b0b84b743a7a6f27f082291f47464f2de2f28a6e115bde8d4e23ad22ba"
+}

@@ -1,0 +1,179 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM characters WHERE user_id = $1 AND server_id = $2 AND (deletion_end > NOW() OR deletion_end is null) ORDER BY id ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "server_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "character_type",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "scale",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "level",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 6,
+        "name": "exp",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "strength",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 8,
+        "name": "intelligence",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 9,
+        "name": "stat_points",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 10,
+        "name": "current_hp",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "current_mp",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "charname",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 13,
+        "name": "deletion_end",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "sp",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 15,
+        "name": "x",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 16,
+        "name": "y",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 17,
+        "name": "z",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 18,
+        "name": "max_level",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 19,
+        "name": "region",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 20,
+        "name": "berserk_points",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 21,
+        "name": "gold",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 22,
+        "name": "sp_exp",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 23,
+        "name": "beginner_mark",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 24,
+        "name": "gm",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 25,
+        "name": "last_logout",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 26,
+        "name": "rotation",
+        "type_info": "Int2"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "09a11418117d5182992d4606e13e7902c768b1ec7969094b2a92c2f061cd9bb1"
+}

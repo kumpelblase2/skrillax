@@ -9,7 +9,7 @@ use crate::agent::system::{
     transition_from_move_to_action, transition_from_move_to_pickup, transition_from_moving, transition_from_sitting,
     transition_to_idle,
 };
-use bevy_app::{App, CoreSet, Plugin};
+use bevy_app::{App, Plugin, PostUpdate, PreUpdate, Update};
 use bevy_ecs::prelude::*;
 pub(crate) use component::*;
 
@@ -32,16 +32,13 @@ impl Plugin for AgentPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<MovementFinished>()
             .add_event::<ActionFinished>()
-            .configure_set(AgentSet::Input.in_base_set(CoreSet::PreUpdate))
-            .configure_set(
-                AgentSet::Transition
-                    .in_base_set(CoreSet::PreUpdate)
-                    .after(AgentSet::Input),
-            )
-            .configure_set(AgentSet::Execute.in_base_set(CoreSet::Update))
-            .configure_set(AgentSet::Broadcast.in_base_set(CoreSet::PostUpdate))
-            .add_system(movement_input.in_set(AgentSet::Input))
+            .configure_set(PreUpdate, AgentSet::Input)
+            .configure_set(Update, AgentSet::Transition)
+            .configure_set(Update, AgentSet::Execute.after(AgentSet::Transition))
+            .configure_set(PostUpdate, AgentSet::Broadcast)
+            .add_systems(PreUpdate, movement_input.in_set(AgentSet::Input))
             .add_systems(
+                Update,
                 (
                     transition_to_idle,
                     transition_from_idle,
@@ -54,6 +51,7 @@ impl Plugin for AgentPlugin {
                     .in_set(AgentSet::Transition),
             )
             .add_systems(
+                PostUpdate,
                 (
                     broadcast_movement_stop,
                     broadcast_movement_begin,
@@ -65,6 +63,7 @@ impl Plugin for AgentPlugin {
                     .in_set(AgentSet::Broadcast),
             )
             .add_systems(
+                Update,
                 (
                     update_target_location,
                     movement.after(update_target_location),

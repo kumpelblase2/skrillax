@@ -101,17 +101,17 @@ fn main() {
 
     info!("Listening for clients");
     App::new()
-        .add_plugin(TaskPoolPlugin::default())
-        .add_plugin(TimePlugin)
-        .add_plugin(ReceivePlugin)
-        .add_plugin(AgentPlugin)
+        .add_plugins(TaskPoolPlugin::default())
+        .add_plugins(TimePlugin)
+        .add_plugins(ReceivePlugin)
+        .add_plugins(AgentPlugin)
         .insert_resource::<DbPool>(db_pool.into())
         .insert_resource::<TaskCreator>(runtime.into())
-        .add_plugin(ServerPlugin::new(configuration.game.clone(), server_id))
-        .add_plugin(WorldPlugin)
-        .add_plugin(NetworkPlugin::new(network))
-        .add_plugin(LoginPlugin::new(queue))
-        .add_plugin(GamePlugin)
-        .add_plugin(MallPlugin)
+        .add_plugins(ServerPlugin::new(configuration.game.clone(), server_id))
+        .add_plugins(WorldPlugin)
+        .add_plugins(NetworkPlugin::new(network))
+        .add_plugins(LoginPlugin::new(queue))
+        .add_plugins(GamePlugin)
+        .add_plugins(MallPlugin)
         .run();
 }

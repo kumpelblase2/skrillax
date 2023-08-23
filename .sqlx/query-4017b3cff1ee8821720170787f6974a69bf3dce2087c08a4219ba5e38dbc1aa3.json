@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE characters SET last_logout = CURRENT_TIMESTAMP WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4017b3cff1ee8821720170787f6974a69bf3dce2087c08a4219ba5e38dbc1aa3"
+}

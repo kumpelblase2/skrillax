@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(job) as \"count!\", job FROM user_servers WHERE job <> 0 AND server_id = $1 GROUP BY job",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "job",
+        "type_info": "Int2"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      false
+    ]
+  },
+  "hash": "c8fabc599290bc2f9a95caa4b1c9eea3a78b36005a87ef1161f0bcc88c929799"
+}

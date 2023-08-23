@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM user_item_mall WHERE expiry <= NOW()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "34effd3541e1e989208a02a76de6cd40ffd85def57cd9586432a35b45fa5f0bb"
+}

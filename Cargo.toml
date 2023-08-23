@@ -30,7 +30,7 @@ bytes = "1.2.1"
 clap = "4.3"
 pk2 = "0.1.0"
 serde = { version = "1.0.162", features = ["derive"] }
-sqlx = { version = "0.6.2", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "offline"] }
+sqlx = { version = "0.7.1", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono"] }
 
 [profile.dev]
 opt-level = 1

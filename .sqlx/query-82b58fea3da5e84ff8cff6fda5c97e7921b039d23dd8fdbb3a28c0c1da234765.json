@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT job, premium_type, premium_end FROM user_servers WHERE user_id = $1 AND server_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "job",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 1,
+        "name": "premium_type",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 2,
+        "name": "premium_end",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "82b58fea3da5e84ff8cff6fda5c97e7921b039d23dd8fdbb3a28c0c1da234765"
+}

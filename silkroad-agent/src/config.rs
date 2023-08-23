@@ -26,13 +26,12 @@ impl DbOptions {
 
         debug!(username = ?self.user, host = ?self.host, database = ?self.database, "Connecting to db");
 
-        let mut connect_options = PgConnectOptions::new()
+        let connect_options = PgConnectOptions::new()
             .username(&self.user)
             .password(&self.password)
             .host(&self.host)
-            .database(&self.database);
-
-        connect_options.log_statements(LevelFilter::Debug);
+            .database(&self.database)
+            .log_statements(LevelFilter::Debug);
 
         options.connect_with(connect_options).await
     }

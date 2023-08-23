@@ -9,7 +9,7 @@ use rand::Rng;
 use silkroad_data::DataEntry;
 use silkroad_game_base::{GlobalLocation, GlobalPosition, Heading, Item, Vector2Ext};
 
-#[derive(Constructor)]
+#[derive(Constructor, Event)]
 pub(crate) struct SpawnDrop {
     item: Item,
     relative_position: GlobalLocation,

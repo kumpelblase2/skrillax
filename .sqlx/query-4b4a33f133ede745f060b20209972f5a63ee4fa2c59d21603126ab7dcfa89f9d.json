@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO character_items(character_id, item_obj_id, upgrade_level, slot) VALUES($1, $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Int2",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4b4a33f133ede745f060b20209972f5a63ee4fa2c59d21603126ab7dcfa89f9d"
+}

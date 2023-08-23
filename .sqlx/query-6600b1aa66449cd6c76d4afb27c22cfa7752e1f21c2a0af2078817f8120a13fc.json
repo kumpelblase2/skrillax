@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT title, body, date FROM news WHERE visible = true ORDER BY date ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "body",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "date",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6600b1aa66449cd6c76d4afb27c22cfa7752e1f21c2a0af2078817f8120a13fc"
+}

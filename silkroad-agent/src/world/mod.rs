@@ -1,6 +1,5 @@
 use crate::world::lookup::{collect_entities, maintain_entities};
-use bevy_app::{App, CoreSet, Plugin};
-use bevy_ecs::prelude::*;
+use bevy_app::{App, First, Last, Plugin, Startup, Update};
 use pk2::Pk2;
 use silkroad_data::npc_pos::NpcPosition;
 use silkroad_navmesh::NavmeshLoader;
@@ -36,11 +35,11 @@ impl Plugin for WorldPlugin {
         app.insert_resource(EntityIdPool::default())
             .insert_resource(EntityLookup::default())
             .insert_resource::<NpcPositionList>(npcs.into())
-            .add_startup_system(spawning::spawn_npcs)
-            .add_system(maintain_entities.in_base_set(CoreSet::First))
-            .add_system(collect_entities.in_base_set(CoreSet::Last))
-            .add_system(spawning::spawn_monsters)
-            .add_system(spawning::collect_monster_deaths.in_base_set(CoreSet::Last))
+            .add_systems(Startup, spawning::spawn_npcs)
+            .add_systems(First, maintain_entities)
+            .add_systems(Last, collect_entities)
+            .add_systems(Update, spawning::spawn_monsters)
+            .add_systems(Last, spawning::collect_monster_deaths)
             .insert_resource::<Navmesh>(NavmeshLoader::new(data_pk2).into());
     }
 }

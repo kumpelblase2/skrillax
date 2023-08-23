@@ -1,5 +1,5 @@
 use crate::config::GameConfig;
-use bevy_app::{App, Plugin, ScheduleRunnerPlugin, ScheduleRunnerSettings};
+use bevy_app::{App, Plugin, ScheduleRunnerPlugin};
 use bevy_ecs_macros::Resource;
 use std::ops::Div;
 use std::time::Duration;
@@ -24,10 +24,9 @@ impl ServerPlugin {
 impl Plugin for ServerPlugin {
     fn build(&self, app: &mut App) {
         if self.configuration.desired_ticks > 0 {
-            app.insert_resource(ScheduleRunnerSettings::run_loop(
+            app.add_plugins(ScheduleRunnerPlugin::run_loop(
                 Duration::from_secs(1).div(self.configuration.desired_ticks),
-            ))
-            .add_plugin(ScheduleRunnerPlugin);
+            ));
         }
 
         app.insert_resource(self.configuration.clone())

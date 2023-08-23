@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT mastery_id, character_id, level FROM character_masteries WHERE character_id in (SELECT * FROM UNNEST($1::INTEGER[]))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "mastery_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "character_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "level",
+        "type_info": "Int2"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a2a81375b495547004baa89da119c6085932e203d75ca981afc9202a040fe201"
+}

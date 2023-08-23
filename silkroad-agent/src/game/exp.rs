@@ -16,6 +16,7 @@ use tracing::debug;
 const SP_EXP_PER_SP: u32 = 400;
 const EXP_RECEIVE_RANGE_SQUARED: f32 = 1000.0 * 1000.0;
 
+#[derive(Event)]
 pub struct ReceiveExperienceEvent {
     pub source: EntityReference,
     pub target: EntityReference,
