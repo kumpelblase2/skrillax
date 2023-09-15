@@ -41,12 +41,12 @@ pub(crate) fn handle_command(
                 client.send(command_response(format!("X: {} | Z: {}", pos.x, pos.z)));
             } else if event.1.name == "target" {
                 let Some(target) = target else {
-                    client.send(command_response( "No target selected.".to_owned()));
+                    client.send(command_response("No target selected.".to_owned()));
                     continue;
                 };
 
                 let Ok(other_pos) = target_query.get(target.entity()) else {
-                    client.send(command_response(  "Target does not exist.".to_owned()));
+                    client.send(command_response("Target does not exist.".to_owned()));
                     continue;
                 };
 

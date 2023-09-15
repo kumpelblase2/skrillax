@@ -157,7 +157,9 @@ pub(crate) fn handle_join(
                         .find(|char| char.character_data.charname == join.character_name)
                         .unwrap();
 
-                    let Some(character_data) = WorldData::characters().find_id(character.character_data.character_type as u32) else {
+                    let Some(character_data) =
+                        WorldData::characters().find_id(character.character_data.character_type as u32)
+                    else {
                         client.send(CharacterJoinResponse::error(CharacterListError::FailedToJoinWorld));
                         continue;
                     };

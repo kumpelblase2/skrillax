@@ -120,7 +120,7 @@ mod test {
     extern crate self as silkroad_serde;
 
     use super::*;
-    use bytes::{Buf, Bytes, BytesMut};
+    use bytes::{Bytes, BytesMut};
     use silkroad_serde::SerializationError;
     use silkroad_serde_derive::{ByteSize, Deserialize, Serialize};
 

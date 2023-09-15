@@ -24,8 +24,9 @@ pub(crate) fn handle_damage(
     mut entity_died: EventWriter<EntityDeath>,
 ) {
     for damage_event in reader.iter() {
-        let Ok((mut health, mut synchronize, mut controller, mut receiver, player)) = receiver_query
-                .get_mut(damage_event.target.0) else {
+        let Ok((mut health, mut synchronize, mut controller, mut receiver, player)) =
+            receiver_query.get_mut(damage_event.target.0)
+        else {
             continue;
         };
 
