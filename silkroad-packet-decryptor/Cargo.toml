@@ -3,12 +3,8 @@ name = "silkroad-packet-decryptor"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 silkroad-security = { path = "../silkroad-security" }
-silkroad-network = { path = "../silkroad-network" }
-silkroad-protocol = { path = "../silkroad-protocol" }
 pcap-file = "2.0.0"
 pktparse = "0.7.1"
 byteorder = { workspace = true }

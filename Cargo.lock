@@ -2877,8 +2877,6 @@ dependencies = [
  "num_cpus",
  "pcap-file",
  "pktparse",
- "silkroad-network",
- "silkroad-protocol",
  "silkroad-security",
 ]
 
