@@ -61,7 +61,17 @@ const BLOWFISH_BLOCK_SIZE: usize = 8;
 
 /// [SilkroadSecurity] handles the handshake and continuous encryption/decryption of a connection to a silkroad client.
 ///
-///  A general
+/// To be able to encrypt/decrypt data sent across a silkroad connection, a handshake has to first be established.
+/// This is generally done by the server, sending initialization data along for the client the respond to with
+/// its own initialization data. When both sides have the initialization data, they can independently create a
+/// shared secret, similar to a Diffie-Hellman key exchange. In short, the handshake follows the following
+/// procedure:
+/// - [SilkroadSecurity::initialize]
+/// - [SilkroadSecurity::start_challenge]
+/// - [SilkroadSecurity::accept_challenge]
+///
+/// Once the handshake has been successfully completed and a shared secret being established, it is now possible
+/// to encrypt and decrypt data using [SilkroadSecurity::encrypt] and [SilkroadSecurity::decrypt] respectively.
 pub struct SilkroadSecurity {
     state: SecurityState,
 }
@@ -138,11 +148,11 @@ impl SilkroadSecurity {
     /// Create a challenge to the client.
     ///
     /// This creates a challenge for the client, signaling a switch to an encrypted channel using the exchanged key
-    /// material. We also check if the key, that the client sent us, matches was we would expect given what we've
+    /// material. We also check if the key, that the client sent us, matches what we would expect given what we've
     /// witnessed in the key exchange.
     ///
     /// If successful, returns the challenge for the client. If [initialize][Self::initialize()] hasn't been called,
-    /// returns [SilkroadSecurityError::SecurityUninitialized]. If the passed key does not match the key we expect,
+    /// returns [SilkroadSecurityError::SecurityUninitialized]. If the passed key does not match the key we expected,
     /// will return [SilkroadSecurityError::KeyExchangeMismatch].
     pub fn start_challenge(&mut self, value_b: u32, client_key: u64) -> Result<u64, SilkroadSecurityError> {
         match self.state {
@@ -253,9 +263,9 @@ impl SilkroadSecurity {
     ///
     /// Decrypts the given input by splitting it into the individual encrypted blocks. The output is all decrypted data,
     /// which may contain padding that was added before encryption. Bytes are copied before performing decryption.
-    /// To decrypt in place, use [decrypt_mut][Self::decrypt_mut()]
+    /// To decrypt in place, use [decrypt_mut][Self::decrypt_mut()].
     ///
-    /// If handshake hasn't been completed yet, will result in [SilkroadSecurityError::SecurityUninitialized].
+    /// If a handshake hasn't been completed yet, will result in [SilkroadSecurityError::SecurityUninitialized].
     /// If the input doesn't match the required block length it will return [SilkroadSecurityError::InvalidBlockLength].
     pub fn decrypt(&self, data: &[u8]) -> Result<Bytes, SilkroadSecurityError> {
         let mut result = bytes::BytesMut::from(data);
