@@ -14,10 +14,10 @@ pub fn load_mastery_map(pk2: &Pk2) -> Result<DataMap<RefMasteryData>, FileError>
 }
 
 pub struct RefMasteryData {
-    ref_id: u16,
-    secondary: Option<NonZeroU8>,
-    id: String,
-    weapons: Vec<u8>,
+    pub ref_id: u16,
+    pub secondary: Option<NonZeroU8>,
+    pub id: String,
+    pub weapons: Vec<u8>,
 }
 
 impl DataEntry for RefMasteryData {

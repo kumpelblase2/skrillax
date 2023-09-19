@@ -81,6 +81,9 @@ pub(crate) fn receive_game_inputs(
                         ClientPacket::FinishLoading(_) => {
                             loading_events.send(LoadingFinishedEvent(entity));
                         },
+                        ClientPacket::LevelUpMastery(mastery) => {
+                            input.mastery = Some(mastery);
+                        },
                         _ => {},
                     }
                 },

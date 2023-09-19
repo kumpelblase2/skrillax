@@ -17,6 +17,10 @@ impl LevelMap {
     pub fn get_exp_for_level(&self, level: u8) -> Option<u64> {
         self.get(&level).map(|level| level.exp)
     }
+
+    pub fn get_mastery_sp_for_level(&self, level: u8) -> Option<u32> {
+        self.get(&level).map(|level| level.exp_mastery)
+    }
 }
 
 impl Deref for LevelMap {

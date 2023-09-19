@@ -7,6 +7,7 @@ use silkroad_protocol::gm::GmCommand;
 use silkroad_protocol::inventory::InventoryOperation;
 use silkroad_protocol::world::{MovementTarget, Rotation, TargetEntity, UnTargetEntity};
 use std::mem;
+use silkroad_protocol::skill::LevelUpMastery;
 
 #[derive(Component, Default)]
 pub(crate) struct PlayerInput {
@@ -19,6 +20,7 @@ pub(crate) struct PlayerInput {
     pub rotation: Option<Rotation>,
     pub inventory: Option<InventoryOperation>,
     pub gm: Option<GmCommand>,
+    pub mastery: Option<LevelUpMastery>
 }
 
 impl PlayerInput {
