@@ -11,12 +11,12 @@ use crate::game::exp::{distribute_experience, receive_experience, ReceiveExperie
 use crate::game::inventory::handle_inventory_input;
 use crate::game::join::load_finished;
 use crate::game::logout::{handle_logout, tick_logout};
+use crate::game::mastery::{handle_mastery_levelup, learn_skill};
 use crate::game::movement::movement_monster;
 use crate::game::player_activity::{update_player_activity, PlayerActivity};
 use crate::game::target::player_update_target;
 use crate::game::unique::{unique_killed, unique_spawned};
 use crate::game::visibility::{clear_visibility, player_visibility_update, visibility_update};
-use crate::game::mastery::handle_mastery_levelup;
 use bevy_app::{App, Last, Plugin, PostUpdate, PreUpdate, Update};
 use bevy_ecs::prelude::*;
 
@@ -69,7 +69,8 @@ impl Plugin for GamePlugin {
                     handle_damage,
                     distribute_experience.after(handle_damage),
                     receive_experience.after(distribute_experience),
-                    handle_mastery_levelup
+                    handle_mastery_levelup,
+                    learn_skill,
                 ),
             )
             .add_systems(

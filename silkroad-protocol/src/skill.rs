@@ -4,7 +4,7 @@ use silkroad_serde_derive::*;
 #[derive(Deserialize, Copy, Clone)]
 pub struct LevelUpMastery {
     pub mastery: u32,
-    pub amount: u8
+    pub amount: u8,
 }
 
 #[derive(Serialize, ByteSize, Copy, Clone)]
@@ -21,10 +21,18 @@ pub enum LevelUpMasteryError {
 #[derive(Serialize, ByteSize)]
 pub enum LevelUpMasteryResponse {
     #[silkroad(value = 1)]
-    Success {
-        mastery: u32,
-        new_level: u8
-    },
+    Success { mastery: u32, new_level: u8 },
     #[silkroad(value = 2)]
     Error(LevelUpMasteryError),
+}
+
+#[derive(Deserialize)]
+pub struct LearnSkill(pub u32);
+
+#[derive(Serialize, ByteSize)]
+pub enum LearnSkillResponse {
+    #[silkroad(value = 1)]
+    Success(u32),
+    #[silkroad(value = 2)]
+    Error(LevelUpMasteryError), // TODO
 }

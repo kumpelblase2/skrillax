@@ -22,6 +22,15 @@ pub enum Race {
     Chinese,
 }
 
+impl Race {
+    pub fn as_skill_origin(self) -> u8 {
+        match self {
+            Race::European => 1,
+            Race::Chinese => 0,
+        }
+    }
+}
+
 #[derive(Eq, PartialEq, Copy, Clone)]
 pub enum SpawningState {
     Loading,

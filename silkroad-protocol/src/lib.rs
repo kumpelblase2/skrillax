@@ -6,8 +6,8 @@ use crate::error::ProtocolError;
 use crate::general::*;
 use crate::gm::*;
 use crate::login::*;
-use crate::world::*;
 use crate::skill::*;
+use crate::world::*;
 use bytes::Bytes;
 
 pub mod auth;
@@ -19,8 +19,8 @@ pub mod general;
 pub mod gm;
 pub mod inventory;
 pub mod login;
-pub mod world;
 pub mod skill;
+pub mod world;
 
 use crate::inventory::*;
 pub use silkroad_serde::SilkroadTime;
@@ -80,7 +80,8 @@ client_packets! {
     0x755D => OpenItemMall,
     0x7074 => PerformAction,
     0x70EA => UpdateGameGuide,
-    0x70A2 => LevelUpMastery
+    0x70A2 => LevelUpMastery,
+    0x70A1 => LearnSkill
 }
 
 macro_rules! server_packets {
@@ -166,7 +167,8 @@ server_packets! {
     0x30D0 => ChangeSpeed,
     0x3054 => LevelUpEffect,
     0x3056 => ReceiveExperience,
-    0xB0A2 => LevelUpMasteryResponse
+    0xB0A2 => LevelUpMasteryResponse,
+    0xB0A1 => LearnSkillResponse
 }
 
 impl ServerPacket {

@@ -84,6 +84,7 @@ pub(crate) fn receive_game_inputs(
                         ClientPacket::LevelUpMastery(mastery) => {
                             input.mastery = Some(mastery);
                         },
+                        ClientPacket::LearnSkill(skill) => input.skill_add = Some(skill),
                         _ => {},
                     }
                 },

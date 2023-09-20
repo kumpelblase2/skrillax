@@ -60,8 +60,8 @@ impl FromStr for AutoAttack {
 }
 
 pub struct LearnedSkill {
-    ref_id: u32,
-    level: u8,
+    pub group: u32,
+    pub level: u8,
 }
 
 pub struct SkillTimings {
@@ -166,20 +166,20 @@ impl FromStr for RefSkillData {
         let mastery_level: u8 = elements.get(36).ok_or(ParseError::MissingColumn(36))?.parse()?;
         let skills = vec![
             LearnedSkill {
-                ref_id: elements.get(40).ok_or(ParseError::MissingColumn(40))?.parse()?,
+                group: elements.get(40).ok_or(ParseError::MissingColumn(40))?.parse()?,
                 level: elements.get(43).ok_or(ParseError::MissingColumn(43))?.parse()?,
             },
             LearnedSkill {
-                ref_id: elements.get(41).ok_or(ParseError::MissingColumn(41))?.parse()?,
+                group: elements.get(41).ok_or(ParseError::MissingColumn(41))?.parse()?,
                 level: elements.get(44).ok_or(ParseError::MissingColumn(44))?.parse()?,
             },
             LearnedSkill {
-                ref_id: elements.get(42).ok_or(ParseError::MissingColumn(42))?.parse()?,
+                group: elements.get(42).ok_or(ParseError::MissingColumn(42))?.parse()?,
                 level: elements.get(45).ok_or(ParseError::MissingColumn(45))?.parse()?,
             },
         ]
         .into_iter()
-        .filter(|skill| skill.ref_id != 0)
+        .filter(|skill| skill.group != 0)
         .collect::<Vec<_>>();
 
         let mut params = Vec::new();

@@ -40,6 +40,7 @@ impl Player {
             gm: data.gm,
             state: SpawningState::Loading,
             masteries: Vec::new(),
+            skills: Vec::new(),
         }
     }
 
