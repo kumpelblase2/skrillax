@@ -21,6 +21,10 @@ impl LevelMap {
     pub fn get_mastery_sp_for_level(&self, level: u8) -> Option<u32> {
         self.get(&level).map(|level| level.exp_mastery)
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = (u8, &RefLevel)> {
+        self.0.iter().map(|(id, level)| (*id, level))
+    }
 }
 
 impl Deref for LevelMap {

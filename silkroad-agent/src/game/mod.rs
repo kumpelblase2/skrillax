@@ -26,7 +26,7 @@ mod damage;
 mod daylight;
 pub(crate) mod drop;
 mod entity_sync;
-mod exp;
+pub(crate) mod exp;
 mod gold;
 pub(crate) mod inventory;
 mod join;

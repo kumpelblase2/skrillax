@@ -18,7 +18,7 @@ const EXP_RECEIVE_RANGE_SQUARED: f32 = 1000.0 * 1000.0;
 
 #[derive(Event)]
 pub struct ReceiveExperienceEvent {
-    pub source: EntityReference,
+    pub source: Option<EntityReference>,
     pub target: EntityReference,
     pub exp: u64,
     pub sp: u64,
@@ -43,7 +43,7 @@ pub(crate) fn distribute_experience(
             {
                 if death_location.distance_to(position) <= EXP_RECEIVE_RANGE_SQUARED {
                     let event = ReceiveExperienceEvent {
-                        source: EntityReference(event.died, *dead_entity),
+                        source: Some(EntityReference(event.died, *dead_entity)),
                         target: EntityReference(target_entity, *game_entity),
                         exp: 100,
                         sp: 100,
@@ -84,7 +84,7 @@ pub(crate) fn receive_experience(
         }
 
         client.send(ReceiveExperience {
-            exp_origin: event.source.1.unique_id,
+            exp_origin: event.source.map(|source| source.1.ref_id).unwrap_or(0),
             experience: event.exp,
             sp: event.sp,
             unknown: 0,
