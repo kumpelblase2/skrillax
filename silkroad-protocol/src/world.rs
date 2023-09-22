@@ -2,7 +2,6 @@ use crate::inventory::{CharacterSpawnItemData, InventoryAvatarItemData, Inventor
 use chrono::{DateTime, Utc};
 use silkroad_definitions::rarity::EntityRarity;
 use silkroad_serde::*;
-use silkroad_serde_derive::*;
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Eq, PartialEq, Copy, Serialize, Deserialize, ByteSize)]

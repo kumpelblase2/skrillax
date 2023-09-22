@@ -4,6 +4,8 @@ mod time;
 use byteorder::ReadBytesExt;
 use bytes::{BufMut, BytesMut};
 pub use error::SerializationError;
+#[cfg(feature = "derive")]
+pub use silkroad_serde_derive::*;
 use std::io::Read;
 pub use time::SilkroadTime;
 

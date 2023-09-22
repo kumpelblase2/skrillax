@@ -5,8 +5,14 @@ edition = "2021"
 
 [dependencies]
 bytes = { workspace = true }
-silkroad-serde-derive = { path = "../silkroad-serde-derive" }
+silkroad-serde-derive = { path = "../silkroad-serde-derive", optional = true }
 chrono = { workspace = true }
 paste = "1"
 byteorder = { workspace = true }
 thiserror = { workspace = true }
+
+[features]
+derive = ["dep:silkroad-serde-derive"]
+
+[dev-dependencies]
+silkroad-serde-derive = { path = "../silkroad-serde-derive" }

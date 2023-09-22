@@ -1,5 +1,4 @@
 use silkroad_serde::*;
-use silkroad_serde_derive::*;
 
 #[derive(Clone, Deserialize, ByteSize)]
 pub enum InventoryOperationRequest {

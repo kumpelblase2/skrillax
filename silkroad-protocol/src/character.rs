@@ -1,5 +1,4 @@
 use silkroad_serde::*;
-use silkroad_serde_derive::*;
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, Deserialize, ByteSize)]
 pub enum CharacterListAction {

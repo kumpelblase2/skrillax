@@ -1,5 +1,4 @@
 use silkroad_serde::*;
-use silkroad_serde_derive::{ByteSize, Deserialize, Serialize};
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize)]
 pub enum LogoutMode {

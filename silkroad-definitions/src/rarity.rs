@@ -1,6 +1,7 @@
 use byteorder::ReadBytesExt;
 use bytes::{BufMut, BytesMut};
 use num_enum_derive::{IntoPrimitive, TryFromPrimitive};
+#[cfg(feature = "serde")]
 use silkroad_serde::{ByteSize, Deserialize, SerializationError, Serialize};
 use std::io::Read;
 
@@ -64,18 +65,21 @@ impl From<EntityRarity> for u8 {
     }
 }
 
+#[cfg(feature = "serde")]
 impl ByteSize for EntityRarity {
     fn byte_size(&self) -> usize {
         1
     }
 }
 
+#[cfg(feature = "serde")]
 impl Serialize for EntityRarity {
     fn write_to(&self, writer: &mut BytesMut) {
         writer.put_u8((*self).into())
     }
 }
 
+#[cfg(feature = "serde")]
 impl Deserialize for EntityRarity {
     fn read_from<T: Read + ReadBytesExt>(reader: &mut T) -> Result<Self, SerializationError>
     where

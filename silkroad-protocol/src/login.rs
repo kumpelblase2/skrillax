@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use silkroad_serde::*;
-use silkroad_serde_derive::*;
 
 #[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize, Deserialize)]
 pub enum SecurityCodeAction {

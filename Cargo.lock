@@ -2898,7 +2898,6 @@ dependencies = [
  "chrono",
  "silkroad-definitions",
  "silkroad-serde",
- "silkroad-serde-derive",
  "thiserror",
 ]
 

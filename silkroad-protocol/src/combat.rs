@@ -1,6 +1,5 @@
 use crate::Location;
 use silkroad_serde::*;
-use silkroad_serde_derive::*;
 use std::fmt::{Display, Formatter};
 
 #[derive(Deserialize, Copy, Clone, Debug)]

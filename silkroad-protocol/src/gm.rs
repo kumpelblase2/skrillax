@@ -1,6 +1,5 @@
 use silkroad_definitions::rarity::EntityRarity;
 use silkroad_serde::*;
-use silkroad_serde_derive::*;
 
 #[derive(Deserialize, ByteSize)]
 #[silkroad(size = 2)]

@@ -8,6 +8,5 @@ byteorder = { workspace = true }
 chrono = { workspace = true }
 bytes = { workspace = true }
 thiserror = { workspace = true }
-silkroad-definitions = { path = "../silkroad-definitions" }
-silkroad-serde = { path = "../silkroad-serde" }
-silkroad-serde-derive = { path = "../silkroad-serde-derive" }
+silkroad-definitions = { path = "../silkroad-definitions", features = ["serde"] }
+silkroad-serde = { path = "../silkroad-serde", features = ["derive"] }
