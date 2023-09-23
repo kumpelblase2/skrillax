@@ -7,18 +7,18 @@ edition = "2021"
 config = { workspace = true }
 serde = { workspace = true }
 tracing = { workspace = true }
-log = { workspace = true, default-features = false }
+log = { workspace = true }
 chrono = { workspace = true }
 crossbeam-channel = "0.5"
 tokio = { workspace = true }
-tokio-util = "0.7.3"
+tokio-util = "0.7"
 tracing-subscriber = { workspace = true }
 sqlx = { workspace = true }
 silkroad-network = { path = "../silkroad-network" }
 silkroad-protocol = { path = "../silkroad-protocol" }
 silkroad-rpc = { path = "../silkroad-rpc" }
 silkroad-security = { path = "../silkroad-security" }
-reqwest = { version = "0.11.11", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
 clap = { workspace = true, features = ["derive"] }
-anyhow = "1.0.69"
-bcrypt = "0.14.0"
+anyhow = "1"
+bcrypt = "0.15"

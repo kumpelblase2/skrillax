@@ -13,12 +13,12 @@ silkroad-data = { path = "../silkroad-data" }
 silkroad-game-base = { path = "../silkroad-game-base" }
 silkroad-definitions = { path = "../silkroad-definitions" }
 tokio = { workspace = true }
-axum = { version = "0.6.18", default-features = false, features = [ "http1", "json", "tokio", "tower-log", "macros"] }
-bytes = "1.1.0"
+axum = { version = "0.6", default-features = false, features = [ "http1", "json", "tokio", "tower-log", "macros"] }
+bytes = "1.5"
 once_cell = { workspace = true }
 byteorder = { workspace = true }
 rand = { workspace = true }
-crossbeam-channel = "0.5.2"
+crossbeam-channel = "0.5"
 tracing = { workspace = true }
 config = { workspace = true }
 sqlx = { workspace = true }
@@ -33,7 +33,7 @@ bevy_core = "0.11"
 bevy_app = "0.11"
 bevy_tasks = "0.11"
 bevy_time = "0.11"
-cgmath = "0.18.0"
+cgmath = "0.18"
 pk2 = { workspace = true }
-id-pool = { version = "0.2.2", features = ["u32"], default_features = false }
+id-pool = { version = "0.2", features = ["u32"], default_features = false }
 derive_more = "0.99.17"

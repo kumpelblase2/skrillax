@@ -13,4 +13,4 @@ silkroad-data = { path = "../silkroad-data" }
 silkroad-definitions = { path = "../silkroad-definitions" }
 
 [dev-dependencies]
-once_cell = "1.17"
+once_cell = "1.18"
