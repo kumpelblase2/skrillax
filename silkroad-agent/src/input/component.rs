@@ -1,4 +1,5 @@
 use bevy_ecs::prelude::*;
+use silkroad_game_base::StatType;
 use silkroad_protocol::auth::{AuthRequest, LogoutRequest};
 use silkroad_protocol::character::{CharacterJoinRequest, CharacterListRequestAction};
 use silkroad_protocol::chat::ChatMessage;
@@ -22,6 +23,7 @@ pub(crate) struct PlayerInput {
     pub gm: Option<GmCommand>,
     pub mastery: Option<LevelUpMastery>,
     pub skill_add: Option<LearnSkill>,
+    pub increase_stats: Vec<StatType>,
 }
 
 impl PlayerInput {

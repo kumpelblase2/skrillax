@@ -1312,3 +1312,25 @@ pub struct LevelUpEffect {
     /// Unique ID of the entity that levelled up
     pub entity: u32,
 }
+
+#[derive(Deserialize)]
+pub struct IncreaseStr;
+
+#[derive(Serialize, ByteSize)]
+pub enum IncreaseStrResponse {
+    #[silkroad(value = 1)]
+    Success,
+    #[silkroad(value = 2)]
+    Error(u16),
+}
+
+#[derive(Deserialize)]
+pub struct IncreaseInt;
+
+#[derive(Serialize, ByteSize)]
+pub enum IncreaseIntResponse {
+    #[silkroad(value = 1)]
+    Success,
+    #[silkroad(value = 2)]
+    Error(u16),
+}

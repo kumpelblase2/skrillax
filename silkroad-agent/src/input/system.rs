@@ -5,6 +5,7 @@ use crate::input::{LoginInput, PlayerInput};
 use crate::mall::event::MallOpenRequestEvent;
 use bevy_ecs::prelude::*;
 use bevy_time::Time;
+use silkroad_game_base::StatType;
 use silkroad_network::stream::{SendResult, Stream, StreamError};
 use silkroad_protocol::character::{CharacterListRequest, GameGuideResponse, UpdateGameGuide};
 use silkroad_protocol::general::IdentityInformation;
@@ -85,6 +86,8 @@ pub(crate) fn receive_game_inputs(
                             input.mastery = Some(mastery);
                         },
                         ClientPacket::LearnSkill(skill) => input.skill_add = Some(skill),
+                        ClientPacket::IncreaseStr(_) => input.increase_stats.push(StatType::STR),
+                        ClientPacket::IncreaseInt(_) => input.increase_stats.push(StatType::INT),
                         _ => {},
                     }
                 },

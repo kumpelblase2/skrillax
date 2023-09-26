@@ -14,6 +14,7 @@ use crate::game::logout::{handle_logout, tick_logout};
 use crate::game::mastery::{handle_mastery_levelup, learn_skill};
 use crate::game::movement::movement_monster;
 use crate::game::player_activity::{update_player_activity, PlayerActivity};
+use crate::game::stats::increase_stats;
 use crate::game::target::player_update_target;
 use crate::game::unique::{unique_killed, unique_spawned};
 use crate::game::visibility::{clear_visibility, player_visibility_update, visibility_update};
@@ -34,6 +35,7 @@ pub(crate) mod logout;
 mod mastery;
 mod movement;
 pub(crate) mod player_activity;
+mod stats;
 pub(crate) mod target;
 mod unique;
 mod visibility;
@@ -59,6 +61,7 @@ impl Plugin for GamePlugin {
                 Update,
                 (
                     handle_inventory_input,
+                    increase_stats,
                     visibility_update,
                     movement_monster,
                     tick_drop,

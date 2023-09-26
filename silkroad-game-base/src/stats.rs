@@ -1,5 +1,10 @@
 const SCALING: f32 = 1.02;
 
+pub enum StatType {
+    STR,
+    INT,
+}
+
 pub struct Stats {
     str: u16,
     int: u16,

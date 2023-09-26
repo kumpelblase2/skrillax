@@ -81,7 +81,9 @@ client_packets! {
     0x7074 => PerformAction,
     0x70EA => UpdateGameGuide,
     0x70A2 => LevelUpMastery,
-    0x70A1 => LearnSkill
+    0x70A1 => LearnSkill,
+    0x7050 => IncreaseStr,
+    0x7051 => IncreaseInt
 }
 
 macro_rules! server_packets {
@@ -168,7 +170,9 @@ server_packets! {
     0x3054 => LevelUpEffect,
     0x3056 => ReceiveExperience,
     0xB0A2 => LevelUpMasteryResponse,
-    0xB0A1 => LearnSkillResponse
+    0xB0A1 => LearnSkillResponse,
+    0xB050 => IncreaseStrResponse,
+    0xB051 => IncreaseIntResponse
 }
 
 impl ServerPacket {
