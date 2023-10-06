@@ -45,10 +45,7 @@ fn send_character_list(client: &Client, character_list: &[DbCharacter]) {
 
 fn from_character(character: &DbCharacter) -> CharacterListEntry {
     let data = &character.character_data;
-    let last_logout = data
-        .last_logout
-        .map(SilkroadTime::from)
-        .unwrap_or_else(SilkroadTime::default);
+    let last_logout = data.last_logout.map(SilkroadTime::from).unwrap_or_default();
     let target_deletion_date = data.deletion_end;
     let playtime_information = target_deletion_date
         .map(|end| end - Utc::now())

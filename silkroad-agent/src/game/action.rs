@@ -33,7 +33,7 @@ pub(crate) fn handle_action(
         &mut StateTransitionQueue,
     )>,
     lookup: Res<EntityLookup>,
-    mut navmesh: ResMut<Navmesh>,
+    navmesh: Res<Navmesh>,
     target_query: Query<(&GameEntity, &Position)>,
     pickup_query: Query<&Position, With<Drop>>,
 ) {

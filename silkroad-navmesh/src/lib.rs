@@ -35,7 +35,7 @@ fn get_path_for_region(region: Region) -> String {
     format!("navmesh/nv_{:04x}.nvm", region.id())
 }
 
-const MAP_INFO_FILE: &'static str = "navmesh/mapinfo.mfo";
+const MAP_INFO_FILE: &str = "navmesh/mapinfo.mfo";
 
 pub struct GlobalNavmesh {
     loaded_meshes: HashMap<Region, Arc<NavmeshContainer>>,

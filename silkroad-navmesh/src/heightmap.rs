@@ -80,7 +80,7 @@ mod test {
     #[test]
     pub fn test_empty_map() {
         let data = Box::new([0.0f32, 0.0, 0.0, 0.0]);
-        let map = Heightmap::new(&data, 2, 1);
+        let map = Heightmap::new(data.as_slice(), 2, 1);
 
         assert_eq!(2, map.max_size());
         assert_eq!(Some(0.0f32), map.height_at_position(0.0, 0.0));
@@ -92,7 +92,7 @@ mod test {
     #[test]
     pub fn test_middle() {
         let data = Box::new([0.0f32, 0.0, 0.0, 10.0]);
-        let map = Heightmap::new(data, 2, 1);
+        let map = Heightmap::new(data.as_slice(), 2, 1);
 
         assert_eq!(Some(0.0f32), map.height_at_position(0.0, 0.0));
         // we're in the middle between [0,1] and [1,1], where [0,1] is at height 0 and [1,1] is at height 10

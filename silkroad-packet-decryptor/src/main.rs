@@ -161,7 +161,6 @@ impl Rewriter {
 
     fn handle_unencrypted(&self, tcp: &TcpHeader, data: &[u8]) {
         let opcode = byteorder::LittleEndian::read_u16(&data[2..4]);
-        let data = data;
         if self.server_ports.contains(&tcp.source_port) {
             // S -> C
             if opcode == 0x5000 {

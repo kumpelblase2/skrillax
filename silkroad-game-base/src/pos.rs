@@ -172,12 +172,12 @@ impl From<Vector2<f32>> for Heading {
     }
 }
 
-impl Into<u16> for Heading {
-    fn into(self) -> u16 {
-        if self.0 == 0.0 {
+impl From<Heading> for u16 {
+    fn from(heading: Heading) -> Self {
+        if heading.0 == 0.0 {
             return 0;
         }
-        let percentage = (360. - self.0) / 360.0;
+        let percentage = (360. - heading.0) / 360.0;
         (percentage * (u16::MAX as f32)) as u16
     }
 }

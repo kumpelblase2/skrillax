@@ -57,7 +57,7 @@ impl Object {
                 let collision_resource = compound
                     .collision_resource_path
                     .to_str()
-                    .filter(|name| name.len() > 0)
+                    .filter(|name| !name.is_empty())
                     .and_then(|path| {
                         let resource_data = loader.load_file(path).ok()?;
                         let (_, resource) = JmxRes::parse(&resource_data).ok()?;
@@ -66,7 +66,7 @@ impl Object {
                 let resources = compound
                     .resource_paths
                     .iter()
-                    .filter_map(|resource| resource.to_str().filter(|path| path.len() > 0))
+                    .filter_map(|resource| resource.to_str().filter(|path| !path.is_empty()))
                     .filter_map(|path| {
                         let resource_data = loader.load_file(path).ok()?;
                         let (_, resource) = JmxRes::parse(&resource_data).ok()?;
@@ -104,7 +104,7 @@ impl Object {
 
 pub struct ObjectLoader;
 
-const OBJECT_INFO_FILE: &'static str = "navmesh/object.ifo";
+const OBJECT_INFO_FILE: &str = "navmesh/object.ifo";
 
 impl ObjectLoader {
     pub fn load_objects(loader: &dyn FileLoader) -> io::Result<HashMap<u32, Arc<Object>>> {

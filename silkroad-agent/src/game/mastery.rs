@@ -3,7 +3,6 @@ use crate::comp::player::Player;
 use crate::input::PlayerInput;
 use crate::world::WorldData;
 use bevy_ecs::prelude::*;
-use itertools::Itertools;
 use silkroad_protocol::skill::{LearnSkillResponse, LevelUpMasteryError, LevelUpMasteryResponse};
 use silkroad_protocol::world::CharacterPointsUpdate;
 

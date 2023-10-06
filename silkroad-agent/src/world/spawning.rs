@@ -89,11 +89,11 @@ pub(crate) fn spawn_monsters(
         if !spawner.active && should_be_active {
             trace!(spawner = ?entity, "Activating spawner");
             activate_spawner(entity, &mut spawner, position, &mut commands, &navmesh, &mut id_pool);
-        } else if spawner.active && !should_be_active {
-            trace!(spawner = ?entity, "Deactivating spawner");
-            deactivate_spawner(entity, &mut spawner, &mut commands, &despawn_query);
         } else if spawner.active {
-            if spawner.should_spawn(delta) {
+            if !should_be_active {
+                trace!(spawner = ?entity, "Deactivating spawner");
+                deactivate_spawner(entity, &mut spawner, &mut commands, &despawn_query);
+            } else if spawner.should_spawn(delta) {
                 let empty_spots = spawner.available_spots();
                 let max_spawn = min(empty_spots, 3); // Spawn at most 3 at once
                 let to_spawn = rand::thread_rng().gen_range(1..=max_spawn);

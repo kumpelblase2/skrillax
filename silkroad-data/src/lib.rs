@@ -1,3 +1,7 @@
+// The data is mostly comprised of CSV data where we access columns by their index.
+// We _could_ use `.first()` but it makes much more sense ot just have all use `.get()`.
+#![allow(clippy::get_first)]
+
 pub mod characterdata;
 pub mod common;
 pub mod datamap;
