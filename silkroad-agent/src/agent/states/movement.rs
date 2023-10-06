@@ -30,7 +30,7 @@ pub(crate) fn update_target_location(
     mut query: Query<(Entity, &mut Moving, &Position)>,
     target_query: Query<&Position>,
     settings: Res<GameConfig>,
-    mut navmesh: ResMut<Navmesh>,
+    navmesh: Res<Navmesh>,
     mut cmd: Commands,
     mut stopped: EventWriter<MovementFinished>,
 ) {
@@ -74,7 +74,7 @@ pub(crate) fn movement(
     mut query: Query<(Entity, &mut Position, &Agent, &Moving, &MovementState)>,
     time: Res<Time>,
     mut cmd: Commands,
-    mut navmesh: ResMut<Navmesh>,
+    navmesh: Res<Navmesh>,
     mut finish_movement: EventWriter<MovementFinished>,
 ) {
     let delta = time.delta_seconds_f64() as f32;
@@ -96,7 +96,7 @@ pub(crate) fn movement(
             },
         };
 
-        move_with_step(&mut navmesh, &mut pos, next_location, heading);
+        move_with_step(&navmesh, &mut pos, next_location, heading);
 
         if finished {
             cmd.entity(entity).remove::<Moving>().insert(Idle);
@@ -105,7 +105,7 @@ pub(crate) fn movement(
     }
 }
 
-pub(crate) fn move_with_step(navmesh: &mut Navmesh, pos: &mut Position, target: GlobalLocation, heading: Heading) {
+pub(crate) fn move_with_step(navmesh: &Navmesh, pos: &mut Position, target: GlobalLocation, heading: Heading) {
     let target_location = target.to_local();
     let height = navmesh.height_for(target_location).unwrap_or(pos.location.0.y);
 

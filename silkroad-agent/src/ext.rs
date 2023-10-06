@@ -1,10 +1,9 @@
 use bevy_ecs_macros::Resource;
 use derive_more::{Deref, DerefMut, From};
 use id_pool::IdPool;
-use pk2::Pk2;
 use silkroad_data::npc_pos::NpcPosition;
 use silkroad_game_base::LocalLocation;
-use silkroad_navmesh::NavmeshLoader;
+use silkroad_navmesh::GlobalNavmesh;
 use silkroad_network::server::SilkroadServer;
 use sqlx::PgPool;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -21,16 +20,19 @@ impl Default for EntityIdPool {
 #[derive(Resource, Deref, DerefMut, From)]
 pub struct DbPool(PgPool);
 
-#[derive(Resource, Deref, DerefMut, From)]
-pub struct Navmesh(NavmeshLoader<Pk2>);
+#[derive(Resource, Deref, From)]
+pub struct Navmesh(GlobalNavmesh);
 
 impl Navmesh {
-    pub fn height_for<T: Into<LocalLocation>>(&mut self, location: T) -> Option<f32> {
-        let local = location.into();
+    fn height_for_location(&self, local: LocalLocation) -> Option<f32> {
         self.0
-            .load_navmesh(local.0)
-            .ok()
+            .mesh_for(local.0)
             .and_then(|mesh| mesh.heightmap().height_at_position(local.1.x, local.1.y))
+    }
+
+    pub fn height_for<T: Into<LocalLocation>>(&self, location: T) -> Option<f32> {
+        let local = location.into();
+        self.height_for_location(local)
     }
 }
 

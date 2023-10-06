@@ -16,7 +16,6 @@ use bevy_ecs::prelude::*;
 use bevy_time::Time;
 use cgmath::Vector3;
 use id_pool::IdPool;
-use pk2::Pk2;
 use rand::Rng;
 use silkroad_data::characterdata::RefCharacterData;
 use silkroad_data::DataEntry;
@@ -25,7 +24,7 @@ use silkroad_definitions::type_id::{ObjectEntity, ObjectMonster, ObjectNonPlayer
 use silkroad_definitions::Region;
 use silkroad_game_base::{GlobalLocation, Heading, LocalPosition, Vector2Ext};
 use silkroad_navmesh::region::GridRegion;
-use silkroad_navmesh::NavmeshLoader;
+use silkroad_navmesh::GlobalNavmesh;
 use std::cmp::min;
 use std::collections::HashSet;
 use std::time::Duration;
@@ -74,7 +73,7 @@ pub(crate) fn spawn_monsters(
     mut query: Query<(Entity, &mut Spawner, &Position)>,
     mut commands: Commands,
     activity: Res<PlayerActivity>,
-    mut navmesh: ResMut<Navmesh>,
+    navmesh: Res<Navmesh>,
     mut id_pool: ResMut<EntityIdPool>,
     time: Res<Time>,
     despawn_query: Query<(Entity, &SpawnedBy)>,
@@ -89,14 +88,7 @@ pub(crate) fn spawn_monsters(
         let should_be_active = active_regions.contains(&position.location.region());
         if !spawner.active && should_be_active {
             trace!(spawner = ?entity, "Activating spawner");
-            activate_spawner(
-                entity,
-                &mut spawner,
-                position,
-                &mut commands,
-                &mut navmesh,
-                &mut id_pool,
-            );
+            activate_spawner(entity, &mut spawner, position, &mut commands, &navmesh, &mut id_pool);
         } else if spawner.active && !should_be_active {
             trace!(spawner = ?entity, "Deactivating spawner");
             deactivate_spawner(entity, &mut spawner, &mut commands, &despawn_query);
@@ -109,7 +101,7 @@ pub(crate) fn spawn_monsters(
                 let spawned_amount = spawn_n_monsters(
                     entity,
                     &mut commands,
-                    &mut navmesh,
+                    &navmesh,
                     &mut id_pool,
                     &mut spawner,
                     position,
@@ -124,7 +116,7 @@ pub(crate) fn spawn_monsters(
 fn spawn_n_monsters(
     spawner_entity: Entity,
     commands: &mut Commands,
-    navmesh: &mut NavmeshLoader<Pk2>,
+    navmesh: &GlobalNavmesh,
     id_pool: &mut IdPool,
     spawner: &mut Spawner,
     position: &Position,
@@ -148,7 +140,7 @@ fn activate_spawner(
     spawner: &mut Spawner,
     position: &Position,
     commands: &mut Commands,
-    navmesh: &mut NavmeshLoader<Pk2>,
+    navmesh: &GlobalNavmesh,
     id_pool: &mut IdPool,
 ) {
     let spawned = spawn_n_monsters(
@@ -183,13 +175,9 @@ fn generate_position(source_position: &Position, radius: f32) -> GlobalLocation 
     GlobalLocation(vec)
 }
 
-fn to_position(location: GlobalLocation, navmesh: &mut NavmeshLoader<Pk2>) -> Option<Position> {
+fn to_position(location: GlobalLocation, navmesh: &GlobalNavmesh) -> Option<Position> {
     let local = location.to_local();
-    let navmesh = if let Ok(mesh) = navmesh.load_navmesh(local.0) {
-        mesh
-    } else {
-        return None;
-    };
+    let navmesh = navmesh.mesh_for(local.0)?;
     let height = navmesh
         .heightmap()
         .height_at_position(local.1.x, local.1.y)

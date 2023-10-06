@@ -1,13 +1,25 @@
 use std::cmp::min;
 
-pub struct Heightmap {
-    map: Box<[f32]>,
+/// A heightmap describes the height of points in a given area.
+///
+/// While the heightmap is generally comprised of a grid with a certain
+/// density, the map can provide the height of any point on it by
+/// interpolating it with the four nearest tiles.
+pub struct Heightmap<'a> {
+    map: &'a [f32],
     size: usize,
     tile_size: usize,
 }
 
-impl Heightmap {
-    pub(crate) fn new(data: Box<[f32]>, size: usize, tile_size: usize) -> Heightmap {
+impl Heightmap<'_> {
+    /// Creates a new heightmap
+    ///
+    /// Builds a new heightmap from the grid specified by `data`, which is expected to
+    /// be of size `size * size`. The data array is supposed to be a flat representation
+    /// of a two-dimensional structure where a point `(1, 2)` is at index `2 * size + 1`.
+    /// `tile_size` specifies the distance between two neighbouring indices, e.g. `(2,0)`
+    /// and `(3,0)`. In other words, it represents the resolution of the heightmap.
+    pub(crate) fn new(data: &[f32], size: usize, tile_size: usize) -> Heightmap {
         Heightmap {
             map: data,
             size,
@@ -15,6 +27,9 @@ impl Heightmap {
         }
     }
 
+    /// The total size along one axis
+    ///
+    /// The size consists of the tile size and the grid size.
     fn max_size(&self) -> usize {
         self.size * self.tile_size
     }
@@ -65,7 +80,7 @@ mod test {
     #[test]
     pub fn test_empty_map() {
         let data = Box::new([0.0f32, 0.0, 0.0, 0.0]);
-        let map = Heightmap::new(data, 2, 1);
+        let map = Heightmap::new(&data, 2, 1);
 
         assert_eq!(2, map.max_size());
         assert_eq!(Some(0.0f32), map.height_at_position(0.0, 0.0));

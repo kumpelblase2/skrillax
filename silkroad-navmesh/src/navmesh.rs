@@ -1,22 +1,28 @@
 use crate::heightmap::Heightmap;
 use crate::Region;
 use sr_formats::jmxvnvm::JmxNvm;
+use std::fmt::{Debug, Formatter};
+
+const MESH_SIZE: usize = 96;
+const MESH_TILE_SIZE: usize = 20;
 
 pub struct NavmeshContainer {
     region: Region,
-    heightmap: Heightmap,
-    // objects: Vec<Rc<ObjectMesh>>,
+    mesh: JmxNvm,
+}
+
+impl Debug for NavmeshContainer {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Navmesh@{}", self.region)
+    }
 }
 
 impl NavmeshContainer {
-    // pub fn build_mesh(&self) -> NavMesh {}
-
     pub fn new(region: Region, jmx: JmxNvm) -> Self {
-        let heightmap = Heightmap::new(jmx.height_map, 96, 20);
-        Self { region, heightmap }
+        Self { region, mesh: jmx }
     }
 
-    pub fn heightmap(&self) -> &Heightmap {
-        &self.heightmap
+    pub fn heightmap(&self) -> Heightmap {
+        Heightmap::new(&self.mesh.height_map, MESH_SIZE, MESH_TILE_SIZE)
     }
 }

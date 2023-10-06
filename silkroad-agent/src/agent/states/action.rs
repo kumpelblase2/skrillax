@@ -173,7 +173,7 @@ pub(crate) fn pickup(
 
 pub(crate) fn move_to_pickup(
     mut query: Query<(Entity, &MoveToPickup, &MovementState, &Agent, &mut Position)>,
-    mut navmesh: ResMut<Navmesh>,
+    navmesh: Res<Navmesh>,
     time: Res<Time>,
     mut cmd: Commands,
     mut movement_finished: EventWriter<MovementFinished>,
@@ -183,7 +183,7 @@ pub(crate) fn move_to_pickup(
         let speed = agent.get_speed_value(*speed_state.deref());
         let (target, heading, finished) =
             get_next_step(delta, pos.location.to_location(), speed, action.1.to_location());
-        move_with_step(&mut navmesh, &mut pos, target, heading);
+        move_with_step(&navmesh, &mut pos, target, heading);
 
         if finished {
             cmd.entity(entity).remove::<MoveToPickup>().insert(Pickup(action.0));
@@ -196,7 +196,7 @@ pub(crate) fn update_action_destination(
     mut query: Query<(Entity, &mut MoveToAction, &Position, &PlayerInventory)>,
     target_query: Query<&Position>,
     settings: Res<GameConfig>,
-    mut navmesh: ResMut<Navmesh>,
+    navmesh: Res<Navmesh>,
     mut cmd: Commands,
     mut stopped: EventWriter<MovementFinished>,
 ) {
@@ -236,7 +236,7 @@ pub(crate) fn move_to_action(
         &mut Position,
         &mut StateTransitionQueue,
     )>,
-    mut navmesh: ResMut<Navmesh>,
+    navmesh: Res<Navmesh>,
     time: Res<Time>,
     mut cmd: Commands,
     mut movement_finished: EventWriter<MovementFinished>,
@@ -246,7 +246,7 @@ pub(crate) fn move_to_action(
         let speed = agent.get_speed_value(*speed_state.deref());
         let (target, heading, finished) =
             get_next_step(delta, pos.location.to_location(), speed, action.1.to_location());
-        move_with_step(&mut navmesh, &mut pos, target, heading);
+        move_with_step(&navmesh, &mut pos, target, heading);
 
         if finished {
             cmd.entity(entity).remove::<MoveToAction>();

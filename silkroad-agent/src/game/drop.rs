@@ -27,12 +27,12 @@ pub(crate) fn tick_drop(mut cmd: Commands, time: Res<Time>, mut drops: Query<(En
 
 pub(crate) fn create_drops(
     mut reader: EventReader<SpawnDrop>,
-    mut navmesh: ResMut<Navmesh>,
+    navmesh: Res<Navmesh>,
     mut id_gen: ResMut<EntityIdPool>,
     mut cmd: Commands,
 ) {
     for spawn in reader.iter() {
-        let pos = random_position_around(&mut navmesh, spawn.relative_position, 2.0);
+        let pos = random_position_around(&navmesh, spawn.relative_position, 2.0);
         let drop_id = id_gen.request_id().expect("Should be able to generate an id");
         let rotation = rand::thread_rng().gen_range(0..360) as f32;
 
@@ -54,17 +54,9 @@ pub(crate) fn create_drops(
     }
 }
 
-fn random_position_around(navmesh: &mut ResMut<Navmesh>, origin: GlobalLocation, radius: f32) -> GlobalPosition {
+fn random_position_around(navmesh: &Navmesh, origin: GlobalLocation, radius: f32) -> GlobalPosition {
     let drop_position = origin.random_in_radius(radius);
     let local_drop_pos = GlobalLocation(drop_position).to_local();
-    let target_region = local_drop_pos.0;
-    let drop_position = drop_position.with_height(
-        navmesh
-            .load_navmesh(target_region)
-            .unwrap()
-            .heightmap()
-            .height_at_position(local_drop_pos.1.x, local_drop_pos.1.y)
-            .unwrap(),
-    );
+    let drop_position = drop_position.with_height(navmesh.height_for(local_drop_pos).unwrap_or(0.0f32));
     GlobalPosition(drop_position)
 }

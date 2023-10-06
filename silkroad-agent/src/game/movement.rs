@@ -10,7 +10,7 @@ use silkroad_game_base::{GlobalLocation, Vector2Ext};
 pub(crate) fn movement_monster(
     mut query: Query<(&mut RandomStroll, &mut StateTransitionQueue, &Position), With<Idle>>,
     delta: Res<Time>,
-    mut navmesh: ResMut<Navmesh>,
+    navmesh: Res<Navmesh>,
 ) {
     let delta = delta.delta();
     for (mut stroll, mut transition, pos) in query.iter_mut() {

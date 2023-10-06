@@ -38,7 +38,7 @@ pub(crate) fn handle_command(
         &mut Agent,
         &Player,
     )>,
-    mut navmesh: ResMut<Navmesh>,
+    navmesh: Res<Navmesh>,
     target_query: Query<&Position>,
     mut teleport_events: EventWriter<PlayerTeleportEvent>,
     mut exp_events: EventWriter<ReceiveExperienceEvent>,
