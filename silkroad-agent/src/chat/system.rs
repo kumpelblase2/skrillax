@@ -12,6 +12,7 @@ use crate::comp::{GameEntity, Health};
 use crate::event::PlayerCommandEvent;
 use crate::ext::EntityIdPool;
 use crate::game::drop::SpawnDrop;
+use crate::game::mind::Mind;
 use crate::input::PlayerInput;
 use crate::world::{EntityLookup, WorldData};
 use bevy_ecs::change_detection::ResMut;
@@ -167,6 +168,7 @@ pub(crate) fn handle_gm_commands(
                             state_queue: StateTransitionQueue::default(),
                             movement_state: MovementState::default_monster(),
                             damage_receiver: DamageReceiver::default(),
+                            mind: Mind::default(),
                         };
                         commands.spawn(bundle);
                     }

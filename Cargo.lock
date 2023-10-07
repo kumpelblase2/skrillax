@@ -2870,11 +2870,13 @@ name = "silkroad-game-base"
 version = "0.1.0"
 dependencies = [
  "cgmath 0.18.0",
+ "log",
  "once_cell",
  "rand 0.8.5",
  "silkroad-data",
  "silkroad-definitions",
  "silkroad-navmesh",
+ "thiserror",
 ]
 
 [[package]]

@@ -1,7 +1,5 @@
 use crate::agent::event::{ActionFinished, MovementFinished};
-use crate::agent::states::{
-    Action, Idle, MoveToAction, MoveToPickup, MovementGoal, Moving, Sitting, StateTransitionQueue,
-};
+use crate::agent::states::{Action, Idle, MovementGoal, Moving, Sitting, StateTransitionQueue};
 use crate::comp::net::Client;
 use crate::comp::pos::Position;
 use crate::comp::sync::{MovementUpdate, Synchronize};
@@ -50,8 +48,6 @@ macro_rules! auto_transition {
 auto_transition!(transition_from_idle, Idle);
 auto_transition!(transition_from_sitting, Sitting);
 auto_transition!(transition_from_moving, Moving, MovementFinished);
-auto_transition!(transition_from_move_to_action, MoveToAction, MovementFinished);
-auto_transition!(transition_from_move_to_pickup, MoveToPickup, MovementFinished);
 
 pub(crate) fn transition_from_attacking(
     mut query: Query<(Entity, &mut StateTransitionQueue, &Action)>,
@@ -83,33 +79,15 @@ pub(crate) fn broadcast_movement_begin(
     }
 }
 
-pub(crate) fn broadcast_movement_from_pickup(
-    mut query: Query<(&mut Synchronize, &Position, &MoveToPickup), Added<MoveToPickup>>,
-) {
-    for (mut sync, pos, pickup) in query.iter_mut() {
-        let update = MovementUpdate::StartMove(pos.location.to_local(), pickup.1.to_local());
-        sync.rotation = Some(update.rotation());
-        sync.movement = Some(update);
-    }
-}
-
-pub(crate) fn broadcast_movement_from_action(
-    mut query: Query<(&mut Synchronize, &Position, &MoveToAction), Added<MoveToAction>>,
-) {
-    for (mut sync, pos, action) in query.iter_mut() {
-        let update = MovementUpdate::StartMove(pos.location.to_local(), action.1.to_local());
-        sync.rotation = Some(update.rotation());
-        sync.movement = Some(update);
-    }
-}
-
 pub(crate) fn broadcast_movement_stop(
-    mut query: Query<(&mut Synchronize, &Position)>,
+    mut query: Query<(&mut Synchronize, &Position, Option<&Moving>)>,
     mut reader: EventReader<MovementFinished>,
 ) {
     for finished in reader.iter() {
-        if let Ok((mut sync, pos)) = query.get_mut(finished.0) {
-            sync.movement = Some(MovementUpdate::StopMove(pos.location.to_local(), pos.rotation));
+        if let Ok((mut sync, pos, is_moving)) = query.get_mut(finished.0) {
+            if is_moving.is_none() {
+                sync.movement = Some(MovementUpdate::StopMove(pos.location.to_local(), pos.rotation));
+            }
         }
     }
 }

@@ -8,6 +8,7 @@ use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use crate::db::character::CharacterData;
 use crate::db::user::ServerUser;
+use crate::game::mind::Mind;
 use crate::input::PlayerInput;
 use bevy_ecs::prelude::*;
 use silkroad_game_base::{Character, Race, SpawningState, Stats};
@@ -70,6 +71,7 @@ pub(crate) struct PlayerBundle {
     speed: MovementState,
     damage_receiver: DamageReceiver,
     health: Health,
+    mind: Mind,
 }
 
 impl PlayerBundle {
@@ -96,6 +98,7 @@ impl PlayerBundle {
             speed: MovementState::default_player(),
             damage_receiver: DamageReceiver::default(),
             health: Health::new(max_hp),
+            mind: Mind::default(),
         }
     }
 }

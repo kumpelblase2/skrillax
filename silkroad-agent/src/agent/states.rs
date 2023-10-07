@@ -23,22 +23,26 @@ pub(crate) enum StateChange {
     Sitting(Sitting),
     Moving(Moving),
     Action(Action),
-    MoveToAction(MoveToAction),
-    MoveToPickup(MoveToPickup),
+    Pickup(Pickup),
     Dead(Dead),
 }
 
 impl StateChange {
     pub fn apply(self, entity: Entity, cmd: &mut Commands) {
-        let mut entity_cmd = cmd.entity(entity);
+        // TODO: make this not necessary. We need this because otherwise the entity could be despawned,
+        //  e.g. due to being out of range of a player, while trying to apply a new state.
+        //  Instead we should maybe ensure that despawns happen at specific 'checkpoints' which don't interfer
+        //  with this kind of code.
+        let Some(mut entity_cmd) = cmd.get_entity(entity) else {
+            return;
+        };
         match self {
             StateChange::Idle(inner) => entity_cmd.insert(inner),
             StateChange::Sitting(inner) => entity_cmd.insert(inner),
             StateChange::Moving(inner) => entity_cmd.insert(inner),
             StateChange::Action(inner) => entity_cmd.insert(inner),
-            StateChange::MoveToAction(inner) => entity_cmd.insert(inner),
-            StateChange::MoveToPickup(inner) => entity_cmd.insert(inner),
             StateChange::Dead(inner) => entity_cmd.insert(inner),
+            StateChange::Pickup(inner) => entity_cmd.insert(inner),
         };
     }
 }
@@ -60,9 +64,8 @@ macro_rules! impl_state {
 impl_state!(Idle, 0, true);
 impl_state!(Moving, 1, true);
 impl_state!(Action, 2, false);
-impl_state!(MoveToAction, 1, true);
-impl_state!(MoveToPickup, 1, true);
 impl_state!(Sitting, 1, true);
+impl_state!(Pickup, 2, false);
 impl_state!(Dead, 3, false);
 
 pub(crate) struct StateTransition {

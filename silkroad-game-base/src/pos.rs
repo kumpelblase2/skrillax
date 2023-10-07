@@ -1,4 +1,5 @@
-use cgmath::{Deg, InnerSpace, Vector2, Vector3};
+use cgmath::num_traits::Pow;
+use cgmath::{Deg, InnerSpace, MetricSpace, Vector2, Vector3};
 use silkroad_definitions::Region;
 use std::fmt::{Display, Formatter};
 use std::ops::{Add, Deref};
@@ -63,6 +64,20 @@ impl GlobalLocation {
 
     pub fn with_y(&self, y: f32) -> GlobalPosition {
         GlobalPosition(Vector3::new(self.0.x, y, self.0.y))
+    }
+
+    pub fn point_in_line_with_range(&self, other: GlobalLocation, range: f32) -> GlobalLocation {
+        let self_vec = self.0;
+        let other_vec = other.0;
+        let range_squared = range.pow(2);
+        let distance_squared = self_vec.distance2(other_vec);
+        if distance_squared <= range_squared {
+            return other;
+        }
+
+        let direction = (other_vec - self_vec).normalize();
+        let offset = direction * range;
+        GlobalLocation(self.0 + offset)
     }
 }
 
@@ -185,6 +200,7 @@ impl From<Heading> for u16 {
 #[cfg(test)]
 mod test {
     use super::*;
+    use cgmath::Zero;
 
     #[test]
     pub fn test_convert_global() {
@@ -194,5 +210,19 @@ mod test {
         assert_eq!(local.0, Region::from(24998));
         assert_eq!(local.1.x, 950.0);
         assert_eq!(local.1.y, 1840.0);
+    }
+
+    #[test]
+    pub fn test_point_with_range() {
+        let origin = GlobalLocation(Vector2::zero());
+        let five_five = GlobalLocation(Vector2::new(5.0, 5.0));
+        let target = origin.point_in_line_with_range(five_five, (2.0f32).sqrt());
+        assert_eq!(target.x, 1.0f32);
+        assert_eq!(target.y, 1.0f32);
+
+        let one_one = GlobalLocation(Vector2::new(1.0, 1.0));
+        let target = origin.point_in_line_with_range(one_one, (2.0f32).sqrt());
+        assert!((target.x - one_one.x).abs() < 0.0001);
+        assert!((target.y - one_one.y).abs() < 0.0001);
     }
 }

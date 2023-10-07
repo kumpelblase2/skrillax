@@ -1,30 +1,24 @@
-use crate::agent::event::MovementFinished;
-use crate::agent::states::{get_next_step, move_with_step, Idle, StateTransitionQueue};
-use crate::agent::{Agent, MovementState};
+use crate::agent::states::Idle;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::net::Client;
 use crate::comp::pos::Position;
 use crate::comp::sync::{ActionAnimation, Synchronize};
 use crate::comp::{drop, EntityReference, GameEntity};
-use crate::config::GameConfig;
 use crate::event::{AttackDefinition, DamageReceiveEvent};
-use crate::ext::Navmesh;
 use crate::game::attack::AttackInstanceCounter;
 use bevy_ecs::prelude::*;
 use bevy_ecs::query::QueryEntityError;
 use bevy_time::{Time, Timer, TimerMode};
-use cgmath::num_traits::Pow;
-use cgmath::InnerSpace;
 use derive_more::Deref;
 use silkroad_data::skilldata::{RefSkillData, SkillParam};
 use silkroad_data::DataEntry;
-use silkroad_game_base::{get_range_for_attack, GlobalLocation, GlobalPosition, ItemTypeData, Vector3Ext};
+use silkroad_game_base::{GlobalLocation, ItemTypeData};
 use silkroad_protocol::combat::{PerformActionError, PerformActionResponse};
 use silkroad_protocol::inventory::{InventoryItemContentData, InventoryOperationError, InventoryOperationResult};
 use silkroad_protocol::world::UnknownActionData;
 use std::ops::Deref;
 use std::time::Duration;
-use tracing::{debug, error};
+use tracing::error;
 
 #[derive(Copy, Clone)]
 pub(crate) enum ActionTarget {
@@ -94,14 +88,6 @@ impl From<ActionDescription> for Action {
     }
 }
 
-#[derive(Component)]
-#[component(storage = "SparseSet")]
-pub(crate) struct MoveToAction(pub Entity, pub GlobalPosition, pub ActionDescription);
-
-#[derive(Component)]
-#[component(storage = "SparseSet")]
-pub(crate) struct MoveToPickup(pub Entity, pub GlobalPosition);
-
 #[derive(Component, Deref)]
 #[component(storage = "SparseSet")]
 pub(crate) struct Pickup(pub Entity);
@@ -110,7 +96,6 @@ pub(crate) fn pickup(
     mut query: Query<(
         Entity,
         &GameEntity,
-        &Position,
         &Client,
         &Pickup,
         &mut PlayerInventory,
@@ -119,7 +104,7 @@ pub(crate) fn pickup(
     target_query: Query<&drop::Drop>,
     mut cmd: Commands,
 ) {
-    for (entity, game_entity, pos, client, pickup, mut inventory, mut sync) in query.iter_mut() {
+    for (entity, game_entity, client, pickup, mut inventory, mut sync) in query.iter_mut() {
         let drop = match target_query.get(*pickup.deref()) {
             Ok(drop) => drop,
             Err(QueryEntityError::NoSuchEntity(_)) => {
@@ -171,93 +156,8 @@ pub(crate) fn pickup(
     }
 }
 
-pub(crate) fn move_to_pickup(
-    mut query: Query<(Entity, &MoveToPickup, &MovementState, &Agent, &mut Position)>,
-    navmesh: Res<Navmesh>,
-    time: Res<Time>,
-    mut cmd: Commands,
-    mut movement_finished: EventWriter<MovementFinished>,
-) {
-    let delta = time.delta_seconds_f64() as f32;
-    for (entity, action, speed_state, agent, mut pos) in query.iter_mut() {
-        let speed = agent.get_speed_value(*speed_state.deref());
-        let (target, heading, finished) =
-            get_next_step(delta, pos.location.to_location(), speed, action.1.to_location());
-        move_with_step(&navmesh, &mut pos, target, heading);
-
-        if finished {
-            cmd.entity(entity).remove::<MoveToPickup>().insert(Pickup(action.0));
-            movement_finished.send(MovementFinished(entity));
-        }
-    }
-}
-
-pub(crate) fn update_action_destination(
-    mut query: Query<(Entity, &mut MoveToAction, &Position, &PlayerInventory)>,
-    target_query: Query<&Position>,
-    settings: Res<GameConfig>,
-    navmesh: Res<Navmesh>,
-    mut cmd: Commands,
-    mut stopped: EventWriter<MovementFinished>,
-) {
-    for (itself, mut moving, own_position, inventory) in query.iter_mut() {
-        match target_query.get(moving.0) {
-            Ok(pos) => {
-                if own_position.distance_to(pos) > settings.max_follow_distance.pow(2) {
-                    cmd.entity(itself).remove::<MoveToAction>().insert(Idle);
-                    stopped.send(MovementFinished(itself));
-                } else {
-                    let vector_pointing_to_player =
-                        (own_position.location.to_flat_vec2() - pos.location.to_flat_vec2()).normalize();
-                    let skill_range = get_range_for_attack(moving.2 .0, inventory.weapon().map(|item| item.reference));
-                    let position_offset = vector_pointing_to_player * skill_range;
-                    let target_location = GlobalLocation(pos.location.to_flat_vec2() + position_offset);
-                    let height = navmesh.height_for(target_location).unwrap_or(moving.1.y);
-                    moving.1 = target_location.with_y(height);
-                }
-            },
-            Err(QueryEntityError::NoSuchEntity(_)) => {
-                cmd.entity(itself).remove::<MoveToAction>().insert(Idle);
-                stopped.send(MovementFinished(itself));
-            },
-            Err(e) => {
-                debug!("Could not update entity position: {:?}", e);
-            },
-        }
-    }
-}
-
-pub(crate) fn move_to_action(
-    mut query: Query<(
-        Entity,
-        &MoveToAction,
-        &MovementState,
-        &Agent,
-        &mut Position,
-        &mut StateTransitionQueue,
-    )>,
-    navmesh: Res<Navmesh>,
-    time: Res<Time>,
-    mut cmd: Commands,
-    mut movement_finished: EventWriter<MovementFinished>,
-) {
-    let delta = time.delta_seconds_f64() as f32;
-    for (entity, action, speed_state, agent, mut pos, mut transition) in query.iter_mut() {
-        let speed = agent.get_speed_value(*speed_state.deref());
-        let (target, heading, finished) =
-            get_next_step(delta, pos.location.to_location(), speed, action.1.to_location());
-        move_with_step(&navmesh, &mut pos, target, heading);
-
-        if finished {
-            cmd.entity(entity).remove::<MoveToAction>();
-            transition.request_transition(Action::from(action.2));
-            movement_finished.send(MovementFinished(entity));
-        }
-    }
-}
-
 pub(crate) fn action(
-    mut query: Query<(Entity, &GameEntity, &Client, &mut Action)>,
+    mut query: Query<(Entity, &GameEntity, &mut Action)>,
     target_query: Query<&GameEntity>,
     time: Res<Time>,
     mut attack_instance_counter: ResMut<AttackInstanceCounter>,
@@ -265,7 +165,7 @@ pub(crate) fn action(
     mut damage_event: EventWriter<DamageReceiveEvent>,
 ) {
     let delta = time.delta();
-    for (entity, game_entity, client, mut action) in query.iter_mut() {
+    for (entity, game_entity, mut action) in query.iter_mut() {
         if action.progress.tick(delta).just_finished() {
             if let Some(next) = action.state.next() {
                 let time = next.get_time_for(action.skill).unwrap_or(0);

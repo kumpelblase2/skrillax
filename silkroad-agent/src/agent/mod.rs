@@ -1,12 +1,8 @@
 use crate::agent::event::{ActionFinished, MovementFinished};
-use crate::agent::states::{
-    action, broadcast_dead, dead, move_to_action, move_to_pickup, movement, pickup, turning, update_action_destination,
-    update_target_location,
-};
+use crate::agent::states::{action, broadcast_dead, dead, movement, pickup, turning, update_target_location};
 use crate::agent::system::{
-    broadcast_action_stop, broadcast_movement_begin, broadcast_movement_from_action, broadcast_movement_from_pickup,
-    broadcast_movement_stop, movement_input, transition_from_attacking, transition_from_idle,
-    transition_from_move_to_action, transition_from_move_to_pickup, transition_from_moving, transition_from_sitting,
+    broadcast_action_stop, broadcast_movement_begin, broadcast_movement_stop, movement_input,
+    transition_from_attacking, transition_from_idle, transition_from_moving, transition_from_sitting,
     transition_to_idle,
 };
 use bevy_app::{App, Plugin, PostUpdate, PreUpdate, Update};
@@ -45,8 +41,6 @@ impl Plugin for AgentPlugin {
                     transition_from_moving,
                     transition_from_sitting,
                     transition_from_attacking,
-                    transition_from_move_to_pickup,
-                    transition_from_move_to_action,
                 )
                     .in_set(AgentSet::Transition),
             )
@@ -55,8 +49,6 @@ impl Plugin for AgentPlugin {
                 (
                     broadcast_movement_stop,
                     broadcast_movement_begin,
-                    broadcast_movement_from_pickup,
-                    broadcast_movement_from_action,
                     broadcast_action_stop,
                     broadcast_dead,
                 )
@@ -67,9 +59,6 @@ impl Plugin for AgentPlugin {
                 (
                     update_target_location,
                     movement.after(update_target_location),
-                    update_action_destination,
-                    move_to_action.after(update_action_destination),
-                    move_to_pickup,
                     pickup,
                     action,
                     turning,

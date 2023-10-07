@@ -5,6 +5,7 @@ use crate::comp::pos::Position;
 use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
+use crate::game::mind::Mind;
 use bevy_ecs::prelude::*;
 use bevy_time::{Timer, TimerMode};
 use silkroad_definitions::rarity::EntityRarity;
@@ -36,6 +37,7 @@ pub struct MonsterBundle {
     pub(crate) state_queue: StateTransitionQueue,
     pub(crate) movement_state: MovementState,
     pub(crate) damage_receiver: DamageReceiver,
+    pub(crate) mind: Mind,
 }
 
 #[derive(Component)]

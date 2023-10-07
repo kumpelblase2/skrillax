@@ -12,6 +12,7 @@ use crate::game::inventory::handle_inventory_input;
 use crate::game::join::load_finished;
 use crate::game::logout::{handle_logout, tick_logout};
 use crate::game::mastery::{handle_mastery_levelup, learn_skill};
+use crate::game::mind::MindPlugin;
 use crate::game::movement::movement_monster;
 use crate::game::player_activity::{update_player_activity, PlayerActivity};
 use crate::game::stats::increase_stats;
@@ -33,19 +34,20 @@ pub(crate) mod inventory;
 mod join;
 pub(crate) mod logout;
 mod mastery;
+pub(crate) mod mind;
 mod movement;
 pub(crate) mod player_activity;
 mod stats;
 pub(crate) mod target;
 mod unique;
 mod visibility;
-mod world;
 
 pub(crate) struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(ChatPlugin)
+            .add_plugins(MindPlugin)
             .insert_resource(PlayerActivity::default())
             .insert_resource(DaylightCycle::official())
             .insert_resource(AttackInstanceCounter::default())

@@ -10,6 +10,7 @@ use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use crate::config::GameConfig;
 use crate::ext::{EntityIdPool, Navmesh, NpcPositionList};
+use crate::game::mind::Mind;
 use crate::game::player_activity::PlayerActivity;
 use crate::world::WorldData;
 use bevy_ecs::prelude::*;
@@ -216,6 +217,7 @@ fn spawn_monster(
         state_queue: StateTransitionQueue::default(),
         movement_state: MovementState::default_monster(),
         damage_receiver: DamageReceiver::default(),
+        mind: Mind::default(),
     }
 }
 
