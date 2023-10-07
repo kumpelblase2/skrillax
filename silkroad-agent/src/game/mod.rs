@@ -16,7 +16,7 @@ use crate::game::mind::MindPlugin;
 use crate::game::movement::movement_monster;
 use crate::game::player_activity::{update_player_activity, PlayerActivity};
 use crate::game::stats::increase_stats;
-use crate::game::target::player_update_target;
+use crate::game::target::{deselect_despawned, player_update_target};
 use crate::game::unique::{unique_killed, unique_spawned};
 use crate::game::visibility::{clear_visibility, player_visibility_update, visibility_update};
 use bevy_app::{App, Last, Plugin, PostUpdate, PreUpdate, Update};
@@ -71,6 +71,7 @@ impl Plugin for GamePlugin {
                     handle_action,
                     tick_logout,
                     player_update_target,
+                    deselect_despawned,
                     handle_damage,
                     distribute_experience.after(handle_damage),
                     receive_experience.after(distribute_experience),

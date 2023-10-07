@@ -102,3 +102,18 @@ pub(crate) fn player_update_target(
         }
     }
 }
+
+pub(crate) fn deselect_despawned(
+    mut query: Query<(Entity, Option<&Client>, &mut Target)>,
+    target_query: Query<()>,
+    mut cmd: Commands,
+) {
+    for (entity, client, target) in query.iter_mut() {
+        if target_query.get(target.0).is_err() {
+            cmd.entity(entity).remove::<Target>();
+            if let Some(client) = client {
+                client.send(UnTargetEntityResponse::new(true));
+            }
+        }
+    }
+}
