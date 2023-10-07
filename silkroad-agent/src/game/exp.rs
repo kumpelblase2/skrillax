@@ -84,7 +84,7 @@ pub(crate) fn receive_experience(
         }
 
         client.send(ReceiveExperience {
-            exp_origin: event.source.map(|source| source.1.ref_id).unwrap_or(0),
+            exp_origin: event.source.map(|source| source.1.unique_id).unwrap_or(0),
             experience: event.exp,
             sp: event.sp,
             unknown: 0,
