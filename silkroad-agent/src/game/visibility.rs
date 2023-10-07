@@ -83,7 +83,7 @@ pub(crate) fn visibility_update(
 }
 
 pub(crate) fn player_visibility_update(
-    mut query: Query<(&Client, &mut Visibility)>,
+    mut query: Query<(&Client, &GameEntity, &mut Visibility)>,
     lookup: Query<(
         &Position,
         Option<&PlayerInventory>,
@@ -94,7 +94,7 @@ pub(crate) fn player_visibility_update(
         Option<&NPC>,
     )>,
 ) {
-    for (client, mut visibility) in query.iter_mut() {
+    for (client, player, mut visibility) in query.iter_mut() {
         let mut spawns = Vec::new();
         for reference in visibility.added_entities.iter() {
             let added = reference.0;
@@ -116,10 +116,10 @@ pub(crate) fn player_visibility_update(
                         object_id: entity.ref_id,
                         data: EntityTypeSpawnData::Character {
                             unique_id: entity.unique_id,
-                            scale: 0,
+                            scale: player.character.scale,
                             berserk_level: 0,
                             pvp_cape: PvpCape::None,
-                            beginner: true,
+                            beginner: player.character.beginner_mark,
                             title: 0,
                             inventory_size: inventory_opt.map(|inv| inv.size() as u8).unwrap_or(0),
                             equipment: items,
@@ -166,7 +166,7 @@ pub(crate) fn player_visibility_update(
                         },
                     ));
                 } else if let Some(drop) = item_opt {
-                    let spawn_data = spawndata_from_item(entity, pos, drop);
+                    let spawn_data = spawndata_from_item(entity, pos, drop, player);
                     spawns.push(GroupSpawnDataContent::Spawn {
                         object_id: entity.ref_id,
                         data: EntityTypeSpawnData::Item(spawn_data),
@@ -215,13 +215,16 @@ fn entity_state_from_agent(agent: &Agent) -> EntityState {
     }
 }
 
-fn spawndata_from_item(entity: GameEntity, pos: &Position, drop: &Drop) -> ItemSpawnData {
+fn spawndata_from_item(entity: GameEntity, pos: &Position, drop: &Drop, for_player: &GameEntity) -> ItemSpawnData {
     match drop.item.type_data {
         ItemTypeData::Equipment { upgrade_level } => ItemSpawnData::Equipment {
             upgrade: upgrade_level,
             unique_id: entity.unique_id,
             position: pos.as_protocol(),
-            owner: drop.owner.map(|owner| owner.1.unique_id),
+            owner: drop
+                .owner
+                .map(|owner| owner.1.unique_id)
+                .filter(|id| *id != for_player.unique_id),
             rarity: 0,
             source: DroppedItemSource::None,
             source_id: 0,
@@ -229,7 +232,10 @@ fn spawndata_from_item(entity: GameEntity, pos: &Position, drop: &Drop) -> ItemS
         ItemTypeData::COS | ItemTypeData::Consumable { .. } => ItemSpawnData::Consumable {
             unique_id: entity.unique_id,
             position: pos.as_protocol(),
-            owner: drop.owner.map(|owner| owner.1.unique_id),
+            owner: drop
+                .owner
+                .map(|owner| owner.1.unique_id)
+                .filter(|id| *id != for_player.unique_id),
             rarity: 0,
             source: DroppedItemSource::None,
             source_id: 0,
@@ -238,7 +244,10 @@ fn spawndata_from_item(entity: GameEntity, pos: &Position, drop: &Drop) -> ItemS
             amount,
             unique_id: entity.unique_id,
             position: pos.as_protocol(),
-            owner: drop.owner.map(|owner| owner.1.unique_id),
+            owner: drop
+                .owner
+                .map(|owner| owner.1.unique_id)
+                .filter(|id| *id != for_player.unique_id),
             rarity: 0,
         },
     }
