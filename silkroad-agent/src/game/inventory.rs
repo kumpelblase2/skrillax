@@ -51,12 +51,9 @@ pub(crate) fn handle_inventory_input(
                         InventoryOperationResponseData::DropGold { amount },
                     ));
                     client.send(CharacterPointsUpdate::Gold {
-                        amount: player.character.gold,
+                        amount: inventory.gold,
                         display: false,
                     });
-                    client.send(InventoryOperationResult::Success(
-                        InventoryOperationResponseData::DropGold { amount },
-                    ))
                 },
                 InventoryOperationRequest::PickupItem { unique_id } => {},
                 InventoryOperationRequest::Move { source, target, amount } => {
