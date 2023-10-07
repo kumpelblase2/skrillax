@@ -8,6 +8,7 @@ use crate::game::daylight::{advance_daylight, DaylightCycle};
 use crate::game::drop::{create_drops, tick_drop, SpawnDrop};
 use crate::game::entity_sync::{clean_sync, sync_changes_others, update_client};
 use crate::game::exp::{distribute_experience, receive_experience, ReceiveExperienceEvent};
+use crate::game::gold::drop_gold;
 use crate::game::inventory::handle_inventory_input;
 use crate::game::join::load_finished;
 use crate::game::logout::{handle_logout, tick_logout};
@@ -74,6 +75,7 @@ impl Plugin for GamePlugin {
                     deselect_despawned,
                     handle_damage,
                     distribute_experience.after(handle_damage),
+                    drop_gold.after(handle_damage),
                     receive_experience.after(distribute_experience),
                     handle_mastery_levelup,
                     learn_skill,

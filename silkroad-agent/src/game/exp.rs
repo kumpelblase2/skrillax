@@ -27,12 +27,12 @@ pub struct ReceiveExperienceEvent {
 pub(crate) fn distribute_experience(
     mut death_events: EventReader<EntityDeath>,
     mut experience_writer: EventWriter<ReceiveExperienceEvent>,
-    dead_query: Query<(&GameEntity, &DamageReceiver, &Position)>,
+    dead_query: Query<(&DamageReceiver, &Position)>,
     lookup: Res<EntityLookup>,
     receiver_query: Query<(&GameEntity, &Position)>,
 ) {
     for event in death_events.iter() {
-        let Ok((dead_entity, damage_distribution, death_location)) = dead_query.get(event.died) else {
+        let Ok((damage_distribution, death_location)) = dead_query.get(event.died.0) else {
             continue;
         };
 
@@ -43,7 +43,7 @@ pub(crate) fn distribute_experience(
             {
                 if death_location.distance_to(position) <= EXP_RECEIVE_RANGE_SQUARED {
                     let event = ReceiveExperienceEvent {
-                        source: Some(EntityReference(event.died, *dead_entity)),
+                        source: Some(event.died),
                         target: EntityReference(target_entity, *game_entity),
                         exp: 100,
                         sp: 100,

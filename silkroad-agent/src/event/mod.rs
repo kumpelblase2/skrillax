@@ -43,6 +43,6 @@ pub(crate) struct PlayerTeleportEvent(pub Entity, pub GlobalPosition);
 
 #[derive(Event)]
 pub(crate) struct EntityDeath {
-    pub died: Entity,
-    pub killer: Option<Entity>,
+    pub died: EntityReference,
+    pub killer: Option<EntityReference>,
 }

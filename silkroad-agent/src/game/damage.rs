@@ -70,8 +70,8 @@ pub(crate) fn handle_damage(
 
         if health.is_dead() {
             entity_died.send(EntityDeath {
-                died: damage_event.target.0,
-                killer: Some(damage_event.source.0),
+                died: damage_event.target,
+                killer: Some(damage_event.source),
             });
             let dead_state = if player.is_some() {
                 Dead::new_player()

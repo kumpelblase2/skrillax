@@ -11,9 +11,9 @@ use silkroad_game_base::{GlobalLocation, GlobalPosition, Heading, Item, Vector2E
 
 #[derive(Constructor, Event)]
 pub(crate) struct SpawnDrop {
-    item: Item,
-    relative_position: GlobalLocation,
-    owner: Option<EntityReference>,
+    pub item: Item,
+    pub relative_position: GlobalLocation,
+    pub owner: Option<EntityReference>,
 }
 
 pub(crate) fn tick_drop(mut cmd: Commands, time: Res<Time>, mut drops: Query<(Entity, &mut Despawn)>) {
