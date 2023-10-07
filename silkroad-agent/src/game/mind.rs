@@ -78,7 +78,7 @@ fn enqueue_action(
                 };
 
                 if target_pos.distance_to(position) <= 4.0f32 {
-                    state.request_transition(Pickup(target.0));
+                    state.request_transition(Pickup(target.0, None));
                 } else {
                     let my_location = position.location.to_location();
                     let target_movement_pos =

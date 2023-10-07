@@ -1,14 +1,11 @@
 use crate::comp::drop::Drop;
 use crate::comp::net::Client;
-use crate::comp::pos::Position;
 use crate::comp::{EntityReference, GameEntity};
 use crate::game::mind::Mind;
 use crate::input::PlayerInput;
 use crate::world::{EntityLookup, WorldData};
 use bevy_ecs::prelude::*;
-use silkroad_protocol::combat::{
-    ActionTarget, DoActionResponseCode, DoActionType, PerformAction, PerformActionError, PerformActionResponse,
-};
+use silkroad_protocol::combat::{ActionTarget, DoActionType, PerformAction, PerformActionError, PerformActionResponse};
 use tracing::warn;
 
 pub(crate) fn handle_action(
@@ -47,12 +44,11 @@ pub(crate) fn handle_action(
                             continue;
                         };
 
-                        let Ok((game_entity)) = pickup_query.get(target) else {
+                        let Ok(game_entity) = pickup_query.get(target) else {
                             client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
                             continue;
                         };
 
-                        client.send(PerformActionResponse::Do(DoActionResponseCode::Success));
                         mind.pickup(EntityReference(target, *game_entity));
                     },
                     _ => continue,

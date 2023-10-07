@@ -1,7 +1,6 @@
 use crate::agent::states::Idle;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::net::Client;
-use crate::comp::pos::Position;
 use crate::comp::sync::{ActionAnimation, Synchronize};
 use crate::comp::{drop, EntityReference, GameEntity};
 use crate::event::{AttackDefinition, DamageReceiveEvent};
@@ -9,14 +8,12 @@ use crate::game::attack::AttackInstanceCounter;
 use bevy_ecs::prelude::*;
 use bevy_ecs::query::QueryEntityError;
 use bevy_time::{Time, Timer, TimerMode};
-use derive_more::Deref;
 use silkroad_data::skilldata::{RefSkillData, SkillParam};
 use silkroad_data::DataEntry;
 use silkroad_game_base::{GlobalLocation, ItemTypeData};
-use silkroad_protocol::combat::{PerformActionError, PerformActionResponse};
+use silkroad_protocol::combat::{DoActionResponseCode, PerformActionError, PerformActionResponse};
 use silkroad_protocol::inventory::{InventoryItemContentData, InventoryOperationError, InventoryOperationResult};
-use silkroad_protocol::world::UnknownActionData;
-use std::ops::Deref;
+use silkroad_protocol::world::{CharacterPointsUpdate, UnknownActionData};
 use std::time::Duration;
 use tracing::error;
 
@@ -88,71 +85,83 @@ impl From<ActionDescription> for Action {
     }
 }
 
-#[derive(Component, Deref)]
+#[derive(Component)]
 #[component(storage = "SparseSet")]
-pub(crate) struct Pickup(pub Entity);
+pub(crate) struct Pickup(pub Entity, pub Option<Timer>);
 
 pub(crate) fn pickup(
     mut query: Query<(
         Entity,
         &GameEntity,
         &Client,
-        &Pickup,
+        &mut Pickup,
         &mut PlayerInventory,
         &mut Synchronize,
     )>,
+    time: Res<Time>,
     target_query: Query<&drop::Drop>,
     mut cmd: Commands,
 ) {
-    for (entity, game_entity, client, pickup, mut inventory, mut sync) in query.iter_mut() {
-        let drop = match target_query.get(*pickup.deref()) {
-            Ok(drop) => drop,
-            Err(QueryEntityError::NoSuchEntity(_)) => {
-                client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
-                cmd.entity(entity).remove::<Pickup>();
-                continue;
-            },
-            Err(e) => {
-                error!("Could not load target pickup item: {:?}", e);
-                cmd.entity(entity).remove::<Pickup>();
-                continue;
-            },
-        };
-
-        sync.actions.push(ActionAnimation::Pickup);
-        cmd.entity(*pickup.deref()).despawn();
-
-        match &drop.item.type_data {
-            ItemTypeData::Gold { amount } => {
-                inventory.gold += u64::from(*amount);
-                client.send(UnknownActionData {
-                    entity: game_entity.ref_id,
-                    unknown: 0,
-                });
-                client.send(InventoryOperationResult::success_gain_gold(*amount));
+    let delta = time.delta();
+    for (entity, game_entity, client, mut pickup, mut inventory, mut sync) in query.iter_mut() {
+        if let Some(cooldown) = pickup.1.as_mut() {
+            if cooldown.tick(delta).just_finished() {
                 client.send(PerformActionResponse::Stop(PerformActionError::Completed));
-            },
-            _ => {
-                if let Some(slot) = inventory.add_item(drop.item) {
+                cmd.entity(entity).remove::<Pickup>().insert(Idle);
+            }
+        } else {
+            let drop = match target_query.get(pickup.0) {
+                Ok(drop) => drop,
+                Err(QueryEntityError::NoSuchEntity(_)) => {
+                    client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
+                    cmd.entity(entity).remove::<Pickup>();
+                    continue;
+                },
+                Err(e) => {
+                    error!("Could not load target pickup item: {:?}", e);
+                    cmd.entity(entity).remove::<Pickup>();
+                    continue;
+                },
+            };
+
+            sync.actions.push(ActionAnimation::Pickup);
+            cmd.entity(pickup.0).despawn();
+            pickup.1 = Some(Timer::from_seconds(1.0, TimerMode::Once));
+
+            match &drop.item.type_data {
+                ItemTypeData::Gold { amount } => {
+                    inventory.gold += u64::from(*amount);
                     client.send(UnknownActionData {
                         entity: game_entity.ref_id,
-                        unknown: 0xb2,
+                        unknown: 0,
                     });
+                    client.send(CharacterPointsUpdate::Gold {
+                        amount: inventory.gold,
+                        display: true,
+                    });
+                    client.send(PerformActionResponse::Do(DoActionResponseCode::Success));
+                },
+                _ => {
+                    if let Some(slot) = inventory.add_item(drop.item) {
+                        client.send(UnknownActionData {
+                            entity: game_entity.ref_id,
+                            unknown: 0xb2,
+                        });
 
-                    client.send(InventoryOperationResult::success_gain_item(
-                        slot,
-                        drop.item.reference.ref_id(),
-                        InventoryItemContentData::Expendable {
-                            stack_size: drop.item.stack_size(),
-                        },
-                    ));
-                } else {
-                    client.send(InventoryOperationResult::Error(InventoryOperationError::InventoryFull));
-                }
-                client.send(PerformActionResponse::Stop(PerformActionError::Completed));
-            },
+                        client.send(InventoryOperationResult::success_gain_item(
+                            slot,
+                            drop.item.reference.ref_id(),
+                            InventoryItemContentData::Expendable {
+                                stack_size: drop.item.stack_size(),
+                            },
+                        ));
+                    } else {
+                        client.send(InventoryOperationResult::Error(InventoryOperationError::InventoryFull));
+                    }
+                    client.send(PerformActionResponse::Stop(PerformActionError::Completed));
+                },
+            }
         }
-        cmd.entity(entity).remove::<Pickup>().insert(Idle);
     }
 }
 
