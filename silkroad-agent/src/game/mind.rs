@@ -5,6 +5,7 @@ use crate::comp::pos::Position;
 use crate::comp::{EntityReference, GameEntity};
 use crate::ext::Navmesh;
 use crate::game::attack::{Attack, AttackProcess};
+use crate::world::WorldData;
 use bevy_app::{App, Plugin, PostUpdate, PreUpdate};
 use bevy_ecs::prelude::*;
 use bevy_ecs_macros::Component;
@@ -76,13 +77,30 @@ fn enqueue_action(
                     mind.cancel();
                     continue;
                 };
+                let Some(character_data) = WorldData::characters().find_id(entity.ref_id) else {
+                    if let Some(client) = client {
+                        client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
+                    }
+                    mind.cancel();
+                    continue;
+                };
 
-                if target_pos.distance_to(position) <= 4.0f32 {
+                let Some(range) = character_data.pickup_range else {
+                    if let Some(client) = client {
+                        client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
+                    }
+                    mind.cancel();
+                    continue;
+                };
+
+                let range: f32 = range.get().into();
+
+                if target_pos.distance_to(position) <= range.powf(2.0) {
                     state.request_transition(Pickup(target.0, None));
                 } else {
                     let my_location = position.location.to_location();
                     let target_movement_pos =
-                        my_location.point_in_line_with_range(target_pos.location.to_location(), 1.9); // TODO
+                        my_location.point_in_line_with_range(target_pos.location.to_location(), range);
 
                     let target_height = navmesh.height_for(target_movement_pos).unwrap_or(position.location.y);
                     state.request_transition(Moving(MovementGoal::Location(

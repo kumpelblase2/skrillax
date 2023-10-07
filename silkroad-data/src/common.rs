@@ -6,14 +6,10 @@ use std::time::Duration;
 
 #[derive(Clone)]
 pub struct RefCommon {
-    pub ref_id: u32,
-    // column 1
-    pub id: String,
-    // column 2
-    pub type_id: TypeId,
-    // column 9-12
-    pub country: RefOrigin,
-    // column 14
+    pub ref_id: u32,            // column 1
+    pub id: String,             // column 2
+    pub type_id: TypeId,        // column 9-12
+    pub country: RefOrigin,     // column 14
     pub despawn_time: Duration, // column 13
 }
 
