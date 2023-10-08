@@ -1280,9 +1280,9 @@ impl CharacterPointsUpdate {
 }
 
 #[derive(Serialize, ByteSize)]
-pub struct UnknownActionData {
+pub struct PlayerPickupAnimation {
     pub entity: u32,
-    pub unknown: u8,
+    pub rotation: u8,
 }
 
 #[derive(Serialize, ByteSize)]

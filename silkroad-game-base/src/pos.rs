@@ -181,6 +181,16 @@ impl From<u16> for Heading {
     }
 }
 
+impl From<Heading> for u8 {
+    fn from(heading: Heading) -> Self {
+        if heading.0 == 0.0 {
+            return 0;
+        }
+        let percentage = (360. - heading.0) / 360.0;
+        (percentage * (u8::MAX as f32)) as u8
+    }
+}
+
 impl From<Vector2<f32>> for Heading {
     fn from(value: Vector2<f32>) -> Self {
         Heading(Deg::from(value.angle(Vector2::unit_x())).0)

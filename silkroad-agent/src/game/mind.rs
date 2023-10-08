@@ -71,25 +71,19 @@ fn enqueue_action(
                 };
 
                 let Ok(target_pos) = target_query.get(target.0) else {
-                    if let Some(client) = client {
-                        client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
-                    }
                     mind.cancel();
+                    state.request_transition(Idle);
                     continue;
                 };
                 let Some(character_data) = WorldData::characters().find_id(entity.ref_id) else {
-                    if let Some(client) = client {
-                        client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
-                    }
                     mind.cancel();
+                    state.request_transition(Idle);
                     continue;
                 };
 
                 let Some(range) = character_data.pickup_range else {
-                    if let Some(client) = client {
-                        client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
-                    }
                     mind.cancel();
+                    state.request_transition(Idle);
                     continue;
                 };
 

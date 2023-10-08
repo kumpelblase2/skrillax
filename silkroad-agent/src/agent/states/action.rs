@@ -13,7 +13,7 @@ use silkroad_data::DataEntry;
 use silkroad_game_base::{GlobalLocation, ItemTypeData};
 use silkroad_protocol::combat::{DoActionResponseCode, PerformActionError, PerformActionResponse};
 use silkroad_protocol::inventory::{InventoryItemContentData, InventoryOperationError, InventoryOperationResult};
-use silkroad_protocol::world::{CharacterPointsUpdate, UnknownActionData};
+use silkroad_protocol::world::CharacterPointsUpdate;
 use std::time::Duration;
 use tracing::error;
 
@@ -90,20 +90,13 @@ impl From<ActionDescription> for Action {
 pub(crate) struct Pickup(pub Entity, pub Option<Timer>);
 
 pub(crate) fn pickup(
-    mut query: Query<(
-        Entity,
-        &GameEntity,
-        &Client,
-        &mut Pickup,
-        &mut PlayerInventory,
-        &mut Synchronize,
-    )>,
+    mut query: Query<(Entity, &Client, &mut Pickup, &mut PlayerInventory, &mut Synchronize)>,
     time: Res<Time>,
     target_query: Query<&drop::Drop>,
     mut cmd: Commands,
 ) {
     let delta = time.delta();
-    for (entity, game_entity, client, mut pickup, mut inventory, mut sync) in query.iter_mut() {
+    for (entity, client, mut pickup, mut inventory, mut sync) in query.iter_mut() {
         if let Some(cooldown) = pickup.1.as_mut() {
             if cooldown.tick(delta).just_finished() {
                 client.send(PerformActionResponse::Stop(PerformActionError::Completed));
@@ -131,23 +124,14 @@ pub(crate) fn pickup(
             match &drop.item.type_data {
                 ItemTypeData::Gold { amount } => {
                     inventory.gold += u64::from(*amount);
-                    client.send(UnknownActionData {
-                        entity: game_entity.ref_id,
-                        unknown: 0,
-                    });
+                    client.send(PerformActionResponse::Do(DoActionResponseCode::Success));
                     client.send(CharacterPointsUpdate::Gold {
                         amount: inventory.gold,
                         display: true,
                     });
-                    client.send(PerformActionResponse::Do(DoActionResponseCode::Success));
                 },
                 _ => {
                     if let Some(slot) = inventory.add_item(drop.item) {
-                        client.send(UnknownActionData {
-                            entity: game_entity.ref_id,
-                            unknown: 0xb2,
-                        });
-
                         client.send(InventoryOperationResult::success_gain_item(
                             slot,
                             drop.item.reference.ref_id(),

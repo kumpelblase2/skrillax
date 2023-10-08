@@ -1,19 +1,20 @@
 use crate::comp::net::Client;
 use crate::comp::player::Player;
+use crate::comp::pos::Position;
 use crate::comp::sync::{ActionAnimation, MovementUpdate, Synchronize};
 use crate::comp::visibility::Visibility;
 use crate::comp::GameEntity;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::world::{
-    EntityUpdateState, LevelUpEffect, MovementDestination, MovementSource, PlayerMovementResponse, UnknownActionData,
-    UpdatedState,
+    EntityUpdateState, LevelUpEffect, MovementDestination, MovementSource, PlayerMovementResponse,
+    PlayerPickupAnimation, UpdatedState,
 };
 
 pub(crate) fn sync_changes_others(
-    query: Query<(&Client, &Visibility), With<Player>>,
+    query: Query<(&Client, &Visibility, &Position), With<Player>>,
     others: Query<(&GameEntity, &Synchronize)>,
 ) {
-    for (client, visibility) in query.iter() {
+    for (client, visibility, pos) in query.iter() {
         for (entity, synchronize) in visibility
             .entities_in_radius
             .iter()
@@ -33,7 +34,7 @@ pub(crate) fn sync_changes_others(
             }
 
             for action in synchronize.actions.iter() {
-                update_animation(client, entity, action);
+                update_animation(client, pos, entity, action);
             }
 
             if synchronize.did_level {
@@ -100,25 +101,29 @@ fn update_state(client: &Client, entity: &GameEntity, state: UpdatedState) {
     });
 }
 
-fn update_animation(client: &Client, entity: &GameEntity, action: &ActionAnimation) {
+fn update_animation(client: &Client, pos: &Position, entity: &GameEntity, action: &ActionAnimation) {
     match action {
         ActionAnimation::Pickup => {
-            client.send(UnknownActionData {
+            client.send(PlayerPickupAnimation {
                 entity: entity.unique_id,
-                unknown: 0,
+                rotation: pos.rotation.into(),
             });
         },
     }
 }
 
-pub(crate) fn update_client(query: Query<(&Client, &GameEntity, &Synchronize)>) {
-    for (client, entity, sync) in query.iter() {
+pub(crate) fn update_client(query: Query<(&Client, &GameEntity, &Position, &Synchronize)>) {
+    for (client, entity, pos, sync) in query.iter() {
         if let Some(movement) = &sync.movement {
             update_movement_for(client, entity, movement);
         }
 
         for state in sync.state.iter() {
             update_state(client, entity, *state);
+        }
+
+        for animation in sync.actions.iter() {
+            update_animation(client, pos, entity, animation);
         }
 
         if sync.did_level {
