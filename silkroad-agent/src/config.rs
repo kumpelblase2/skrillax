@@ -49,12 +49,20 @@ pub(crate) struct GameConfig {
     pub(crate) deletion_time: u32,
     pub(crate) spawner: SpawnOptions,
     pub(crate) max_follow_distance: f32,
+    pub(crate) masteries: MasteryConfig,
 }
 
 #[derive(Deserialize, Default, Clone)]
 pub(crate) struct SpawnOptions {
     pub(crate) radius: f32,
     pub(crate) amount: usize,
+}
+
+#[derive(Deserialize, Default, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) struct MasteryConfig {
+    pub(crate) european_per_level: usize,
+    pub(crate) chinese_per_level: usize,
 }
 
 #[derive(Deserialize)]

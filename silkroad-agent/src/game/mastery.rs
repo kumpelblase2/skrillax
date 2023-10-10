@@ -1,12 +1,17 @@
 use crate::comp::net::Client;
 use crate::comp::player::Player;
+use crate::config::GameConfig;
 use crate::input::PlayerInput;
 use crate::world::WorldData;
 use bevy_ecs::prelude::*;
+use silkroad_game_base::Race;
 use silkroad_protocol::skill::{LearnSkillResponse, LevelUpMasteryError, LevelUpMasteryResponse};
 use silkroad_protocol::world::CharacterPointsUpdate;
 
-pub(crate) fn handle_mastery_levelup(mut query: Query<(&Client, &mut Player, &mut PlayerInput)>) {
+pub(crate) fn handle_mastery_levelup(
+    mut query: Query<(&Client, &mut Player, &mut PlayerInput)>,
+    config: Res<GameConfig>,
+) {
     let masteries = WorldData::masteries();
     let levels = WorldData::levels();
     for (client, mut player, mut input) in query.iter_mut() {
@@ -24,6 +29,23 @@ pub(crate) fn handle_mastery_levelup(mut query: Query<(&Client, &mut Player, &mu
                 .map(|(_, level)| level)
                 .copied()
                 .unwrap_or(0);
+
+            let per_level_cap = match player.character.race {
+                Race::European => config.masteries.european_per_level,
+                Race::Chinese => config.masteries.chinese_per_level,
+            };
+
+            let current_cap = usize::from(player.character.level) * per_level_cap;
+            let total_mastery_levels = player
+                .character
+                .masteries
+                .iter()
+                .map(|(_, level)| usize::from(*level))
+                .sum::<usize>();
+            if total_mastery_levels >= current_cap {
+                client.send(LevelUpMasteryResponse::Error(LevelUpMasteryError::ReachedTotalLimit));
+                continue;
+            }
 
             let required_sp = levels.get_mastery_sp_for_level(current_level).unwrap_or(0);
 

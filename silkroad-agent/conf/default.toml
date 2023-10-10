@@ -19,6 +19,10 @@ max-follow-distance = 300.0
 radius = 500
 amount = 10
 
+[game.masteries]
+european-per-level = 2
+chinese-per-level = 2
+
 [database]
 host = "localhost"
 user = "skrillax"
