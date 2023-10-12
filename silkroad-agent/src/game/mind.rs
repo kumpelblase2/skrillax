@@ -38,6 +38,10 @@ impl Mind {
     pub fn pickup(&mut self, target: EntityReference) {
         self.current_goal = Some(Goal::PickUp(target));
     }
+
+    pub fn has_goal(&self) -> bool {
+        self.current_goal.is_some()
+    }
 }
 
 #[derive(Copy, Clone)]

@@ -6,8 +6,8 @@ use crate::comp::visibility::Visibility;
 use crate::comp::GameEntity;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::world::{
-    EntityUpdateState, LevelUpEffect, MovementDestination, MovementSource, PlayerMovementResponse,
-    PlayerPickupAnimation, UpdatedState,
+    EntityBarUpdateSource, EntityBarUpdates, EntityBarsUpdate, EntityUpdateState, LevelUpEffect, MovementDestination,
+    MovementSource, PlayerMovementResponse, PlayerPickupAnimation, UpdatedState,
 };
 
 pub(crate) fn sync_changes_others(
@@ -124,6 +124,14 @@ pub(crate) fn update_client(query: Query<(&Client, &GameEntity, &Position, &Sync
 
         for animation in sync.actions.iter() {
             update_animation(client, pos, entity, animation);
+        }
+
+        if let Some(health) = sync.health {
+            client.send(EntityBarsUpdate {
+                unique_id: entity.unique_id,
+                source: EntityBarUpdateSource::Damage,
+                updates: EntityBarUpdates::HP { amount: health },
+            });
         }
 
         if sync.did_level {

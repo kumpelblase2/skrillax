@@ -3,7 +3,7 @@ use crate::chat::ChatPlugin;
 use crate::event::{DamageReceiveEvent, EntityDeath, LoadingFinishedEvent, PlayerLevelUp, UniqueKilledEvent};
 use crate::game::action::handle_action;
 use crate::game::attack::AttackInstanceCounter;
-use crate::game::damage::handle_damage;
+use crate::game::damage::{attack_player, handle_damage};
 use crate::game::daylight::{advance_daylight, DaylightCycle};
 use crate::game::drop::{create_drops, tick_drop, SpawnDrop};
 use crate::game::entity_sync::{clean_sync, sync_changes_others, update_client};
@@ -74,6 +74,7 @@ impl Plugin for GamePlugin {
                     player_update_target,
                     deselect_despawned,
                     handle_damage,
+                    attack_player,
                     distribute_experience.after(handle_damage),
                     drop_gold.after(handle_damage),
                     receive_experience.after(distribute_experience),

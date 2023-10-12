@@ -1,10 +1,12 @@
 use crate::agent::states::{Dead, StateTransitionQueue};
 use crate::comp::damage::DamageReceiver;
+use crate::comp::monster::Monster;
 use crate::comp::net::Client;
 use crate::comp::player::Player;
 use crate::comp::sync::Synchronize;
 use crate::comp::{GameEntity, Health};
 use crate::event::{DamageReceiveEvent, EntityDeath};
+use crate::game::mind::Mind;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::combat::{
     ActionType, DamageContent, DamageKind, DamageValue, PerEntityDamage, PerformActionError, PerformActionUpdate,
@@ -19,12 +21,13 @@ pub(crate) fn handle_damage(
         &mut StateTransitionQueue,
         &mut DamageReceiver,
         Option<&Player>,
+        Option<&Client>,
     )>,
     sender_query: Query<(&GameEntity, Option<&Client>)>,
     mut entity_died: EventWriter<EntityDeath>,
 ) {
     for damage_event in reader.iter() {
-        let Ok((mut health, mut synchronize, mut controller, mut receiver, player)) =
+        let Ok((mut health, mut synchronize, mut controller, mut receiver, player, maybe_client)) =
             receiver_query.get_mut(damage_event.target.0)
         else {
             continue;
@@ -66,6 +69,22 @@ pub(crate) fn handle_damage(
                     }),
                 },
             ));
+        } else if let Some(client) = maybe_client {
+            client.send(PerformActionUpdate::success(
+                damage_event.attack.skill.ref_id,
+                damage_event.source.1.unique_id,
+                damage_event.target.1.unique_id,
+                damage_event.attack.instance,
+                ActionType::Attack {
+                    damage: Some(DamageContent {
+                        damage_instances: 1,
+                        entities: vec![PerEntityDamage {
+                            target: damage_event.target.1.unique_id,
+                            damage: vec![damage_data],
+                        }],
+                    }),
+                },
+            ));
         }
 
         if health.is_dead() {
@@ -79,6 +98,16 @@ pub(crate) fn handle_damage(
                 Dead::new_monster()
             };
             controller.request_transition(dead_state);
+        }
+    }
+}
+
+pub(crate) fn attack_player(mut query: Query<&mut Mind, With<Monster>>, mut events: EventReader<DamageReceiveEvent>) {
+    for event in events.iter() {
+        if let Ok(mut mind) = query.get_mut(event.target.0) {
+            if !mind.has_goal() {
+                mind.attack(event.source)
+            }
         }
     }
 }
