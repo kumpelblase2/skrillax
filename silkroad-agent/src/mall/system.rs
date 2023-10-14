@@ -6,40 +6,16 @@ use crate::mall::event::MallOpenRequestEvent;
 use crate::server_plugin::ServerId;
 use crate::tasks::TaskCreator;
 use bevy_ecs::prelude::*;
-use bevy_time::{Time, Timer, TimerMode};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use silkroad_protocol::inventory::{OpenItemMallResponse, OpenItemMallResult};
 use sqlx::PgPool;
-use std::time::Duration;
 use tracing::debug;
 
 const MALL_TOKEN_SIZE: usize = 30;
 
-pub(crate) struct CleanupDelay(Timer);
-
-impl Default for CleanupDelay {
-    fn default() -> Self {
-        CleanupDelay(Timer::from_seconds(60.0, TimerMode::Repeating))
-    }
-}
-
-impl CleanupDelay {
-    pub fn step(&mut self, duration: Duration) -> bool {
-        self.0.tick(duration).just_finished()
-    }
-}
-
-pub(crate) fn clean_tokens(
-    mut timer: Local<CleanupDelay>,
-    time: Res<Time>,
-    db: Res<DbPool>,
-    task_creator: Res<TaskCreator>,
-) {
-    let delta = time.delta();
-    if timer.step(delta) {
-        task_creator.spawn(delete_expired_mall_keys(PgPool::clone(&db)));
-    }
+pub(crate) fn clean_tokens(db: Res<DbPool>, task_creator: Res<TaskCreator>) {
+    task_creator.spawn(delete_expired_mall_keys(PgPool::clone(&db)));
 }
 
 pub(crate) fn open_mall(
