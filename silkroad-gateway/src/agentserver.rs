@@ -128,27 +128,32 @@ async fn fetch_servers(pool: PgPool) -> Vec<AgentServer> {
             .await
         {
             Ok(servers) => servers,
-            Err(ref e) => {
+            Err(e) => {
                 error!(error = %e, "Could not load servers from database.");
                 Vec::default()
             },
         };
     servers
         .into_iter()
-        .map(|row| {
+        .filter_map(|row| {
             let address: String = row.address;
 
-            let ip = address
-                .parse()
-                .expect("Address in database should be a valid ip address");
-            AgentServer::new(
+            let Ok(ip) = address.parse() else {
+                error!(
+                    server = row.name,
+                    address, "Could not include server because the address is invalid."
+                );
+                return None;
+            };
+
+            Some(AgentServer::new(
                 row.id as u16,
                 row.name,
                 SocketAddr::new(ip, row.port as u16),
                 format!("{}:{}", row.rpc_address, row.rpc_port),
                 ServerRegion::from(row.region),
                 row.token,
-            )
+            ))
         })
         .collect()
 }
