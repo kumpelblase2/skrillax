@@ -74,7 +74,7 @@ pub(crate) fn receive_experience(
         let mut levels_increased = 0u16;
 
         while let Some(exp) = level_map.get_exp_for_level(player.character.level) {
-            if exp < player.character.exp {
+            if exp <= player.character.exp {
                 levels_increased += 1;
                 player.character.increase_level();
                 player.character.exp -= exp;
