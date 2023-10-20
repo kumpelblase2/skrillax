@@ -1,8 +1,7 @@
 use crate::agent::event::{ActionFinished, MovementFinished};
-use crate::agent::states::{action, broadcast_dead, dead, movement, pickup, turning, update_target_location};
+use crate::agent::states::{action, dead, movement, pickup, turning, update_target_location};
 use crate::agent::system::{
-    broadcast_action_stop, broadcast_movement_begin, broadcast_movement_stop, movement_input,
-    transition_from_attacking, transition_from_idle, transition_from_moving, transition_from_sitting,
+    movement_input, transition_from_attacking, transition_from_idle, transition_from_moving, transition_from_sitting,
     transition_to_idle,
 };
 use bevy_app::{App, Plugin, PostUpdate, PreUpdate, Update};
@@ -10,7 +9,7 @@ use bevy_ecs::prelude::*;
 pub(crate) use component::*;
 
 mod component;
-mod event;
+pub(crate) mod event;
 pub(crate) mod states;
 mod system;
 
@@ -43,16 +42,6 @@ impl Plugin for AgentPlugin {
                     transition_from_attacking,
                 )
                     .in_set(AgentSet::Transition),
-            )
-            .add_systems(
-                PostUpdate,
-                (
-                    broadcast_movement_stop,
-                    broadcast_movement_begin,
-                    broadcast_action_stop,
-                    broadcast_dead,
-                )
-                    .in_set(AgentSet::Broadcast),
             )
             .add_systems(
                 Update,

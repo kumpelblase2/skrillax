@@ -62,13 +62,13 @@ impl AttackProcess<'_> {
         } else {
             let new_target_position = self
                 .position
-                .location
+                .position()
                 .to_location()
-                .point_in_line_with_range(self.target_pos.location.to_location(), range);
+                .point_in_line_with_range(self.target_pos.location(), range);
             let new_height = self
                 .navmesh
                 .height_for(new_target_position)
-                .unwrap_or(self.target_pos.location.y);
+                .unwrap_or(self.target_pos.position().y);
             self.state
                 .request_transition(Moving(MovementGoal::Location(new_target_position.with_y(new_height))));
         }

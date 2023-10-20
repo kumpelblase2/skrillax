@@ -12,6 +12,7 @@ mod mall;
 mod net;
 mod population;
 mod server_plugin;
+mod sync;
 mod tasks;
 mod world;
 
@@ -26,6 +27,7 @@ use crate::mall::MallPlugin;
 use crate::net::NetworkPlugin;
 use crate::population::{CapacityController, LoginQueue};
 use crate::server_plugin::ServerPlugin;
+use crate::sync::SynchronizationPlugin;
 use crate::tasks::TaskCreator;
 use crate::world::WorldPlugin;
 use bevy_app::App;
@@ -102,6 +104,7 @@ fn main() {
     info!("Listening for clients");
     App::new()
         .add_plugins(TaskPoolPlugin::default())
+        .add_plugins(SynchronizationPlugin)
         .add_plugins(TimePlugin)
         .add_plugins(ReceivePlugin)
         .add_plugins(AgentPlugin)

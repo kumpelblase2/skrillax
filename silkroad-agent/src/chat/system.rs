@@ -1,13 +1,12 @@
 use crate::agent::states::StateTransitionQueue;
 use crate::agent::{Agent, MovementState};
 use crate::chat::command::Command;
-use crate::comp::damage::DamageReceiver;
+use crate::comp::damage::{DamageReceiver, Invincible};
 use crate::comp::monster::{Monster, MonsterBundle, RandomStroll, SpawnedBy};
 use crate::comp::net::Client;
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
-use crate::comp::sync::Synchronize;
-use crate::comp::visibility::Visibility;
+use crate::comp::visibility::{Invisible, Visibility};
 use crate::comp::{GameEntity, Health};
 use crate::event::PlayerCommandEvent;
 use crate::ext::EntityIdPool;
@@ -137,12 +136,12 @@ pub(crate) fn handle_chat(
 }
 
 pub(crate) fn handle_gm_commands(
-    mut query: Query<(Entity, &Client, &Position, &PlayerInput, &mut Synchronize)>,
+    mut query: Query<(Entity, &Client, &Position, &PlayerInput)>,
     mut commands: Commands,
     mut id_pool: ResMut<EntityIdPool>,
     mut item_spawn: EventWriter<SpawnDrop>,
 ) {
-    for (entity, client, position, input, mut sync) in query.iter_mut() {
+    for (entity, client, position, input) in query.iter_mut() {
         if let Some(ref command) = input.gm {
             match command {
                 GmCommand::SpawnMonster { ref_id, amount, rarity } => {
@@ -163,8 +162,7 @@ pub(crate) fn handle_gm_commands(
                             visibility: Visibility::with_radius(100.),
                             spawner: SpawnedBy { spawner: entity },
                             navigation: Agent::from_character_data(character_def),
-                            sync: Default::default(),
-                            stroll: RandomStroll::new(position.location.to_location(), 100., Duration::from_secs(1)),
+                            stroll: RandomStroll::new(position.location(), 100., Duration::from_secs(1)),
                             state_queue: StateTransitionQueue::default(),
                             movement_state: MovementState::default_monster(),
                             damage_receiver: DamageReceiver::default(),
@@ -200,17 +198,17 @@ pub(crate) fn handle_gm_commands(
                             variance: None,
                             type_data: item_type,
                         },
-                        position.location.to_location(),
+                        position.location(),
                         None,
                     ));
                     client.send(GmResponse::success_message(format!("Dropped 1 of {}", item.common.id)));
                 },
                 GmCommand::Invincible => {
-                    sync.state.push(UpdatedState::Body(BodyState::GMInvincible));
+                    commands.entity(entity).insert(Invincible::from_command());
                     client.send(GmResponse::success_message("Enabled invincibility".to_string()));
                 },
                 GmCommand::Invisible => {
-                    sync.state.push(UpdatedState::Body(BodyState::GMInvisible));
+                    commands.entity(entity).insert(Invisible::from_command());
                     client.send(GmResponse::success_message("Enabled invisibility".to_string()));
                 },
                 _ => {},

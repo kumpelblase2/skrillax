@@ -1,6 +1,5 @@
 use crate::comp::net::Client;
 use crate::comp::player::Player;
-use crate::comp::sync::Synchronize;
 use crate::comp::GameEntity;
 use crate::config::GameConfig;
 use crate::event::LoadingFinishedEvent;
@@ -9,26 +8,23 @@ use bevy_ecs::prelude::*;
 use silkroad_game_base::{Character, SpawningState};
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::chat::{ChatSource, ChatUpdate, TextCharacterInitialization};
-use silkroad_protocol::world::{
-    AliveState, CelestialUpdate, CharacterFinished, FriendListGroup, FriendListInfo, UpdatedState,
-};
+use silkroad_protocol::world::{CelestialUpdate, CharacterFinished, FriendListGroup, FriendListInfo};
 use tracing::debug;
 
 pub(crate) fn load_finished(
     mut reader: EventReader<LoadingFinishedEvent>,
     settings: Res<GameConfig>,
     daycycle: Res<DaylightCycle>,
-    mut query: Query<(&Client, &GameEntity, &mut Player, &mut Synchronize)>,
+    mut query: Query<(&Client, &GameEntity, &mut Player)>,
 ) {
     for event in reader.iter() {
-        let (client, game_entity, mut player, mut sync) = match query.get_mut(event.0) {
+        let (client, game_entity, mut player) = match query.get_mut(event.0) {
             Ok(data) => data,
             _ => continue,
         };
 
         debug!(id = ?client.0.id(), "Finished loading.");
         player.character.state = SpawningState::Finished;
-        sync.state.push(UpdatedState::Life(AliveState::Alive));
         send_character_stats(client, &player.character);
         send_text_initialization(client);
         let (hour, minute) = daycycle.time();

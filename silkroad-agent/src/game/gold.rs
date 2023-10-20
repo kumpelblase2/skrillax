@@ -46,7 +46,7 @@ pub(crate) fn drop_gold(
                     variance: None,
                     type_data: ItemTypeData::Gold { amount },
                 },
-                relative_position: pos.location.to_location(),
+                relative_position: pos.location(),
                 owner: event.killer,
             });
         }

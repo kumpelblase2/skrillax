@@ -2,7 +2,6 @@ use crate::agent::states::StateTransitionQueue;
 use crate::agent::{Agent, MovementState};
 use crate::comp::damage::DamageReceiver;
 use crate::comp::pos::Position;
-use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use crate::game::mind::Mind;
@@ -32,7 +31,6 @@ pub struct MonsterBundle {
     pub(crate) visibility: Visibility,
     pub(crate) spawner: SpawnedBy,
     pub(crate) navigation: Agent,
-    pub(crate) sync: Synchronize,
     pub(crate) stroll: RandomStroll,
     pub(crate) state_queue: StateTransitionQueue,
     pub(crate) movement_state: MovementState,

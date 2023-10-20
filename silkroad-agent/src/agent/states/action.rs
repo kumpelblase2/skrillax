@@ -1,7 +1,6 @@
 use crate::agent::states::Idle;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::net::Client;
-use crate::comp::sync::{ActionAnimation, Synchronize};
 use crate::comp::{drop, EntityReference, GameEntity};
 use crate::event::{AttackDefinition, DamageReceiveEvent};
 use crate::game::attack::AttackInstanceCounter;
@@ -90,13 +89,13 @@ impl From<ActionDescription> for Action {
 pub(crate) struct Pickup(pub Entity, pub Option<Timer>);
 
 pub(crate) fn pickup(
-    mut query: Query<(Entity, &Client, &mut Pickup, &mut PlayerInventory, &mut Synchronize)>,
+    mut query: Query<(Entity, &Client, &mut Pickup, &mut PlayerInventory)>,
     time: Res<Time>,
     target_query: Query<&drop::Drop>,
     mut cmd: Commands,
 ) {
     let delta = time.delta();
-    for (entity, client, mut pickup, mut inventory, mut sync) in query.iter_mut() {
+    for (entity, client, mut pickup, mut inventory) in query.iter_mut() {
         if let Some(cooldown) = pickup.1.as_mut() {
             if cooldown.tick(delta).just_finished() {
                 client.send(PerformActionResponse::Stop(PerformActionError::Completed));
@@ -117,7 +116,6 @@ pub(crate) fn pickup(
                 },
             };
 
-            sync.actions.push(ActionAnimation::Pickup);
             cmd.entity(pickup.0).despawn();
             pickup.1 = Some(Timer::from_seconds(1.0, TimerMode::Once));
 

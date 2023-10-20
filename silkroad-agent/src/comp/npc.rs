@@ -17,14 +17,12 @@ pub(crate) struct NpcBundle {
 
 impl NpcBundle {
     pub fn new(unique_id: u32, ref_id: u32, position: LocalPosition, agent: Agent) -> Self {
+        let position = Position::new(position.to_global(), Heading(0.0)); // TODO: need to get NPC rotation
         Self {
             game_entity: GameEntity { unique_id, ref_id },
             npc: NPC,
             agent,
-            position: Position {
-                location: position.to_global(),
-                rotation: Heading(0.0), // FIXME: We need to load the npc rotations from somewhere
-            },
+            position,
         }
     }
 }

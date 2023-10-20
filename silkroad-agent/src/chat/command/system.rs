@@ -12,7 +12,7 @@ use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
 use silkroad_game_base::{GlobalLocation, GlobalPosition, LocalPosition, MovementSpeed};
 use silkroad_protocol::chat::{ChatSource, ChatUpdate};
-use silkroad_protocol::world::{ChangeSpeed, EntityMovementInterrupt};
+use silkroad_protocol::world::ChangeSpeed;
 
 fn format_location(pos: &LocalPosition) -> String {
     format!("X: {} | Y: {} | Z: {} | Region: {}", pos.1.x, pos.1.y, pos.1.z, pos.0)
@@ -46,10 +46,10 @@ pub(crate) fn handle_command(
     for event in command_events.iter() {
         if let Ok((e, client, entity, pos, target, mut agent, player)) = query.get_mut(event.0) {
             if event.1.name == "pos" {
-                let pos = pos.location.to_local();
+                let pos = pos.position().to_local();
                 client.send(command_response(format_location(&pos)));
             } else if event.1.name == "gpos" {
-                let pos = pos.location;
+                let pos = pos.position();
                 client.send(command_response(format!("X: {} | Z: {}", pos.x, pos.z)));
             } else if event.1.name == "target" {
                 let Some(target) = target else {
@@ -62,7 +62,7 @@ pub(crate) fn handle_command(
                     continue;
                 };
 
-                client.send(command_response(format_location(&other_pos.location.to_local())));
+                client.send(command_response(format_location(&other_pos.position().to_local())));
             } else if event.1.name == "movespeed" {
                 let speed: f32 = event.1.args.first().and_then(|s| s.parse().ok()).unwrap_or(50.0);
                 agent.set_speed(MovementSpeed::Running, speed);
@@ -139,17 +139,10 @@ pub(crate) fn handle_command(
     }
 }
 
-pub(crate) fn handle_teleport(
-    mut teleport_events: EventReader<PlayerTeleportEvent>,
-    mut query: Query<(&Client, &GameEntity, &mut Position)>,
-) {
+pub(crate) fn handle_teleport(mut teleport_events: EventReader<PlayerTeleportEvent>, mut query: Query<&mut Position>) {
     for event in teleport_events.iter() {
-        if let Ok((client, game_entity, mut pos)) = query.get_mut(event.0) {
-            pos.location = event.1;
-            client.send(EntityMovementInterrupt {
-                entity_id: game_entity.unique_id,
-                position: pos.as_protocol(),
-            });
+        if let Ok(mut pos) = query.get_mut(event.0) {
+            pos.move_to(event.1);
         }
     }
 }

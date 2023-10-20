@@ -43,7 +43,7 @@ pub(crate) fn handle_inventory_input(
                             variance: None,
                             type_data: ItemTypeData::Gold { amount: amount as u32 },
                         },
-                        position.location.to_location(),
+                        position.location(),
                         None,
                     ));
 

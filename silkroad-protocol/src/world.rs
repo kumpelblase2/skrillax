@@ -453,7 +453,7 @@ impl TargetEntityResult {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub struct Position {
     pub region: u16,
     pub pos_x: f32,
@@ -970,13 +970,13 @@ impl CharacterSpawn {
 #[derive(Clone, Serialize, ByteSize)]
 pub struct CharacterSpawnEnd;
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub struct CooldownInfo {
     pub ref_id: u32,
     pub cooldown: u32,
 }
 
-#[derive(Serialize, ByteSize, Default)]
+#[derive(Serialize, ByteSize, Default, Clone)]
 pub struct CharacterFinished {
     pub item_cooldowns: Vec<CooldownInfo>,
     pub skill_cooldowns: Vec<CooldownInfo>,
@@ -1111,7 +1111,7 @@ impl PlayerMovementResponse {
     }
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub struct EntityMovementInterrupt {
     pub entity_id: u32,
     pub position: Position,
@@ -1153,7 +1153,7 @@ pub enum UpdatedState {
     Scroll(u8),
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize)]
 pub struct EntityUpdateState {
     pub unique_id: u32,
     pub update: UpdatedState,
@@ -1203,7 +1203,7 @@ pub struct UnTargetEntity {
     pub unique_id: u32,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub struct UnTargetEntityResponse {
     pub success: bool,
 }
@@ -1214,7 +1214,7 @@ impl UnTargetEntityResponse {
     }
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 #[silkroad(size = 2)]
 pub enum EntityBarUpdateSource {
     #[silkroad(value = 0x01)]
@@ -1226,7 +1226,7 @@ pub enum EntityBarUpdateSource {
 }
 
 // Maybe this should be a bitflag?
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Clone)]
 pub enum EntityBarUpdates {
     #[silkroad(value = 0)]
     None,
@@ -1244,7 +1244,7 @@ pub enum EntityBarUpdates {
     },
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Clone)]
 pub struct EntityBarsUpdate {
     pub unique_id: u32,
     pub source: EntityBarUpdateSource,
@@ -1259,9 +1259,17 @@ impl EntityBarsUpdate {
             updates: EntityBarUpdates::HP { amount: hp },
         }
     }
+
+    pub fn mp(unique_id: u32, source: EntityBarUpdateSource, mp: u32) -> Self {
+        EntityBarsUpdate {
+            unique_id,
+            source,
+            updates: EntityBarUpdates::MP { amount: mp },
+        }
+    }
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub enum CharacterPointsUpdate {
     #[silkroad(value = 1)]
     Gold { amount: u64, display: bool },
@@ -1279,20 +1287,20 @@ impl CharacterPointsUpdate {
     }
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub struct PlayerPickupAnimation {
     pub entity: u32,
     pub rotation: u8,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub struct ChangeSpeed {
     pub entity: u32,
     pub walk_speed: f32,
     pub running_speed: f32,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub struct ReceiveExperience {
     /// Unique ID of the entity that provided the experience
     pub exp_origin: u32,
@@ -1307,16 +1315,16 @@ pub struct ReceiveExperience {
     pub new_level: Option<u16>,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub struct LevelUpEffect {
     /// Unique ID of the entity that levelled up
     pub entity: u32,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Copy, Clone)]
 pub struct IncreaseStr;
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub enum IncreaseStrResponse {
     #[silkroad(value = 1)]
     Success,
@@ -1324,10 +1332,10 @@ pub enum IncreaseStrResponse {
     Error(u16),
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Copy, Clone)]
 pub struct IncreaseInt;
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub enum IncreaseIntResponse {
     #[silkroad(value = 1)]
     Success,

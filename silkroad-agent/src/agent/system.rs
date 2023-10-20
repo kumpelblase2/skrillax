@@ -2,7 +2,6 @@ use crate::agent::event::{ActionFinished, MovementFinished};
 use crate::agent::states::{Action, Idle, MovementGoal, Moving, Sitting, StateTransitionQueue};
 use crate::comp::net::Client;
 use crate::comp::pos::Position;
-use crate::comp::sync::{MovementUpdate, Synchronize};
 use crate::input::PlayerInput;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
@@ -63,49 +62,12 @@ pub(crate) fn transition_from_attacking(
     }
 }
 
-pub(crate) fn broadcast_movement_begin(
-    mut query: Query<(&mut Synchronize, &Position, &Moving), Or<(Added<Moving>, Changed<Moving>)>>,
-) {
-    for (mut sync, pos, moving) in query.iter_mut() {
-        let update = match &moving.0 {
-            MovementGoal::Location(dest) | MovementGoal::Entity(_, dest, _) => {
-                MovementUpdate::StartMove(pos.location.to_local(), dest.to_local())
-            },
-            MovementGoal::Direction(direction) => MovementUpdate::StartMoveTowards(pos.location.to_local(), *direction),
-        };
-
-        sync.rotation = Some(update.rotation());
-        sync.movement = Some(update);
-    }
-}
-
-pub(crate) fn broadcast_movement_stop(
-    mut query: Query<(&mut Synchronize, &Position, Option<&Moving>)>,
-    mut reader: EventReader<MovementFinished>,
-) {
-    for finished in reader.iter() {
-        if let Ok((mut sync, pos, is_moving)) = query.get_mut(finished.0) {
-            if is_moving.is_none() {
-                sync.movement = Some(MovementUpdate::StopMove(pos.location.to_local(), pos.rotation));
-            }
-        }
-    }
-}
-
-pub(crate) fn broadcast_action_stop(mut query: Query<&mut Synchronize>, mut reader: EventReader<ActionFinished>) {
-    for finished in reader.iter() {
-        if let Ok(mut sync) = query.get_mut(finished.0) {
-            // TODO: we don't have the packet data yet I believe
-        }
-    }
-}
-
 pub(crate) fn movement_input(mut query: Query<(&Client, &PlayerInput, &mut StateTransitionQueue, &Position)>) {
     for (client, input, mut agent, position) in query.iter_mut() {
         if let Some(kind) = input.movement {
             match kind {
                 MovementTarget::TargetLocation { region, x, y, z } => {
-                    let local_position = position.location.to_local();
+                    let local_position = position.position().to_local();
                     let target_pos = LocalPosition(region.into(), Vector3::new(x.into(), y.into(), z.into()));
                     debug!(id = ?client.id(), "Movement: {} -> {}", local_position, target_pos);
                     agent.request_transition(Moving(MovementGoal::Location(target_pos.to_global())));

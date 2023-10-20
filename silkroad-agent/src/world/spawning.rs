@@ -5,7 +5,6 @@ use crate::comp::monster::{Monster, MonsterBundle, RandomStroll, SpawnedBy};
 use crate::comp::npc::NpcBundle;
 use crate::comp::pos::Position;
 use crate::comp::spawner::Spawner;
-use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use crate::config::GameConfig;
@@ -60,10 +59,8 @@ pub(crate) fn spawn_npcs(
             )))
         ) {
             if character_data.rarity == EntityRarityType::Normal {
-                let position = Position {
-                    location: LocalPosition(spawn.region.into(), Vector3::new(spawn.x, spawn.y, spawn.z)).to_global(),
-                    rotation: Heading(0.0),
-                };
+                let pos = LocalPosition(spawn.region.into(), Vector3::new(spawn.x, spawn.y, spawn.z)).to_global();
+                let position = Position::new(pos, Heading(0.0));
                 commands.spawn((Spawner::new(&settings.spawner, character_data), position));
             }
         }
@@ -86,7 +83,7 @@ pub(crate) fn spawn_monsters(
         .collect();
 
     for (entity, mut spawner, position) in query.iter_mut() {
-        let should_be_active = active_regions.contains(&position.location.region());
+        let should_be_active = active_regions.contains(&position.position().region());
         if !spawner.active && should_be_active {
             trace!(spawner = ?entity, "Activating spawner");
             activate_spawner(entity, &mut spawner, position, &mut commands, &navmesh, &mut id_pool);
@@ -172,7 +169,7 @@ fn deactivate_spawner(
 }
 
 fn generate_position(source_position: &Position, radius: f32) -> GlobalLocation {
-    let vec = source_position.location.to_location().0.random_in_radius(radius);
+    let vec = source_position.location().0.random_in_radius(radius);
     GlobalLocation(vec)
 }
 
@@ -185,10 +182,7 @@ fn to_position(location: GlobalLocation, navmesh: &GlobalNavmesh) -> Option<Posi
         .expect("Location should be inside region.");
     let pos = location.with_y(height);
     let heading = Heading(rand::thread_rng().gen_range(0..360) as f32);
-    Some(Position {
-        location: pos,
-        rotation: heading,
-    })
+    Some(Position::new(pos, heading))
 }
 
 fn spawn_monster(
@@ -197,7 +191,7 @@ fn spawn_monster(
     unique_id: u32,
     target_location: Position,
 ) -> MonsterBundle {
-    let spawn_center = target_location.location.to_location();
+    let spawn_center = target_location.location();
     MonsterBundle {
         monster: Monster {
             target: None,
@@ -212,7 +206,6 @@ fn spawn_monster(
         visibility: Visibility::with_radius(100.0),
         spawner: SpawnedBy { spawner },
         navigation: Agent::default(),
-        sync: Synchronize::default(),
         stroll: RandomStroll::new(spawn_center, 100.0, Duration::from_secs(2)),
         state_queue: StateTransitionQueue::default(),
         movement_state: MovementState::default_monster(),

@@ -41,10 +41,7 @@ pub(crate) fn create_drops(
                 owner: spawn.owner,
                 item: spawn.item,
             },
-            position: Position {
-                location: pos,
-                rotation: Heading(rotation),
-            },
+            position: Position::new(pos, Heading(rotation)),
             game_entity: GameEntity {
                 unique_id: drop_id,
                 ref_id: spawn.item.reference.ref_id(),

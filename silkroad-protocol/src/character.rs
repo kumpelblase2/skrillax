@@ -414,7 +414,7 @@ pub const MACRO_POTION: u8 = 1;
 pub const MACRO_SKILL: u8 = 2;
 pub const MACRO_HUNT: u8 = 4;
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Clone)]
 pub enum MacroStatus {
     #[silkroad(value = 0)]
     Possible(u8, u8),
@@ -422,13 +422,13 @@ pub enum MacroStatus {
     Disabled(String, String, u8),
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize, Copy, Clone)]
 pub struct FinishLoading;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Copy, Clone)]
 pub struct UpdateGameGuide(pub u64);
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub enum GameGuideResponse {
     #[silkroad(value = 1)]
     Success(u64),

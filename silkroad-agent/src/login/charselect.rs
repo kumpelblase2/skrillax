@@ -188,11 +188,9 @@ pub(crate) fn handle_join(
 
                     let data = &character.character_data;
 
-                    let position = Position {
-                        location: LocalPosition((data.region as u16).into(), Vector3::new(data.x, data.y, data.z))
-                            .to_global(),
-                        rotation: Heading::from(data.rotation as u16),
-                    };
+                    let pos =
+                        LocalPosition((data.region as u16).into(), Vector3::new(data.x, data.y, data.z)).to_global();
+                    let position = Position::new(pos, Heading::from(data.rotation as u16));
 
                     let agent = Agent::from_character_data(character_data);
 
@@ -377,7 +375,7 @@ fn send_spawn(
         entity.unique_id,
         position.as_protocol(),
         0,
-        position.rotation.into(),
+        position.rotation().into(),
         entity_state,
         character_data.name.clone(),
         String::new(),

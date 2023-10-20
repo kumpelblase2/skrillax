@@ -17,7 +17,7 @@ pub enum LevelUpMasteryError {
     ReachedTotalLimit,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub enum LevelUpMasteryResponse {
     #[silkroad(value = 1)]
     Success { mastery: u32, new_level: u8 },
@@ -25,10 +25,10 @@ pub enum LevelUpMasteryResponse {
     Error(LevelUpMasteryError),
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Copy, Clone)]
 pub struct LearnSkill(pub u32);
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub enum LearnSkillResponse {
     #[silkroad(value = 1)]
     Success(u32),

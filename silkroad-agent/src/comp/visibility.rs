@@ -20,3 +20,18 @@ impl Visibility {
         }
     }
 }
+
+#[derive(Component, Default)]
+pub struct Invisible {
+    by_command: bool,
+}
+
+impl Invisible {
+    pub fn from_command() -> Self {
+        Invisible { by_command: true }
+    }
+
+    pub fn gm_invisible(&self) -> bool {
+        self.by_command
+    }
+}

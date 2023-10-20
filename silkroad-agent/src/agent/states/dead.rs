@@ -1,7 +1,5 @@
-use crate::comp::sync::Synchronize;
 use bevy_ecs::prelude::*;
 use bevy_time::{Time, Timer, TimerMode};
-use silkroad_protocol::world::{AliveState, UpdatedState};
 use std::time::Duration;
 
 #[derive(Component)]
@@ -27,12 +25,6 @@ impl Dead {
         } else {
             false
         };
-    }
-}
-
-pub fn broadcast_dead(mut query: Query<&mut Synchronize, Added<Dead>>) {
-    for mut sync in query.iter_mut() {
-        sync.state.push(UpdatedState::Life(AliveState::Dead))
     }
 }
 

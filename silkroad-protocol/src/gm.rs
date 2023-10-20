@@ -22,7 +22,7 @@ pub enum GmCommand {
     KillMonster { unique_id: u32, unknown: u8 },
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Clone)]
 #[silkroad(size = 2)]
 pub enum GmSuccessResult {
     #[silkroad(value = 1)]
@@ -41,7 +41,7 @@ pub enum GmSuccessResult {
     CheckMacroUserOk,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Clone)]
 pub enum GmResponseResult {
     #[silkroad(value = 1)]
     Success(GmSuccessResult),
@@ -49,7 +49,7 @@ pub enum GmResponseResult {
     Error,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Clone)]
 pub struct GmResponse {
     pub result: GmResponseResult,
 }

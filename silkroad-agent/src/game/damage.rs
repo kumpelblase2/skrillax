@@ -1,9 +1,8 @@
 use crate::agent::states::{Dead, StateTransitionQueue};
-use crate::comp::damage::DamageReceiver;
+use crate::comp::damage::{DamageReceiver, Invincible};
 use crate::comp::monster::Monster;
 use crate::comp::net::Client;
 use crate::comp::player::Player;
-use crate::comp::sync::Synchronize;
 use crate::comp::{GameEntity, Health};
 use crate::event::{DamageReceiveEvent, EntityDeath};
 use crate::game::mind::Mind;
@@ -17,17 +16,17 @@ pub(crate) fn handle_damage(
     mut reader: EventReader<DamageReceiveEvent>,
     mut receiver_query: Query<(
         &mut Health,
-        &mut Synchronize,
         &mut StateTransitionQueue,
         &mut DamageReceiver,
         Option<&Player>,
         Option<&Client>,
+        Option<&Invincible>,
     )>,
     sender_query: Query<(&GameEntity, Option<&Client>)>,
     mut entity_died: EventWriter<EntityDeath>,
 ) {
     for damage_event in reader.iter() {
-        let Ok((mut health, mut synchronize, mut controller, mut receiver, player, maybe_client)) =
+        let Ok((mut health, mut controller, mut receiver, player, maybe_client, invincible)) =
             receiver_query.get_mut(damage_event.target.0)
         else {
             continue;
@@ -45,13 +44,14 @@ pub(crate) fn handle_damage(
             continue;
         }
 
-        receiver.record_damage(attacker.unique_id, damage_event.amount as u64);
-        health.reduce(damage_event.amount);
-        synchronize.health = Some(health.current_health);
+        let amount = if invincible.is_some() { damage_event.amount } else { 0 };
+
+        receiver.record_damage(attacker.unique_id, amount as u64);
+        health.reduce(amount);
         let damage_data = if health.is_dead() {
-            SkillPartDamage::KillingBlow(DamageValue::new(DamageKind::Standard, damage_event.amount))
+            SkillPartDamage::KillingBlow(DamageValue::new(DamageKind::Standard, amount))
         } else {
-            SkillPartDamage::Default(DamageValue::new(DamageKind::Standard, damage_event.amount))
+            SkillPartDamage::Default(DamageValue::new(DamageKind::Standard, amount))
         };
         if let Some(client) = attacker_client {
             client.send(PerformActionUpdate::success(

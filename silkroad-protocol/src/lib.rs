@@ -89,6 +89,7 @@ client_packets! {
 macro_rules! server_packets {
     ($($opcode:literal => $name:ident),*) => {
         /// The list of available packets that can be sent from the server.
+        #[derive(Clone)]
         pub enum ServerPacket {
             $($name($name)),*
         }

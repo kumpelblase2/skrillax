@@ -403,10 +403,10 @@ pub struct InventoryOperation {
 #[derive(Clone, Deserialize, ByteSize)]
 pub struct OpenItemMall;
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Clone)]
 pub struct OpenItemMallResponse(pub OpenItemMallResult);
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Clone)]
 pub enum OpenItemMallResult {
     #[silkroad(value = 2)]
     Error,

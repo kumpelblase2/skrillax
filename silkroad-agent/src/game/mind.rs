@@ -96,11 +96,10 @@ fn enqueue_action(
                 if target_pos.distance_to(position) <= range.powf(2.0) {
                     state.request_transition(Pickup(target.0, None));
                 } else {
-                    let my_location = position.location.to_location();
-                    let target_movement_pos =
-                        my_location.point_in_line_with_range(target_pos.location.to_location(), range);
+                    let my_location = position.location();
+                    let target_movement_pos = my_location.point_in_line_with_range(target_pos.location(), range);
 
-                    let target_height = navmesh.height_for(target_movement_pos).unwrap_or(position.location.y);
+                    let target_height = navmesh.height_for(target_movement_pos).unwrap_or(position.position().y);
                     state.request_transition(Moving(MovementGoal::Location(
                         target_movement_pos.with_y(target_height),
                     )));

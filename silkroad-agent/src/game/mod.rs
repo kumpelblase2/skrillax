@@ -6,8 +6,7 @@ use crate::game::attack::AttackInstanceCounter;
 use crate::game::damage::{attack_player, handle_damage};
 use crate::game::daylight::{advance_daylight, DaylightCycle};
 use crate::game::drop::{create_drops, tick_drop, SpawnDrop};
-use crate::game::entity_sync::{clean_sync, sync_changes_others, update_client};
-use crate::game::exp::{distribute_experience, receive_experience, ReceiveExperienceEvent};
+use crate::game::exp::{distribute_experience, receive_experience, reset_health_mana_on_level, ReceiveExperienceEvent};
 use crate::game::gold::drop_gold;
 use crate::game::inventory::handle_inventory_input;
 use crate::game::join::load_finished;
@@ -20,6 +19,7 @@ use crate::game::stats::increase_stats;
 use crate::game::target::{deselect_despawned, player_update_target};
 use crate::game::unique::{unique_killed, unique_spawned};
 use crate::game::visibility::{clear_visibility, player_visibility_update, visibility_update};
+use crate::sync::SynchronizationStage;
 use bevy_app::{App, Last, Plugin, PostUpdate, PreUpdate, Update};
 use bevy_ecs::prelude::*;
 
@@ -28,7 +28,6 @@ pub(crate) mod attack;
 mod damage;
 mod daylight;
 pub(crate) mod drop;
-mod entity_sync;
 pub(crate) mod exp;
 mod gold;
 pub(crate) mod inventory;
@@ -78,18 +77,15 @@ impl Plugin for GamePlugin {
                     distribute_experience.after(handle_damage),
                     drop_gold.after(handle_damage),
                     receive_experience.after(distribute_experience),
+                    reset_health_mana_on_level.after(receive_experience),
                     handle_mastery_levelup,
                     learn_skill,
                 ),
             )
             .add_systems(
                 PostUpdate,
-                (sync_changes_others, update_client).after(AgentSet::Broadcast),
-            )
-            .add_systems(
-                PostUpdate,
                 (
-                    player_visibility_update,
+                    player_visibility_update.before(SynchronizationStage::Distribution),
                     load_finished,
                     unique_spawned,
                     unique_killed,
@@ -97,6 +93,6 @@ impl Plugin for GamePlugin {
                     create_drops,
                 ),
             )
-            .add_systems(Last, (clean_sync, clear_visibility));
+            .add_systems(Last, clear_visibility);
     }
 }

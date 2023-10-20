@@ -40,7 +40,7 @@ pub(crate) fn player_update_target(
             if let Some(ref target) = input.target {
                 if let Some(target_entity) = lookup.get_entity_for_id(target.unique_id) {
                     if let Ok((target_pos, health, monster, npc, player)) = target_lookup.get(target_entity) {
-                        let distance = target_pos.location.distance2(pos.location.0);
+                        let distance = target_pos.position().distance2(pos.position().0);
                         if distance >= MAX_TARGET_DISTANCE {
                             // Is this an adequate response?
                             client.send(TargetEntityResponse::new(TargetEntityResult::failure(

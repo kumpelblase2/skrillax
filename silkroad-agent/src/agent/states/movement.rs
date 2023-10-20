@@ -2,7 +2,6 @@ use crate::agent::event::MovementFinished;
 use crate::agent::states::Idle;
 use crate::agent::{Agent, MovementState};
 use crate::comp::pos::Position;
-use crate::comp::sync::Synchronize;
 use crate::config::GameConfig;
 use crate::ext::Navmesh;
 use crate::input::PlayerInput;
@@ -42,9 +41,9 @@ pub(crate) fn update_target_location(
                         cmd.entity(itself).remove::<Moving>().insert(Idle);
                         stopped.send(MovementFinished(itself));
                     } else {
-                        let dir_vector = pos.location.to_flat_vec2() - own_position.location.to_flat_vec2();
+                        let dir_vector = pos.position().to_flat_vec2() - own_position.position().to_flat_vec2();
                         let target_vector = dir_vector.normalize() * (*distance);
-                        let target_location = GlobalLocation(pos.location.to_flat_vec2() - target_vector);
+                        let target_location = GlobalLocation(pos.position().to_flat_vec2() - target_vector);
                         let height = navmesh.height_for(target_location).unwrap_or(old.y);
                         moving.0 = MovementGoal::Entity(*target, target_location.with_y(height), *distance);
                     }
@@ -61,11 +60,10 @@ pub(crate) fn update_target_location(
     }
 }
 
-pub(crate) fn turning(mut query: Query<(&mut Synchronize, &mut Position, &PlayerInput), With<Idle>>) {
-    for (mut sync, mut pos, input) in query.iter_mut() {
+pub(crate) fn turning(mut query: Query<(&mut Position, &PlayerInput), With<Idle>>) {
+    for (mut pos, input) in query.iter_mut() {
         if let Some(ref rotate) = input.rotation {
-            pos.rotation = Heading::from(rotate.heading);
-            sync.rotation = Some(pos.rotation);
+            pos.rotate(Heading::from(rotate.heading));
         }
     }
 }
@@ -81,19 +79,15 @@ pub(crate) fn movement(
     for (entity, mut pos, agent, movement, speed_state) in query.iter_mut() {
         let speed = agent.get_speed_value(*speed_state.deref());
         let (next_location, heading, finished) = match movement.0 {
-            MovementGoal::Location(location) => {
-                get_next_step(delta, pos.location.to_location(), speed, location.to_location())
-            },
+            MovementGoal::Location(location) => get_next_step(delta, pos.location(), speed, location.to_location()),
             MovementGoal::Direction(direction) => {
-                let current_location_2d = pos.location.0.to_flat_vec2();
+                let current_location_2d = pos.location().0;
                 let direction_vec = Quaternion::from_angle_y(Deg(direction.0)) * Vector3::unit_x();
                 let direction_vec = direction_vec.to_flat_vec2().normalize();
                 let movement = direction_vec * (speed * delta);
                 (GlobalLocation(current_location_2d + movement), direction, false)
             },
-            MovementGoal::Entity(_, location, _) => {
-                get_next_step(delta, pos.location.to_location(), speed, location.to_location())
-            },
+            MovementGoal::Entity(_, location, _) => get_next_step(delta, pos.location(), speed, location.to_location()),
         };
 
         move_with_step(&navmesh, &mut pos, next_location, heading);
@@ -107,10 +101,10 @@ pub(crate) fn movement(
 
 pub(crate) fn move_with_step(navmesh: &Navmesh, pos: &mut Position, target: GlobalLocation, heading: Heading) {
     let target_location = target.to_local();
-    let height = navmesh.height_for(target_location).unwrap_or(pos.location.0.y);
+    let height = navmesh.height_for(target_location).unwrap_or(pos.position().0.y);
 
-    pos.location = target.with_y(height);
-    pos.rotation = heading;
+    let position = target.with_y(height);
+    pos.update(position, heading);
 }
 
 pub(crate) fn get_next_step(

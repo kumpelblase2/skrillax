@@ -20,5 +20,5 @@ impl PlayerActivity {
 }
 
 pub(crate) fn update_player_activity(mut activity: ResMut<PlayerActivity>, query: Query<&Position, With<Player>>) {
-    activity.set = query.iter().map(|pos| pos.location.region()).collect();
+    activity.set = query.iter().map(|pos| pos.position().region()).collect();
 }

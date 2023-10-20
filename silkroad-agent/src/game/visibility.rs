@@ -6,7 +6,7 @@ use crate::comp::net::Client;
 use crate::comp::npc::NPC;
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
-use crate::comp::visibility::Visibility;
+use crate::comp::visibility::{Invisible, Visibility};
 use crate::comp::{EntityReference, GameEntity};
 use crate::game::player_activity::PlayerActivity;
 use bevy_ecs::prelude::*;
@@ -35,7 +35,7 @@ pub(crate) fn visibility_update(
     let grouped = lookup.iter().fold(
         BTreeMap::new(),
         |mut acc: BTreeMap<Region, Vec<(Entity, &Position, &GameEntity)>>, (entity, pos, game_entity)| {
-            acc.entry(pos.location.region())
+            acc.entry(pos.position().region())
                 .or_default()
                 .push((entity, pos, game_entity));
             acc
@@ -43,7 +43,7 @@ pub(crate) fn visibility_update(
     );
 
     query.par_iter_mut().for_each_mut(|(entity, game_entity, mut visibility, position)| {
-        let my_region = position.location.region();
+        let my_region = position.position().region();
         let close_regions = my_region.with_grid_neighbours();
         if close_regions.iter().any(|region| activity.is_region_active(region)) {
             let entities_in_range: HashSet<EntityReference> = close_regions
@@ -84,15 +84,18 @@ pub(crate) fn visibility_update(
 
 pub(crate) fn player_visibility_update(
     mut query: Query<(&Client, &GameEntity, &mut Visibility)>,
-    lookup: Query<(
-        &Position,
-        Option<&PlayerInventory>,
-        Option<&Agent>,
-        Option<&Player>,
-        Option<&Monster>,
-        Option<&Drop>,
-        Option<&NPC>,
-    )>,
+    lookup: Query<
+        (
+            &Position,
+            Option<&PlayerInventory>,
+            Option<&Agent>,
+            Option<&Player>,
+            Option<&Monster>,
+            Option<&Drop>,
+            Option<&NPC>,
+        ),
+        Without<Invisible>,
+    >,
 ) {
     for (client, player, mut visibility) in query.iter_mut() {
         let mut spawns = Vec::new();

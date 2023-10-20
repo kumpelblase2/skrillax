@@ -28,7 +28,7 @@ impl ActionTarget {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Copy, Clone)]
 pub enum DoActionType {
     #[silkroad(value = 1)]
     Attack { target: ActionTarget },
@@ -40,7 +40,7 @@ pub enum DoActionType {
     CancelBuff { ref_id: u32, target: ActionTarget },
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Copy, Clone)]
 pub enum PerformAction {
     #[silkroad(value = 1)]
     Do(DoActionType),
@@ -48,7 +48,7 @@ pub enum PerformAction {
     Stop,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub enum DoActionResponseCode {
     #[silkroad(value = 1)]
     Success,
@@ -56,7 +56,7 @@ pub enum DoActionResponseCode {
     Error(u16),
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub enum PerformActionResponse {
     #[silkroad(value = 1)]
     Do(DoActionResponseCode),
@@ -64,21 +64,21 @@ pub enum PerformActionResponse {
     Stop(PerformActionError),
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Clone)]
 pub struct DamageContent {
     pub damage_instances: u8,
     #[silkroad(list_type = "length")]
     pub entities: Vec<PerEntityDamage>,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Clone)]
 pub struct PerEntityDamage {
     pub target: u32,
     #[silkroad(list_type = "none")]
     pub damage: Vec<SkillPartDamage>,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub enum DamageKind {
     #[silkroad(value = 1)]
     Standard,
@@ -86,7 +86,7 @@ pub enum DamageKind {
     Critical,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub struct DamageValue {
     pub kind: DamageKind,
     pub amount: u32,
@@ -107,7 +107,7 @@ impl DamageValue {
 }
 
 // Maybe this should be a bitflag instead?
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub enum SkillPartDamage {
     #[silkroad(value = 0)]
     Default(DamageValue),
@@ -117,7 +117,7 @@ pub enum SkillPartDamage {
     Abort,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Copy, Clone)]
 pub enum PerformActionError {
     #[silkroad(value = 0x00)]
     Completed,
@@ -149,7 +149,7 @@ pub enum PerformActionError {
     InsufficientHP,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Clone)]
 pub enum ActionType {
     #[silkroad(value = 0)]
     None,
@@ -159,17 +159,15 @@ pub enum ActionType {
     Teleport,
 }
 
-#[derive(Serialize, ByteSize)]
+#[derive(Serialize, ByteSize, Clone)]
 pub enum PerformActionUpdate {
     #[silkroad(value = 1)]
     Success {
-        unknown: u16,
-        // 0x3002 | 0x3000
+        unknown: u16, // 0x3002 | 0x3000
         skill_id: u32,
         source: u32,
         instance: u32,
-        unknown_4: u32,
-        // (0x27ef2b , 0x47c1f) 261713 0?
+        unknown_4: u32, // (0x27ef2b , 0x47c1f) 261713 0?
         target: u32,
         kind: ActionType,
     },

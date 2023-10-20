@@ -27,3 +27,14 @@ impl DamageReceiver {
         self.damage_counts.keys().copied()
     }
 }
+
+#[derive(Component, Default)]
+pub(crate) struct Invincible {
+    by_command: bool,
+}
+
+impl Invincible {
+    pub(crate) fn from_command() -> Self {
+        Invincible { by_command: true }
+    }
+}

@@ -1,19 +1,13 @@
 use crate::comp::damage::DamageReceiver;
-use crate::comp::net::Client;
+use crate::comp::exp::{Experienced, Leveled, SP};
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
-use crate::comp::sync::Synchronize;
-use crate::comp::{EntityReference, GameEntity, Health};
+use crate::comp::{EntityReference, GameEntity, Health, Mana};
 use crate::event::EntityDeath;
 use crate::world::{EntityLookup, WorldData};
 use bevy_ecs::prelude::*;
-use silkroad_protocol::character::CharacterStatsMessage;
-use silkroad_protocol::world::{
-    CharacterPointsUpdate, EntityBarUpdateSource, EntityBarUpdates, EntityBarsUpdate, ReceiveExperience,
-};
-use tracing::debug;
+use tracing::warn;
 
-const SP_EXP_PER_SP: u32 = 400;
 const EXP_RECEIVE_RANGE_SQUARED: f32 = 1000.0 * 1000.0;
 
 #[derive(Event)]
@@ -57,78 +51,43 @@ pub(crate) fn distribute_experience(
 
 pub(crate) fn receive_experience(
     mut experience_events: EventReader<ReceiveExperienceEvent>,
-    mut query: Query<(&GameEntity, &Client, &mut Player, &mut Health, &mut Synchronize)>,
+    mut query: Query<(&mut Leveled, &mut Experienced, &mut SP)>,
 ) {
     let level_map = WorldData::levels();
 
     for event in experience_events.iter() {
-        let Ok((entity, client, mut player, mut health, mut sync)) = query.get_mut(event.target.0) else {
+        let Ok((mut level, mut experienced, mut sp)) = query.get_mut(event.target.0) else {
             continue;
         };
 
-        player.character.exp += event.exp;
-        player.character.sp_exp += event.sp as u32;
-        let received_sp = player.character.sp_exp / SP_EXP_PER_SP;
-        player.character.sp += received_sp;
-        player.character.sp_exp %= SP_EXP_PER_SP;
-        let mut levels_increased = 0u16;
+        if event.exp == 0 && event.sp == 0 {
+            warn!("Somehow received 0 Exp AND 0 SP.");
+            continue;
+        }
 
-        while let Some(exp) = level_map.get_exp_for_level(player.character.level) {
-            if exp <= player.character.exp {
-                levels_increased += 1;
-                player.character.increase_level();
-                player.character.exp -= exp;
+        experienced.receive(event.exp, event.sp, event.source);
+        let received_sp = experienced.convert_sp();
+        if received_sp > 0 {
+            sp.gain(received_sp);
+        }
+
+        while let Some(exp) = level_map.get_exp_for_level(level.current_level()) {
+            if experienced.try_level_up(exp) {
+                level.level_up();
             } else {
                 break;
             }
         }
+    }
+}
 
-        client.send(ReceiveExperience {
-            exp_origin: event.source.map(|source| source.1.unique_id).unwrap_or(0),
-            experience: event.exp,
-            sp: event.sp,
-            unknown: 0,
-            new_level: (levels_increased > 0).then_some(player.character.level as u16),
-        });
-
-        if levels_increased > 0 {
-            debug!(
-                player = player.character.name,
-                "Levelled up! New level: {}", player.character.level
-            );
-
-            health.max_health = player.character.max_hp();
-            health.current_health = health.max_health;
-
-            sync.did_level = true;
-
-            client.send(CharacterStatsMessage {
-                phys_attack_min: 100,
-                phys_attack_max: 100,
-                mag_attack_min: 100,
-                mag_attack_max: 100,
-                phys_defense: 100,
-                mag_defense: 100,
-                hit_rate: 100,
-                parry_rate: 100,
-                max_hp: player.character.stats.max_health(player.character.level),
-                max_mp: player.character.stats.max_mana(player.character.level),
-                strength: player.character.stats.strength(),
-                intelligence: player.character.stats.intelligence(),
-            });
-
-            client.send(EntityBarsUpdate {
-                unique_id: entity.unique_id,
-                source: EntityBarUpdateSource::LevelUp,
-                updates: EntityBarUpdates::Both {
-                    hp: health.current_health,
-                    mp: player.character.max_mp(),
-                },
-            })
-        }
-
-        if received_sp > 0 {
-            client.send(CharacterPointsUpdate::sp(player.character.sp));
+pub(crate) fn reset_health_mana_on_level(
+    mut query: Query<(&Player, &Leveled, &mut Health, &mut Mana), Changed<Leveled>>,
+) {
+    for (player, leveled, mut health, mut mana) in query.iter_mut() {
+        if leveled.did_level() {
+            health.upgrade(player.character.max_hp());
+            mana.upgrade(player.character.max_mp());
         }
     }
 }

@@ -1,11 +1,11 @@
 use crate::agent::states::StateTransitionQueue;
 use crate::agent::{Agent, MovementState};
 use crate::comp::damage::DamageReceiver;
+use crate::comp::exp::{Experienced, Leveled, SP};
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::pos::Position;
-use crate::comp::sync::Synchronize;
 use crate::comp::visibility::Visibility;
-use crate::comp::{GameEntity, Health};
+use crate::comp::{GameEntity, Health, Mana};
 use crate::db::character::CharacterData;
 use crate::db::user::ServerUser;
 use crate::game::mind::Mind;
@@ -62,7 +62,6 @@ pub(crate) struct PlayerBundle {
     inventory: PlayerInventory,
     game_entity: GameEntity,
     agent: Agent,
-    sync: Synchronize,
     pos: Position,
     buff: Buffed,
     visibility: Visibility,
@@ -71,6 +70,10 @@ pub(crate) struct PlayerBundle {
     speed: MovementState,
     damage_receiver: DamageReceiver,
     health: Health,
+    mana: Mana,
+    level: Leveled,
+    sp: SP,
+    exp: Experienced,
     mind: Mind,
 }
 
@@ -84,6 +87,11 @@ impl PlayerBundle {
         visibility: Visibility,
     ) -> Self {
         let max_hp = player.character.max_hp();
+        let max_mana = player.character.max_mp();
+        let sp = player.character.sp;
+        let sp_exp = player.character.sp_exp;
+        let exp = player.character.exp;
+        let level = player.character.level;
         Self {
             player,
             game_entity,
@@ -92,12 +100,15 @@ impl PlayerBundle {
             pos,
             buff: Buffed {},
             visibility,
-            sync: Default::default(),
             input: Default::default(),
             state_queue: Default::default(),
             speed: MovementState::default_player(),
             damage_receiver: DamageReceiver::default(),
             health: Health::new(max_hp),
+            mana: Mana::with_max(max_mana),
+            sp: SP::new(sp),
+            level: Leveled::new(level),
+            exp: Experienced::new(exp, sp_exp as u64),
             mind: Mind::default(),
         }
     }
