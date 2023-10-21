@@ -5,23 +5,11 @@ use crate::comp::pos::Position;
 use crate::comp::{EntityReference, GameEntity};
 use crate::ext::Navmesh;
 use crate::world::WorldData;
-use bevy_ecs_macros::Resource;
 use cgmath::num_traits::Pow;
 use derive_more::Constructor;
 use silkroad_data::skilldata::RefSkillData;
 use silkroad_definitions::inventory::EquipmentSlot;
 use silkroad_game_base::{AttackSkill, AttackSkillError, Item};
-
-#[derive(Default, Resource)]
-pub struct AttackInstanceCounter(u32);
-
-impl AttackInstanceCounter {
-    pub fn next(&mut self) -> u32 {
-        let current = self.0;
-        self.0 = self.0.wrapping_add(1);
-        current
-    }
-}
 
 pub struct Attack;
 

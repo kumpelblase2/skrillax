@@ -1,7 +1,7 @@
 use crate::chat::ChatPlugin;
 use crate::event::{DamageReceiveEvent, EntityDeath, LoadingFinishedEvent, PlayerLevelUp, UniqueKilledEvent};
+use crate::ext::ActionIdCounter;
 use crate::game::action::handle_action;
-use crate::game::attack::AttackInstanceCounter;
 use crate::game::damage::{attack_player, handle_damage};
 use crate::game::daylight::{advance_daylight, DaylightCycle};
 use crate::game::drop::{create_drops, tick_drop, SpawnDrop};

@@ -17,7 +17,7 @@ pub(crate) fn reset_tracked_entities(
         Option<&mut Leveled>,
     )>,
 ) {
-    for ((mut pos, mut health, mut mana, mut exp, mut level)) in query.iter_mut() {
+    for (mut pos, mut health, mut mana, mut exp, mut level) in query.iter_mut() {
         if let Some(pos) = &mut pos {
             pos.bypass_change_detection().reset();
         }

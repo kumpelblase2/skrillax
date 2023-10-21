@@ -3,7 +3,7 @@ use crate::comp::inventory::PlayerInventory;
 use crate::comp::net::Client;
 use crate::comp::{drop, EntityReference, GameEntity};
 use crate::event::{AttackDefinition, DamageReceiveEvent};
-use crate::game::attack::AttackInstanceCounter;
+use crate::ext::ActionIdCounter;
 use bevy_ecs::prelude::*;
 use bevy_ecs::query::QueryEntityError;
 use bevy_time::{Time, Timer, TimerMode};
@@ -151,7 +151,7 @@ pub(crate) fn action(
     mut query: Query<(Entity, &GameEntity, &mut Action)>,
     target_query: Query<&GameEntity>,
     time: Res<Time>,
-    mut attack_instance_counter: ResMut<AttackInstanceCounter>,
+    attack_instance_counter: Res<ActionIdCounter>,
     mut cmd: Commands,
     mut damage_event: EventWriter<DamageReceiveEvent>,
 ) {

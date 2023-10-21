@@ -143,7 +143,8 @@ pub(crate) fn handle_gm_commands(
     for (entity, client, position, input) in query.iter_mut() {
         if let Some(ref command) = input.gm {
             match command {
-                GmCommand::SpawnMonster { ref_id, amount, rarity } => {
+                GmCommand::SpawnMonster { ref_id, amount, .. } => {
+                    // TODO: for some reason `rarity` is always 1
                     let character_def = WorldData::characters().find_id(*ref_id).unwrap();
                     for _ in 0..(*amount) {
                         let unique_id = id_pool.request_id().unwrap();
