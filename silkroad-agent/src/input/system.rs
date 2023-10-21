@@ -7,10 +7,9 @@ use bevy_ecs::prelude::*;
 use bevy_time::Time;
 use silkroad_game_base::StatType;
 use silkroad_network::stream::{SendResult, Stream, StreamError};
-use silkroad_protocol::character::{CharacterListRequest, GameGuideResponse, UpdateGameGuide};
+use silkroad_protocol::character::GameGuideResponse;
 use silkroad_protocol::general::IdentityInformation;
 use silkroad_protocol::inventory::ConsignmentResponse;
-use silkroad_protocol::movement::PlayerMovementRequest;
 use silkroad_protocol::ClientPacket;
 use std::time::Instant;
 use tracing::warn;
@@ -41,34 +40,34 @@ pub(crate) fn receive_game_inputs(
                     had_action = true;
                     match packet {
                         ClientPacket::ChatMessage(chat) => {
-                            input.chat.push(chat);
+                            input.chat.push(*chat);
                         },
                         ClientPacket::Rotation(rotate) => {
-                            input.rotation = Some(rotate);
+                            input.rotation = Some(*rotate);
                         },
-                        ClientPacket::PlayerMovementRequest(PlayerMovementRequest { kind }) => {
-                            input.movement = Some(kind);
+                        ClientPacket::PlayerMovementRequest(request) => {
+                            input.movement = Some(request.kind);
                         },
                         ClientPacket::LogoutRequest(logout) => {
-                            input.logout = Some(logout);
+                            input.logout = Some(*logout);
                         },
                         ClientPacket::TargetEntity(target) => {
-                            input.target = Some(target);
+                            input.target = Some(*target);
                         },
                         ClientPacket::UnTargetEntity(untarget) => {
-                            input.untarget = Some(untarget);
+                            input.untarget = Some(*untarget);
                         },
                         ClientPacket::PerformAction(action) => {
-                            input.action = Some(action);
+                            input.action = Some(*action);
                         },
                         ClientPacket::GmCommand(command) => {
-                            input.gm = Some(command);
+                            input.gm = Some(*command);
                         },
                         ClientPacket::OpenItemMall(_) => {
                             mall_events.send(MallOpenRequestEvent(entity));
                         },
                         ClientPacket::InventoryOperation(inventory) => {
-                            input.inventory = Some(inventory);
+                            input.inventory = Some(*inventory);
                         },
                         ClientPacket::ConsignmentList(_) => {
                             client.send(ConsignmentResponse::success_empty());
@@ -76,16 +75,16 @@ pub(crate) fn receive_game_inputs(
                         ClientPacket::AddFriend(_) => {},
                         ClientPacket::CreateFriendGroup(_) => {},
                         ClientPacket::DeleteFriend(_) => {},
-                        ClientPacket::UpdateGameGuide(UpdateGameGuide(val)) => {
-                            client.send(GameGuideResponse::Success(val));
+                        ClientPacket::UpdateGameGuide(guide) => {
+                            client.send(GameGuideResponse::Success(guide.0));
                         },
                         ClientPacket::FinishLoading(_) => {
                             loading_events.send(LoadingFinishedEvent(entity));
                         },
                         ClientPacket::LevelUpMastery(mastery) => {
-                            input.mastery = Some(mastery);
+                            input.mastery = Some(*mastery);
                         },
-                        ClientPacket::LearnSkill(skill) => input.skill_add = Some(skill),
+                        ClientPacket::LearnSkill(skill) => input.skill_add = Some(*skill),
                         ClientPacket::IncreaseStr(_) => input.increase_stats.push(StatType::STR),
                         ClientPacket::IncreaseInt(_) => input.increase_stats.push(StatType::INT),
                         _ => {},
@@ -128,14 +127,14 @@ pub(crate) fn receive_login_inputs(
                 Ok(Some(packet)) => {
                     had_action = true;
                     match packet {
-                        ClientPacket::CharacterListRequest(CharacterListRequest { action }) => {
-                            input.list.push(action);
+                        ClientPacket::CharacterListRequest(request) => {
+                            input.list.push(request.action);
                         },
                         ClientPacket::CharacterJoinRequest(join) => {
-                            input.join = Some(join);
+                            input.join = Some(*join);
                         },
                         ClientPacket::AuthRequest(auth) => {
-                            input.auth = Some(auth);
+                            input.auth = Some(*auth);
                         },
                         ClientPacket::IdentityInformation(_id) => send_identity_information(client).unwrap(),
                         _ => {},

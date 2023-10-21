@@ -12,21 +12,11 @@ pub(crate) struct ExperienceGained {
     pub(crate) from: Option<EntityReference>,
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub(crate) struct Experienced {
     experience: u64,
     sp_exp: u64,
     experience_received: Vec<ExperienceGained>,
-}
-
-impl Default for Experienced {
-    fn default() -> Self {
-        Experienced {
-            experience: 0,
-            sp_exp: 0,
-            experience_received: vec![],
-        }
-    }
 }
 
 impl Reset for Experienced {
@@ -73,7 +63,7 @@ impl Experienced {
 
     pub(crate) fn convert_sp(&mut self) -> u32 {
         let result = (self.sp_exp / EXP_PER_SP) as u32;
-        self.sp_exp = self.sp_exp % EXP_PER_SP;
+        self.sp_exp %= EXP_PER_SP;
         result
     }
 
@@ -82,15 +72,9 @@ impl Experienced {
     }
 }
 
-#[derive(Component, Constructor)]
+#[derive(Component, Constructor, Default)]
 pub(crate) struct SP {
     sp: u32,
-}
-
-impl Default for SP {
-    fn default() -> Self {
-        SP { sp: 0 }
-    }
 }
 
 impl SP {
@@ -103,7 +87,7 @@ impl SP {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub(crate) struct Leveled {
     level: u8,
     leveled_up: i8,
@@ -136,14 +120,5 @@ impl Leveled {
 
     pub fn new(level: u8) -> Self {
         Self { level, leveled_up: 0 }
-    }
-}
-
-impl Default for Leveled {
-    fn default() -> Self {
-        Leveled {
-            level: 0,
-            leveled_up: 0,
-        }
     }
 }

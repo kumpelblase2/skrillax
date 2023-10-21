@@ -34,13 +34,13 @@ pub use silkroad_serde::SilkroadTime;
 macro_rules! client_packets {
     ($($opcode:literal => $name:ident),*) => {
         pub enum ClientPacket {
-            $($name($name)),*
+            $($name(Box<$name>)),*
         }
 
         impl ClientPacket {
             pub fn deserialize(opcode: u16, data: Bytes) -> Result<ClientPacket, ProtocolError> {
                 match opcode {
-                    $($opcode => Ok(ClientPacket::$name(data.try_into()?)),)*
+                    $($opcode => Ok(ClientPacket::$name(Box::new(data.try_into()?))),)*
                     _ => Err(ProtocolError::UnknownOpcode(opcode)),
                 }
             }
@@ -49,7 +49,7 @@ macro_rules! client_packets {
         $(
             impl From<$name> for ClientPacket {
                 fn from(other: $name) -> Self {
-                    ClientPacket::$name(other)
+                    ClientPacket::$name(Box::new(other))
                 }
             }
         )*
@@ -97,14 +97,14 @@ macro_rules! server_packets {
         /// The list of available packets that can be sent from the server.
         #[derive(Clone)]
         pub enum ServerPacket {
-            $($name($name)),*
+            $($name(Box<$name>)),*
         }
 
         impl ServerPacket {
             /// Serializes the given packet into its binary representation.
             pub fn into_serialize(self) -> (u16, Bytes) {
                 match self {
-                    $(ServerPacket::$name(data) => ($opcode, data.into()),)*
+                    $(ServerPacket::$name(data) => ($opcode, (*data).into()),)*
                 }
             }
         }
@@ -112,7 +112,7 @@ macro_rules! server_packets {
         $(
             impl From<$name> for ServerPacket {
                 fn from(other: $name) -> Self {
-                    ServerPacket::$name(other)
+                    ServerPacket::$name(Box::new(other))
                 }
             }
         )*

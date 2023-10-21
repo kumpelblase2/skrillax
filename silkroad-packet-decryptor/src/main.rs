@@ -12,6 +12,8 @@ use pktparse::{ethernet, ipv4, ipv6, tcp};
 use silkroad_security::security::SilkroadSecurity;
 use std::cell::RefCell;
 use std::fs::File;
+use std::io;
+use std::io::ErrorKind;
 use std::path::Path;
 
 fn g_pow_x_mod_p(p: i64, mut x: u32, g: u32) -> u32 {
@@ -257,7 +259,7 @@ impl Rewriter {
     }
 }
 
-fn main() {
+fn main() -> Result<(), io::Error> {
     let cmd = clap::Command::new("silkroad-packet-decryptor")
         .bin_name("silkroad-packet-decryptor")
         .arg(arg!([pcap] "PCAP-file to decrypt.").required(true))
@@ -271,7 +273,7 @@ fn main() {
 
     let matches = cmd.get_matches();
 
-    let file = matches.get_one::<String>("pcap").unwrap();
+    let file = matches.get_one::<String>("pcap").expect("A PCAP file should be given.");
     let threads = matches
         .get_one::<u8>("threads")
         .copied()
@@ -285,12 +287,16 @@ fn main() {
     let filter_other = matches.get_one::<bool>("filter").copied().unwrap_or(false);
 
     let file_in_path = Path::new(file.as_str());
-    let file_in_dir = file_in_path.parent().unwrap();
-    let file_in_name = file_in_path.file_stem().unwrap();
+    let file_in_dir = file_in_path
+        .parent()
+        .ok_or(io::Error::new(ErrorKind::NotFound, "Parent folder not found."))?;
+    let file_in_name = file_in_path
+        .file_stem()
+        .ok_or(io::Error::new(ErrorKind::InvalidInput, "Filename is invalid."))?;
     let output_file = file_in_dir.join(format!("{}-decrypted.pcap", file_in_name.to_str().unwrap()));
 
-    let file_in = File::open(file).expect("Error opening file");
-    let file_out = File::create(output_file).expect("Cannot create output file");
+    let file_in = File::open(file)?;
+    let file_out = File::create(output_file)?;
     let pcap_reader = PcapReader::new(file_in).unwrap();
     let pcap_writer = PcapWriter::new(file_out).unwrap();
 
@@ -298,7 +304,9 @@ fn main() {
     match rewriter.run() {
         Ok(_) => {},
         Err(e) => {
-            eprintln!("Encountered an error: {}", e)
+            eprintln!("Encountered an error: {:?}", e)
         },
     }
+
+    Ok(())
 }

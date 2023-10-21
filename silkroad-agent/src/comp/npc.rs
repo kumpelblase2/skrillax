@@ -4,6 +4,7 @@ use crate::comp::GameEntity;
 use bevy_ecs::prelude::*;
 use silkroad_game_base::{Heading, LocalPosition};
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Component)]
 pub(crate) struct NPC;
 
