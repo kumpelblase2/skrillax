@@ -6,7 +6,7 @@ use crate::input::PlayerInput;
 use bevy_ecs::prelude::*;
 use cgmath::Vector3;
 use silkroad_game_base::{Heading, LocalPosition};
-use silkroad_protocol::world::MovementTarget;
+use silkroad_protocol::movement::MovementTarget;
 use tracing::debug;
 
 pub(crate) fn transition_to_idle(

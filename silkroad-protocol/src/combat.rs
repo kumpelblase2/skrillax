@@ -1,4 +1,4 @@
-use crate::Location;
+use crate::movement::Location;
 use silkroad_serde::*;
 use std::fmt::{Display, Formatter};
 
@@ -187,4 +187,19 @@ impl PerformActionUpdate {
             kind,
         }
     }
+}
+
+#[derive(Serialize, ByteSize, Copy, Clone)]
+pub struct ReceiveExperience {
+    /// Unique ID of the entity that provided the experience
+    pub exp_origin: u32,
+    /// The amount of experience points
+    pub experience: u64,
+    /// the amount of skill experience points
+    pub sp: u64,
+    // Some kind of flag for reading additional data (either 4 or 8 bytes)
+    pub unknown: u8,
+    /// If the player reached a new level thanks to this experience and what the new level is
+    #[silkroad(size = 0)]
+    pub new_level: Option<u16>,
 }

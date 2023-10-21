@@ -1,4 +1,3 @@
-use crate::agent::AgentSet;
 use crate::chat::ChatPlugin;
 use crate::event::{DamageReceiveEvent, EntityDeath, LoadingFinishedEvent, PlayerLevelUp, UniqueKilledEvent};
 use crate::game::action::handle_action;
@@ -50,7 +49,7 @@ impl Plugin for GamePlugin {
             .add_plugins(MindPlugin)
             .insert_resource(PlayerActivity::default())
             .insert_resource(DaylightCycle::official())
-            .insert_resource(AttackInstanceCounter::default())
+            .insert_resource(ActionIdCounter::default())
             .add_event::<PlayerLevelUp>()
             .add_event::<LoadingFinishedEvent>()
             .add_event::<UniqueKilledEvent>()

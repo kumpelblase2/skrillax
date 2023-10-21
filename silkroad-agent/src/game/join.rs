@@ -8,7 +8,8 @@ use bevy_ecs::prelude::*;
 use silkroad_game_base::{Character, SpawningState};
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::chat::{ChatSource, ChatUpdate, TextCharacterInitialization};
-use silkroad_protocol::world::{CelestialUpdate, CharacterFinished, FriendListGroup, FriendListInfo};
+use silkroad_protocol::community::{FriendListGroup, FriendListInfo};
+use silkroad_protocol::world::{CelestialUpdate, CharacterFinished};
 use tracing::debug;
 
 pub(crate) fn load_finished(

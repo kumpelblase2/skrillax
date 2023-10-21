@@ -12,13 +12,15 @@ use crate::sync::{SynchronizationCollector, Update};
 use bevy_ecs::prelude::*;
 use silkroad_game_base::{Heading, LocalPosition, MovementSpeed};
 use silkroad_protocol::character::CharacterStatsMessage;
+use silkroad_protocol::combat::ReceiveExperience;
+use silkroad_protocol::movement::{
+    EntityMovementInterrupt, MovementDestination, MovementSource, MovementType, PlayerMovementResponse,
+};
 use silkroad_protocol::world::{
     AliveState, BodyState, CharacterPointsUpdate, EntityBarUpdateSource, EntityBarUpdates, EntityBarsUpdate,
-    EntityMovementInterrupt, EntityUpdateState, LevelUpEffect, MovementDestination, MovementSource, MovementType,
-    PlayerMovementResponse, PlayerPickupAnimation, ReceiveExperience, UpdatedState,
+    EntityUpdateState, LevelUpEffect, PlayerPickupAnimation, UpdatedState,
 };
 use std::ops::Deref;
-use tracing::event;
 
 pub(crate) fn synchronize_updates(
     mut update_collector: ResMut<SynchronizationCollector>,

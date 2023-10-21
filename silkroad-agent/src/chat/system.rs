@@ -24,7 +24,6 @@ use silkroad_protocol::chat::{
     ChatErrorCode, ChatMessage, ChatMessageResponse, ChatMessageResult, ChatSource, ChatTarget, ChatUpdate,
 };
 use silkroad_protocol::gm::{GmCommand, GmResponse};
-use silkroad_protocol::world::{BodyState, UpdatedState};
 use std::time::Duration;
 use tracing::debug;
 

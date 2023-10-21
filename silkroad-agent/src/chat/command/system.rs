@@ -12,7 +12,7 @@ use bevy_ecs::event::EventReader;
 use bevy_ecs::prelude::*;
 use silkroad_game_base::{GlobalLocation, GlobalPosition, LocalPosition, MovementSpeed};
 use silkroad_protocol::chat::{ChatSource, ChatUpdate};
-use silkroad_protocol::world::ChangeSpeed;
+use silkroad_protocol::movement::ChangeSpeed;
 
 fn format_location(pos: &LocalPosition) -> String {
     format!("X: {} | Y: {} | Z: {} | Region: {}", pos.1.x, pos.1.y, pos.1.z, pos.0)

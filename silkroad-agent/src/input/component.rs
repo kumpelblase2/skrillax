@@ -6,8 +6,9 @@ use silkroad_protocol::chat::ChatMessage;
 use silkroad_protocol::combat::PerformAction;
 use silkroad_protocol::gm::GmCommand;
 use silkroad_protocol::inventory::InventoryOperation;
+use silkroad_protocol::movement::{MovementTarget, Rotation};
 use silkroad_protocol::skill::{LearnSkill, LevelUpMastery};
-use silkroad_protocol::world::{MovementTarget, Rotation, TargetEntity, UnTargetEntity};
+use silkroad_protocol::world::{TargetEntity, UnTargetEntity};
 use std::mem;
 
 #[derive(Component, Default)]

@@ -1,7 +1,7 @@
 use bevy_ecs_macros::Component;
 use cgmath::{MetricSpace, Vector2};
 use silkroad_game_base::{GlobalLocation, GlobalPosition, Heading};
-use silkroad_protocol::world::{EntityMovementState, MovementType};
+use silkroad_protocol::movement::{EntityMovementState, MovementType};
 
 #[derive(Component, Clone)]
 pub(crate) struct Position {
@@ -21,9 +21,9 @@ impl Position {
         }
     }
 
-    pub fn as_protocol(&self) -> silkroad_protocol::world::Position {
+    pub fn as_protocol(&self) -> silkroad_protocol::movement::Position {
         let local = self.location.to_local();
-        silkroad_protocol::world::Position {
+        silkroad_protocol::movement::Position {
             region: local.0.id(),
             pos_x: local.1.x,
             pos_y: local.1.y,

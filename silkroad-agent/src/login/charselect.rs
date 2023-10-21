@@ -29,10 +29,9 @@ use silkroad_protocol::character::{
     CharacterListResponse, CharacterListResult, MacroStatus, MACRO_HUNT, MACRO_POTION, MACRO_SKILL,
 };
 use silkroad_protocol::inventory::{InventoryItemBindingData, InventoryItemContentData, InventoryItemData, RentInfo};
-use silkroad_protocol::world::{
-    ActionState, AliveState, BodyState, CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, EntityState, JobType,
-    MasteryData,
-};
+use silkroad_protocol::skill::MasteryData;
+use silkroad_protocol::spawn::{CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart};
+use silkroad_protocol::world::{ActionState, AliveState, BodyState, EntityState, JobType};
 use silkroad_protocol::SilkroadTime;
 use tracing::debug;
 
