@@ -18,6 +18,12 @@ pub(crate) enum LoginResult {
     Blocked,
 }
 
+pub(crate) enum RegistrationResult {
+    Success,
+    UsernameTaken,
+    DatabaseError,
+}
+
 pub(crate) struct LoginProvider {
     pool: PgPool,
 }
@@ -75,18 +81,18 @@ impl LoginProvider {
         }
     }
 
-    pub async fn register(&self, username: &str, password: &str, passcode: Option<&str>) -> bool {
+    pub async fn register(&self, username: &str, password: &str, passcode: Option<&str>) -> RegistrationResult {
         let exists = sqlx::query!("SELECT ID FROM users WHERE username = $1", username)
             .fetch_optional(&self.pool)
             .await
             .expect("should be able to query existing usernames");
 
         if exists.is_some() {
-            return false;
+            return RegistrationResult::UsernameTaken;
         }
 
         let password_hash = hash(password, DEFAULT_COST).expect("Should be able to hash password");
-        match passcode {
+        let res = match passcode {
             Some(code) => sqlx::query!(
                 "INSERT INTO users(username, password, passcode) values($1, $2, $3)",
                 username,
@@ -104,6 +110,12 @@ impl LoginProvider {
             .execute(&self.pool)
             .await
             .is_ok(),
-        }
+        };
+
+        return if res {
+            RegistrationResult::Success
+        } else {
+            RegistrationResult::DatabaseError
+        };
     }
 }

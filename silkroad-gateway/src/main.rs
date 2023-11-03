@@ -10,11 +10,11 @@ mod server;
 use crate::agentserver::AgentServerManager;
 use crate::cli::{Cli, Commands};
 use crate::config::{get_config, DbOptions, GatewayServerConfig};
-use crate::login::LoginProvider;
+use crate::login::{LoginProvider, RegistrationResult};
 use crate::news::NewsCacheAsync;
 use crate::patch::Patcher;
 use crate::server::GatewayServer;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use clap::Parser;
 use silkroad_protocol::login::Farm;
 use sqlx::PgPool;
@@ -40,7 +40,7 @@ async fn main() -> Result<()> {
 
     debug!(patch = ?configuration.patch, "patch information");
 
-    let db_pool = create_db(&configuration.database).await;
+    let db_pool = create_db(&configuration.database).await?;
     let news = NewsCacheAsync::new(
         db_pool.clone(),
         Duration::from_secs(configuration.news_cache_duration.unwrap_or(120)),
@@ -108,11 +108,8 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn create_db(configuration: &DbOptions) -> PgPool {
-    configuration
-        .create_pool()
-        .await
-        .expect("Should be able to access database")
+async fn create_db(configuration: &DbOptions) -> Result<PgPool> {
+    configuration.create_pool().await.context("Trying to access database")
 }
 
 async fn run_command(command: &Commands, configuration: &GatewayServerConfig) -> Result<()> {
@@ -122,15 +119,23 @@ async fn run_command(command: &Commands, configuration: &GatewayServerConfig) ->
             password,
             passcode,
         } => {
-            let db = create_db(&configuration.database).await;
+            let db = create_db(&configuration.database).await?;
             let login_handler = LoginProvider::new(db);
-            if login_handler
+            match login_handler
                 .register(username, password, passcode.as_ref().map(|r| r.as_ref()))
                 .await
             {
-                info!("Registered user {} with password {}.", username, password)
-            } else {
-                return Err(anyhow!("Could not create account."));
+                RegistrationResult::Success => {
+                    info!("Registered user {} with password {}.", username, password)
+                },
+                RegistrationResult::UsernameTaken => {
+                    return Err(anyhow!(
+                        "Could not create account, because an account with that username already exists."
+                    ));
+                },
+                _ => {
+                    return Err(anyhow!("Could not create account."));
+                },
             }
         },
     }
