@@ -76,6 +76,15 @@ impl LoginProvider {
     }
 
     pub async fn register(&self, username: &str, password: &str, passcode: Option<&str>) -> bool {
+        let exists = sqlx::query!("SELECT ID FROM users WHERE username = $1", username)
+            .fetch_optional(&self.pool)
+            .await
+            .expect("should be able to query existing usernames");
+
+        if exists.is_some() {
+            return false;
+        }
+
         let password_hash = hash(password, DEFAULT_COST).expect("Should be able to hash password");
         match passcode {
             Some(code) => sqlx::query!(
