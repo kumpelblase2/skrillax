@@ -44,7 +44,7 @@ pub(crate) fn handle_damage(
             continue;
         }
 
-        let amount = if invincible.is_some() { damage_event.amount } else { 0 };
+        let amount = if !invincible.is_some() { damage_event.amount } else { 0 };
 
         receiver.record_damage(attacker.unique_id, amount as u64);
         health.reduce(amount);
