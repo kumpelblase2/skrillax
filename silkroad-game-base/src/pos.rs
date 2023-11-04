@@ -1,5 +1,6 @@
 use cgmath::num_traits::Pow;
 use cgmath::{Deg, InnerSpace, MetricSpace, Vector2, Vector3};
+use silkroad_data::npc_pos::NpcPosition;
 use silkroad_definitions::Region;
 use std::fmt::{Display, Formatter};
 use std::ops::{Add, Deref};
@@ -48,9 +49,7 @@ impl LocalLocation {
 
 impl GlobalLocation {
     pub fn to_local(&self) -> LocalLocation {
-        let region_x = (self.0.x / 1920.) as u8;
-        let region_y = (self.0.y / 1920.) as u8;
-        let region = Region::from_xy(region_x, region_y);
+        let region = self.region();
         let local_x = self.0.x % 1920.;
         let local_z = self.0.y % 1920.;
         LocalLocation(region, Vector2::new(local_x, local_z))
@@ -78,6 +77,12 @@ impl GlobalLocation {
         let direction = (other_vec - self_vec).normalize();
         let offset = direction * range;
         GlobalLocation(self.0 + offset)
+    }
+
+    pub fn region(&self) -> Region {
+        let region_x = (self.0.x / 1920.) as u8;
+        let region_y = (self.0.y / 1920.) as u8;
+        Region::from_xy(region_x, region_y)
     }
 }
 
@@ -204,6 +209,16 @@ impl From<Heading> for u16 {
         }
         let percentage = (360. - heading.0) / 360.0;
         (percentage * (u16::MAX as f32)) as u16
+    }
+}
+
+pub trait NpcPosExt {
+    fn location(&self) -> LocalPosition;
+}
+
+impl NpcPosExt for NpcPosition {
+    fn location(&self) -> LocalPosition {
+        LocalPosition(self.region.into(), Vector3::new(self.x, self.y, self.z))
     }
 }
 

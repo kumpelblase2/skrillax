@@ -11,15 +11,18 @@ use silkroad_definitions::rarity::EntityRarity;
 use silkroad_game_base::GlobalLocation;
 use std::time::Duration;
 
-#[derive(Component)]
+#[derive(Component, Copy, Clone)]
 pub struct Monster {
     pub target: Option<Entity>,
     pub rarity: EntityRarity,
 }
 
-#[derive(Component)]
-pub struct SpawnedBy {
-    pub spawner: Entity,
+#[derive(Component, Copy, Clone)]
+pub enum SpawnedBy {
+    Spawner(Entity),
+    Player(Entity),
+    Monster(Entity),
+    None,
 }
 
 #[derive(Bundle)]
@@ -31,10 +34,14 @@ pub struct MonsterBundle {
     pub(crate) visibility: Visibility,
     pub(crate) spawner: SpawnedBy,
     pub(crate) navigation: Agent,
-    pub(crate) stroll: RandomStroll,
     pub(crate) state_queue: StateTransitionQueue,
     pub(crate) movement_state: MovementState,
     pub(crate) damage_receiver: DamageReceiver,
+}
+
+#[derive(Bundle)]
+pub struct MonsterAiBundle {
+    pub(crate) stroll: RandomStroll,
     pub(crate) mind: Mind,
 }
 

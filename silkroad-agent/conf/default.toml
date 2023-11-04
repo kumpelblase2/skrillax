@@ -19,6 +19,22 @@ max-follow-distance = 300.0
 radius = 500
 amount = 10
 
+[game.spawner.unique.tiger-woman]
+min = 60
+max = 300
+
+[game.spawner.unique.uruchi]
+min = 60
+max = 300
+
+[game.spawner.unique.isyutaru]
+min = 60
+max = 300
+
+[game.spawner.unique.bonelord]
+min = 60
+max = 300
+
 [game.masteries]
 european-per-level = 2
 chinese-per-level = 2

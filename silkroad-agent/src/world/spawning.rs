@@ -1,7 +1,7 @@
 use crate::agent::states::{Dead, StateTransitionQueue};
 use crate::agent::{Agent, MovementState};
 use crate::comp::damage::DamageReceiver;
-use crate::comp::monster::{Monster, MonsterBundle, RandomStroll, SpawnedBy};
+use crate::comp::monster::{Monster, MonsterAiBundle, MonsterBundle, RandomStroll, SpawnedBy};
 use crate::comp::npc::NpcBundle;
 use crate::comp::pos::Position;
 use crate::comp::spawner::Spawner;
@@ -120,17 +120,20 @@ fn spawn_n_monsters(
     position: &Position,
     to_spawn: usize,
 ) -> usize {
-    let spawned = (0..to_spawn)
+    (0..to_spawn)
         .map(|_| generate_position(position, spawner.radius))
         .filter_map(|loc| to_position(loc, navmesh))
-        .map(|pos| spawn_monster(spawner_entity, spawner.reference, id_pool.request_id().unwrap(), pos))
-        .collect::<Vec<MonsterBundle>>();
+        .for_each(|pos| {
+            spawn_monster(
+                spawner_entity,
+                spawner.reference,
+                id_pool.request_id().unwrap(),
+                pos,
+                commands,
+            )
+        });
 
-    let spawned_amount = spawned.len();
-    for bundle in spawned {
-        commands.spawn(bundle);
-    }
-    spawned_amount
+    to_spawn
 }
 
 fn activate_spawner(
@@ -161,8 +164,11 @@ fn deactivate_spawner(
     despawn_query: &Query<(Entity, &SpawnedBy)>,
 ) {
     for (spawned_entity, spawned_by) in despawn_query.iter() {
-        if spawned_by.spawner == entity {
-            commands.entity(spawned_entity).despawn();
+        match spawned_by {
+            SpawnedBy::Spawner(e) if *e == entity => {
+                commands.entity(spawned_entity).despawn();
+            },
+            _ => {},
         }
     }
     spawner.deactivate();
@@ -190,9 +196,10 @@ fn spawn_monster(
     reference: &RefCharacterData,
     unique_id: u32,
     target_location: Position,
-) -> MonsterBundle {
+    cmd: &mut Commands,
+) {
     let spawn_center = target_location.location();
-    MonsterBundle {
+    let bundle = MonsterBundle {
         monster: Monster {
             target: None,
             rarity: EntityRarityType::Normal.into(),
@@ -204,14 +211,19 @@ fn spawn_monster(
             unique_id,
         },
         visibility: Visibility::with_radius(100.0),
-        spawner: SpawnedBy { spawner },
+        spawner: SpawnedBy::Spawner(spawner),
         navigation: Agent::default(),
-        stroll: RandomStroll::new(spawn_center, 100.0, Duration::from_secs(2)),
         state_queue: StateTransitionQueue::default(),
         movement_state: MovementState::default_monster(),
         damage_receiver: DamageReceiver::default(),
+    };
+
+    let ai_bundle = MonsterAiBundle {
+        stroll: RandomStroll::new(spawn_center, 100.0, Duration::from_secs(2)),
         mind: Mind::default(),
-    }
+    };
+
+    cmd.spawn((bundle, ai_bundle));
 }
 
 pub(crate) fn collect_monster_deaths(
@@ -219,7 +231,11 @@ pub(crate) fn collect_monster_deaths(
     entity_query: Query<&SpawnedBy, (With<Monster>, Added<Dead>)>,
 ) {
     for spawned_by in entity_query.iter() {
-        let Ok(mut spawner) = spawner_query.get_mut(spawned_by.spawner) else {
+        let SpawnedBy::Spawner(e) = spawned_by else {
+            continue;
+        };
+
+        let Ok(mut spawner) = spawner_query.get_mut(*e) else {
             continue;
         };
 

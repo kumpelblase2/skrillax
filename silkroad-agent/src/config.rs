@@ -56,6 +56,22 @@ pub(crate) struct GameConfig {
 pub(crate) struct SpawnOptions {
     pub(crate) radius: f32,
     pub(crate) amount: usize,
+    pub(crate) unique: UniqueOptions,
+}
+
+#[derive(Deserialize, Default, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) struct UniqueOptions {
+    pub(crate) tiger_woman: UniqueSpawnOptions,
+    pub(crate) uruchi: UniqueSpawnOptions,
+    pub(crate) isyutaru: UniqueSpawnOptions,
+    pub(crate) bonelord: UniqueSpawnOptions,
+}
+
+#[derive(Deserialize, Default, Clone)]
+pub(crate) struct UniqueSpawnOptions {
+    pub(crate) min: usize,
+    pub(crate) max: usize,
 }
 
 #[derive(Deserialize, Default, Clone)]

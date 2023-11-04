@@ -1,5 +1,7 @@
 use crate::chat::ChatPlugin;
-use crate::event::{DamageReceiveEvent, EntityDeath, LoadingFinishedEvent, PlayerLevelUp, UniqueKilledEvent};
+use crate::event::{
+    DamageReceiveEvent, EntityDeath, LoadingFinishedEvent, PlayerLevelUp, SpawnMonster, UniqueKilledEvent,
+};
 use crate::ext::ActionIdCounter;
 use crate::game::action::handle_action;
 use crate::game::damage::{attack_player, handle_damage};
@@ -14,12 +16,13 @@ use crate::game::mastery::{handle_mastery_levelup, learn_skill};
 use crate::game::mind::MindPlugin;
 use crate::game::movement::movement_monster;
 use crate::game::player_activity::{update_player_activity, PlayerActivity};
+use crate::game::spawn::do_spawn_mobs;
 use crate::game::stats::increase_stats;
 use crate::game::target::{deselect_despawned, player_update_target};
-use crate::game::unique::{unique_killed, unique_spawned};
+use crate::game::unique::{setup_unique_timers, unique_killed, unique_spawned, update_timers};
 use crate::game::visibility::{clear_visibility, player_visibility_update, visibility_update};
 use crate::sync::SynchronizationStage;
-use bevy_app::{App, Last, Plugin, PostUpdate, PreUpdate, Update};
+use bevy_app::{App, Last, Plugin, PostUpdate, PreUpdate, Startup, Update};
 use bevy_ecs::prelude::*;
 
 mod action;
@@ -36,6 +39,7 @@ mod mastery;
 pub(crate) mod mind;
 mod movement;
 pub(crate) mod player_activity;
+mod spawn;
 mod stats;
 pub(crate) mod target;
 mod unique;
@@ -57,7 +61,9 @@ impl Plugin for GamePlugin {
             .add_event::<DamageReceiveEvent>()
             .add_event::<EntityDeath>()
             .add_event::<ReceiveExperienceEvent>()
-            .add_systems(PreUpdate, update_player_activity)
+            .add_event::<SpawnMonster>()
+            .add_systems(Startup, setup_unique_timers)
+            .add_systems(PreUpdate, (update_player_activity, update_timers))
             .add_systems(
                 Update,
                 (
@@ -79,6 +85,7 @@ impl Plugin for GamePlugin {
                     reset_health_mana_on_level.after(receive_experience),
                     handle_mastery_levelup,
                     learn_skill,
+                    do_spawn_mobs,
                 ),
             )
             .add_systems(

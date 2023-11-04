@@ -1,20 +1,15 @@
-use crate::agent::states::StateTransitionQueue;
-use crate::agent::{Agent, MovementState};
 use crate::chat::command::Command;
-use crate::comp::damage::{DamageReceiver, Invincible};
-use crate::comp::monster::{Monster, MonsterBundle, RandomStroll, SpawnedBy};
+use crate::comp::damage::Invincible;
+use crate::comp::monster::SpawnedBy;
 use crate::comp::net::Client;
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
 use crate::comp::visibility::{Invisible, Visibility};
-use crate::comp::{GameEntity, Health};
-use crate::event::PlayerCommandEvent;
-use crate::ext::EntityIdPool;
+use crate::comp::GameEntity;
+use crate::event::{PlayerCommandEvent, SpawnMonster};
 use crate::game::drop::SpawnDrop;
-use crate::game::mind::Mind;
 use crate::input::PlayerInput;
 use crate::world::{EntityLookup, WorldData};
-use bevy_ecs::change_detection::ResMut;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::event::EventWriter;
 use bevy_ecs::prelude::{Commands, Query, Res};
@@ -24,7 +19,6 @@ use silkroad_protocol::chat::{
     ChatErrorCode, ChatMessage, ChatMessageResponse, ChatMessageResult, ChatSource, ChatTarget, ChatUpdate,
 };
 use silkroad_protocol::gm::{GmCommand, GmResponse};
-use std::time::Duration;
 use tracing::debug;
 
 fn can_send_message(message: &ChatMessage, player: &Player) -> bool {
@@ -137,42 +131,25 @@ pub(crate) fn handle_chat(
 pub(crate) fn handle_gm_commands(
     mut query: Query<(Entity, &Client, &Position, &PlayerInput)>,
     mut commands: Commands,
-    mut id_pool: ResMut<EntityIdPool>,
     mut item_spawn: EventWriter<SpawnDrop>,
+    mut monster_spawn: EventWriter<SpawnMonster>,
 ) {
     for (entity, client, position, input) in query.iter_mut() {
         if let Some(ref command) = input.gm {
             match command {
                 GmCommand::SpawnMonster { ref_id, amount, .. } => {
                     // TODO: for some reason `rarity` is always 1
-                    let character_def = WorldData::characters().find_id(*ref_id).unwrap();
                     for _ in 0..(*amount) {
-                        let unique_id = id_pool.request_id().unwrap();
-                        let bundle = MonsterBundle {
-                            monster: Monster {
-                                target: None,
-                                rarity: character_def.rarity,
-                            },
-                            health: Health::new(character_def.hp),
-                            position: position.clone(),
-                            entity: GameEntity {
-                                unique_id,
-                                ref_id: *ref_id,
-                            },
-                            visibility: Visibility::with_radius(100.),
-                            spawner: SpawnedBy { spawner: entity },
-                            navigation: Agent::from_character_data(character_def),
-                            stroll: RandomStroll::new(position.location(), 100., Duration::from_secs(1)),
-                            state_queue: StateTransitionQueue::default(),
-                            movement_state: MovementState::default_monster(),
-                            damage_receiver: DamageReceiver::default(),
-                            mind: Mind::default(),
-                        };
-                        commands.spawn(bundle);
+                        monster_spawn.send(SpawnMonster {
+                            ref_id: *ref_id,
+                            location: position.location(),
+                            spawner: Some(SpawnedBy::Player(entity)),
+                            with_ai: true,
+                        });
                     }
                     client.send(GmResponse::success_message(format!(
                         "Spawned {} of {}",
-                        *amount, character_def.common.id
+                        *amount, ref_id
                     )));
                 },
                 GmCommand::MakeItem { ref_id, upgrade } => {

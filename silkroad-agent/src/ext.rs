@@ -42,6 +42,12 @@ pub struct ServerResource(SilkroadServer);
 #[derive(Resource, Deref, DerefMut, From)]
 pub struct NpcPositionList(Vec<NpcPosition>);
 
+impl NpcPositionList {
+    pub fn positions_of(&self, ref_id: u32) -> impl Iterator<Item = &NpcPosition> {
+        self.0.iter().filter(move |pos| pos.npc_id == ref_id)
+    }
+}
+
 #[derive(Default, Resource)]
 pub struct ActionIdCounter(AtomicU32);
 

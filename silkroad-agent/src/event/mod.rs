@@ -1,8 +1,9 @@
 use crate::chat::command::Command;
+use crate::comp::monster::SpawnedBy;
 use crate::comp::{EntityReference, GameEntity};
 use bevy_ecs::prelude::*;
 use silkroad_data::skilldata::RefSkillData;
-use silkroad_game_base::GlobalPosition;
+use silkroad_game_base::{GlobalLocation, GlobalPosition};
 
 #[derive(Event)]
 pub(crate) struct ClientConnectedEvent(pub Entity);
@@ -45,4 +46,12 @@ pub(crate) struct PlayerTeleportEvent(pub Entity, pub GlobalPosition);
 pub(crate) struct EntityDeath {
     pub died: EntityReference,
     pub killer: Option<EntityReference>,
+}
+
+#[derive(Event)]
+pub(crate) struct SpawnMonster {
+    pub ref_id: u32,
+    pub location: GlobalLocation,
+    pub spawner: Option<SpawnedBy>,
+    pub with_ai: bool,
 }
