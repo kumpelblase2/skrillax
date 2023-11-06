@@ -1,18 +1,21 @@
+use crate::comp::exp::{Experienced, Leveled};
+use crate::comp::pos::Position;
+use crate::comp::{Health, Mana};
+use crate::sync::reset::AppResetExt;
 use crate::sync::system::{
     collect_alives, collect_body_states, collect_deaths, collect_movement_speed_change, collect_movement_update,
     collect_pickup_animation, synchronize_updates, system_collect_bars_update, system_collect_exp_update,
     system_collect_level_up, system_collect_sp_update,
 };
-use bevy_app::{App, Last, Plugin, PostUpdate};
+use bevy_app::{App, Plugin, PostUpdate};
 use bevy_ecs::prelude::*;
 use bevy_ecs_macros::{Resource, SystemSet};
+pub(crate) use reset::Reset;
 use silkroad_protocol::ServerPacket;
 use std::sync::{mpsc, Mutex};
 
 mod reset;
 mod system;
-
-pub(crate) use reset::Reset;
 
 pub(crate) struct Update {
     source: Entity,
@@ -85,6 +88,10 @@ impl Plugin for SynchronizationPlugin {
                 PostUpdate,
                 synchronize_updates.in_set(SynchronizationStage::Distribution),
             )
-            .add_systems(Last, reset::reset_tracked_entities);
+            .reset::<Position>()
+            .reset::<Health>()
+            .reset::<Mana>()
+            .reset::<Experienced>()
+            .reset::<Leveled>();
     }
 }

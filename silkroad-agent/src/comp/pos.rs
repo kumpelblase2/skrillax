@@ -1,3 +1,4 @@
+use crate::sync::Reset;
 use bevy_ecs_macros::Component;
 use cgmath::{MetricSpace, Vector2};
 use silkroad_game_base::{GlobalLocation, GlobalPosition, Heading};
@@ -84,16 +85,18 @@ impl Position {
         self.rotate(heading);
     }
 
-    pub fn reset(&mut self) {
-        self.has_moved = false;
-        self.has_rotated = false;
-    }
-
     pub fn did_rotate(&self) -> bool {
         self.has_rotated
     }
 
     pub fn did_move(&self) -> bool {
         self.has_moved
+    }
+}
+
+impl Reset for Position {
+    fn reset(&mut self) {
+        self.has_moved = false;
+        self.has_rotated = false;
     }
 }

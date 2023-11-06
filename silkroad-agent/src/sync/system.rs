@@ -183,8 +183,8 @@ pub(crate) fn system_collect_level_up(
                     mag_defense: 100,
                     hit_rate: 100,
                     parry_rate: 100,
-                    max_hp: player.character.stats.max_health(player.character.level),
-                    max_mp: player.character.stats.max_mana(player.character.level),
+                    max_hp: player.character.stats.max_health(level.current_level()),
+                    max_mp: player.character.stats.max_mana(level.current_level()),
                     strength: player.character.stats.strength(),
                     intelligence: player.character.stats.intelligence(),
                 };

@@ -1,41 +1,24 @@
-use crate::comp::exp::{Experienced, Leveled};
-use crate::comp::pos::Position;
-use crate::comp::{Health, Mana};
+use bevy_app::{App, Last};
 use bevy_ecs::change_detection::DetectChangesMut;
-use bevy_ecs::prelude::Query;
+use bevy_ecs::prelude::{Component, Query};
 
 pub(crate) trait Reset {
     fn reset(&mut self);
 }
 
-pub(crate) fn reset_tracked_entities(
-    mut query: Query<(
-        Option<&mut Position>,
-        Option<&mut Health>,
-        Option<&mut Mana>,
-        Option<&mut Experienced>,
-        Option<&mut Leveled>,
-    )>,
-) {
-    for (mut pos, mut health, mut mana, mut exp, mut level) in query.iter_mut() {
-        if let Some(pos) = &mut pos {
-            pos.bypass_change_detection().reset();
-        }
+pub(crate) trait AppResetExt {
+    fn reset<T: Reset + Component>(&mut self) -> &mut Self;
+}
 
-        if let Some(health) = &mut health {
-            health.bypass_change_detection().reset();
-        }
+impl AppResetExt for App {
+    fn reset<T: Reset + Component>(&mut self) -> &mut Self {
+        self.add_systems(Last, reset_component::<T>);
+        self
+    }
+}
 
-        if let Some(mana) = &mut mana {
-            mana.bypass_change_detection().reset();
-        }
-
-        if let Some(exp) = &mut exp {
-            exp.bypass_change_detection().reset();
-        }
-
-        if let Some(leveled) = &mut level {
-            leveled.bypass_change_detection().reset();
-        }
+fn reset_component<T: Reset + Component>(mut query: Query<&mut T>) {
+    for mut item in query.iter_mut() {
+        item.bypass_change_detection().reset();
     }
 }
