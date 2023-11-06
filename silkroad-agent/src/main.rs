@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 mod agent;
 mod chat;
 mod comp;
