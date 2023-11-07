@@ -1,4 +1,5 @@
 use crate::comp::exp::{Experienced, Leveled, SP};
+use crate::comp::inventory::GoldChange;
 use crate::comp::player::StatPoints;
 use crate::comp::pos::Position;
 use crate::comp::{Health, Mana};
@@ -174,6 +175,20 @@ impl ApplyToDatabase for SpChange {
     async fn apply(&self, character_id: u32, pool: &PgPool) {
         sqlx::query!(
             "UPDATE characters SET sp = $1 WHERE id = $2",
+            self.0 as i32,
+            character_id as i32
+        )
+        .execute(pool)
+        .await
+        .expect("Should be able to update");
+    }
+}
+
+#[async_trait]
+impl ApplyToDatabase for GoldChange {
+    async fn apply(&self, character_id: u32, pool: &PgPool) {
+        sqlx::query!(
+            "UPDATE characters SET gold = $1 WHERE id = $2",
             self.0 as i32,
             character_id as i32
         )

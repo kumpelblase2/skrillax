@@ -1,15 +1,27 @@
 use crate::db::character::CharacterItem;
+use crate::sync::Reset;
 use crate::world::WorldData;
 use bevy_ecs::prelude::*;
 use silkroad_data::itemdata::RefItemData;
 use silkroad_definitions::type_id::{ObjectItem, ObjectType};
-use silkroad_game_base::{Inventory, Item, ItemTypeData};
+use silkroad_game_base::{ChangeProvided, Inventory, Item, ItemTypeData};
 use std::ops::{Deref, DerefMut};
 
 #[derive(Component)]
 pub(crate) struct PlayerInventory {
     inventory: Inventory,
-    pub gold: u64,
+    gold: u64,
+    gold_changed: bool,
+}
+
+impl PlayerInventory {
+    pub(crate) fn has_changed_gold(&self) -> bool {
+        self.gold_changed
+    }
+
+    pub(crate) fn gold(&self) -> u64 {
+        self.gold
+    }
 }
 
 impl Deref for PlayerInventory {
@@ -23,6 +35,23 @@ impl Deref for PlayerInventory {
 impl DerefMut for PlayerInventory {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inventory
+    }
+}
+
+impl Reset for PlayerInventory {
+    fn reset(&mut self) {
+        self.gold_changed = false;
+    }
+}
+
+#[derive(Copy, Clone)]
+pub(crate) struct GoldChange(pub u64);
+
+impl ChangeProvided for PlayerInventory {
+    type Change = GoldChange;
+
+    fn as_change(&self) -> Self::Change {
+        GoldChange(self.gold)
     }
 }
 
@@ -67,6 +96,20 @@ impl PlayerInventory {
 
     pub(crate) fn from_db(items: &[CharacterItem], size: usize, gold: u64) -> Self {
         let inventory = Self::from_db_inventory(items, size);
-        PlayerInventory { inventory, gold }
+        PlayerInventory {
+            inventory,
+            gold,
+            gold_changed: false,
+        }
+    }
+
+    pub fn gain_gold(&mut self, amount: u64) {
+        self.gold = self.gold.saturating_add(amount);
+        self.gold_changed = true;
+    }
+
+    pub fn spend_gold(&mut self, amount: u64) {
+        self.gold = self.gold.saturating_sub(amount);
+        self.gold_changed = true;
     }
 }

@@ -2,6 +2,7 @@ use crate::agent::states::{Dead, Idle, MovementGoal, Moving, Pickup};
 use crate::agent::MovementState;
 use crate::comp::damage::Invincible;
 use crate::comp::exp::{Experienced, Leveled, SP};
+use crate::comp::inventory::PlayerInventory;
 use crate::comp::net::Client;
 use crate::comp::player::{Player, StatPoints};
 use crate::comp::pos::Position;
@@ -446,5 +447,24 @@ pub(crate) fn collect_stat_changes(
                 change_others: None,
             });
         }
+    }
+}
+
+pub(crate) fn collect_gold_changes(
+    collector: Res<SynchronizationCollector>,
+    query: Query<(Entity, &PlayerInventory), Changed<PlayerInventory>>,
+) {
+    for (entity, inventory) in query.iter() {
+        collector.send_update(Update {
+            source: entity,
+            change_self: Some(
+                CharacterPointsUpdate::Gold {
+                    amount: inventory.gold(),
+                    display: true, // TODO: figure out when this should true and when false
+                }
+                .into(),
+            ),
+            change_others: None,
+        });
     }
 }

@@ -12,7 +12,6 @@ use silkroad_data::DataEntry;
 use silkroad_game_base::{GlobalLocation, ItemTypeData};
 use silkroad_protocol::combat::{DoActionResponseCode, PerformActionError, PerformActionResponse};
 use silkroad_protocol::inventory::{InventoryItemContentData, InventoryOperationError, InventoryOperationResult};
-use silkroad_protocol::world::CharacterPointsUpdate;
 use std::time::Duration;
 use tracing::error;
 
@@ -121,12 +120,8 @@ pub(crate) fn pickup(
 
             match &drop.item.type_data {
                 ItemTypeData::Gold { amount } => {
-                    inventory.gold += u64::from(*amount);
+                    inventory.gain_gold(u64::from(*amount));
                     client.send(PerformActionResponse::Do(DoActionResponseCode::Success));
-                    client.send(CharacterPointsUpdate::Gold {
-                        amount: inventory.gold,
-                        display: true,
-                    });
                 },
                 _ => {
                     if let Some(slot) = inventory.add_item(drop.item) {

@@ -14,7 +14,6 @@ use silkroad_game_base::{Inventory, Item, ItemTypeData, MoveError, Race};
 use silkroad_protocol::inventory::{
     InventoryOperationError, InventoryOperationRequest, InventoryOperationResponseData, InventoryOperationResult,
 };
-use silkroad_protocol::world::CharacterPointsUpdate;
 use std::cmp::max;
 
 pub(crate) fn handle_inventory_input(
@@ -25,7 +24,7 @@ pub(crate) fn handle_inventory_input(
         if let Some(ref action) = input.inventory {
             match action.data {
                 InventoryOperationRequest::DropGold { amount } => {
-                    if amount > inventory.gold {
+                    if amount > inventory.gold() {
                         client.send(InventoryOperationResult::Error(InventoryOperationError::NotEnoughGold));
                         continue;
                     }
@@ -34,7 +33,7 @@ pub(crate) fn handle_inventory_input(
                         continue;
                     }
 
-                    inventory.gold -= amount;
+                    inventory.spend_gold(amount);
 
                     let item_ref = get_gold_ref_id(amount as u32);
                     item_spawn.send(SpawnDrop::new(
@@ -50,10 +49,6 @@ pub(crate) fn handle_inventory_input(
                     client.send(InventoryOperationResult::Success(
                         InventoryOperationResponseData::DropGold { amount },
                     ));
-                    client.send(CharacterPointsUpdate::Gold {
-                        amount: inventory.gold,
-                        display: false,
-                    });
                 },
                 InventoryOperationRequest::PickupItem { unique_id } => {},
                 InventoryOperationRequest::Move { source, target, amount } => {
