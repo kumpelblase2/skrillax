@@ -1,4 +1,8 @@
 use crate::chat::ChatPlugin;
+use crate::comp::exp::{Experienced, Leveled, SP};
+use crate::comp::player::StatPoints;
+use crate::comp::pos::Position;
+use crate::comp::{Health, Mana};
 use crate::event::{
     DamageReceiveEvent, EntityDeath, LoadingFinishedEvent, PlayerLevelUp, SpawnMonster, UniqueKilledEvent,
 };
@@ -7,7 +11,10 @@ use crate::game::action::handle_action;
 use crate::game::damage::{attack_player, handle_damage};
 use crate::game::daylight::{advance_daylight, DaylightCycle};
 use crate::game::drop::{create_drops, tick_drop, SpawnDrop};
-use crate::game::exp::{distribute_experience, receive_experience, reset_health_mana_on_level, ReceiveExperienceEvent};
+use crate::game::exp::{
+    distribute_experience, receive_experience, reset_health_mana_on_level, update_max_hp_mp_on_stat_change,
+    ReceiveExperienceEvent,
+};
 use crate::game::gold::drop_gold;
 use crate::game::inventory::handle_inventory_input;
 use crate::game::join::load_finished;
@@ -21,6 +28,7 @@ use crate::game::stats::increase_stats;
 use crate::game::target::{deselect_despawned, player_update_target};
 use crate::game::unique::{setup_unique_timers, unique_killed, unique_spawned, update_timers};
 use crate::game::visibility::{clear_visibility, player_visibility_update, visibility_update};
+use crate::persistence::AppPersistanceExt;
 use crate::sync::SynchronizationStage;
 use bevy_app::{App, Last, Plugin, PostUpdate, PreUpdate, Startup, Update};
 use bevy_ecs::prelude::*;
@@ -83,6 +91,7 @@ impl Plugin for GamePlugin {
                     drop_gold.after(handle_damage),
                     receive_experience.after(distribute_experience),
                     reset_health_mana_on_level.after(receive_experience),
+                    update_max_hp_mp_on_stat_change.after(increase_stats),
                     handle_mastery_levelup,
                     learn_skill,
                     do_spawn_mobs,
@@ -99,6 +108,13 @@ impl Plugin for GamePlugin {
                     create_drops,
                 ),
             )
+            .track_change_component::<Position>()
+            .track_change_component::<StatPoints>()
+            .track_change_component::<Health>()
+            .track_change_component::<Mana>()
+            .track_change_component::<Leveled>()
+            .track_change_component::<Experienced>()
+            .track_change_component::<SP>()
             .add_systems(Last, clear_visibility);
     }
 }

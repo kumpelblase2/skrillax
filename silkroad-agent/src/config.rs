@@ -50,6 +50,7 @@ pub(crate) struct GameConfig {
     pub(crate) spawner: SpawnOptions,
     pub(crate) max_follow_distance: f32,
     pub(crate) masteries: MasteryConfig,
+    pub(crate) persist_interval: u64,
 }
 
 #[derive(Deserialize, Default, Clone)]

@@ -1,6 +1,6 @@
 use crate::comp::damage::DamageReceiver;
 use crate::comp::exp::{Experienced, Leveled, SP};
-use crate::comp::player::Player;
+use crate::comp::player::StatPoints;
 use crate::comp::pos::Position;
 use crate::comp::{EntityReference, GameEntity, Health, Mana};
 use crate::event::EntityDeath;
@@ -82,12 +82,23 @@ pub(crate) fn receive_experience(
 }
 
 pub(crate) fn reset_health_mana_on_level(
-    mut query: Query<(&Player, &Leveled, &mut Health, &mut Mana), Changed<Leveled>>,
+    mut query: Query<(&StatPoints, &Leveled, &mut Health, &mut Mana), Changed<Leveled>>,
 ) {
-    for (player, leveled, mut health, mut mana) in query.iter_mut() {
+    for (stats, leveled, mut health, mut mana) in query.iter_mut() {
         if leveled.did_level() {
-            health.upgrade(player.character.max_hp());
-            mana.upgrade(player.character.max_mp());
+            health.upgrade(stats.stats().max_health(leveled.current_level()));
+            mana.upgrade(stats.stats().max_mana(leveled.current_level()));
+        }
+    }
+}
+
+pub(crate) fn update_max_hp_mp_on_stat_change(
+    mut query: Query<(&StatPoints, &Leveled, &mut Health, &mut Mana), Changed<StatPoints>>,
+) {
+    for (stats, leveled, mut health, mut mana) in query.iter_mut() {
+        if stats.has_spent_points() {
+            health.increase_max(stats.stats().max_health(leveled.current_level()));
+            mana.increase_max(stats.stats().max_mana(leveled.current_level()));
         }
     }
 }

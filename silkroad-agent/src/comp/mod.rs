@@ -26,7 +26,7 @@ pub(crate) struct GameEntity {
 #[derive(Component)]
 pub(crate) struct Playing(pub(crate) ServerUser, pub(crate) PlayingToken);
 
-#[derive(Component)]
+#[derive(Component, Copy, Clone)]
 pub(crate) struct Health {
     pub current_health: u32,
     pub max_health: u32,
@@ -74,8 +74,12 @@ impl Health {
     pub fn upgrade(&mut self, new_max: u32) {
         let diff = new_max - self.current_health;
         self.max_health = new_max;
-        self.current_health = new_max;
+        self.increase_max(new_max);
         self.add_change(diff as i32)
+    }
+
+    pub fn increase_max(&mut self, new_max: u32) {
+        self.max_health = new_max;
     }
 
     pub fn collect_change(&self) -> Option<i32> {
@@ -115,8 +119,12 @@ impl Mana {
     pub fn upgrade(&mut self, new_max: u32) {
         let diff = new_max - self.current_mana;
         self.max_mana = new_max;
-        self.current_mana = new_max;
+        self.increase_max(new_max);
         self.add_change(diff as i32)
+    }
+
+    pub fn increase_max(&mut self, new_max: u32) {
+        self.current_mana = new_max;
     }
 
     pub fn collect_change(&self) -> Option<i32> {

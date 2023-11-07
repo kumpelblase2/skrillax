@@ -12,6 +12,7 @@ mod input;
 mod login;
 mod mall;
 mod net;
+mod persistence;
 mod population;
 mod server_plugin;
 mod sync;
@@ -27,6 +28,7 @@ use crate::input::ReceivePlugin;
 use crate::login::LoginPlugin;
 use crate::mall::MallPlugin;
 use crate::net::NetworkPlugin;
+use crate::persistence::PersistencePlugin;
 use crate::population::{CapacityController, LoginQueue};
 use crate::server_plugin::ServerPlugin;
 use crate::sync::SynchronizationPlugin;
@@ -105,16 +107,17 @@ fn main() {
 
     info!("Listening for clients");
     App::new()
-        .add_plugins(TaskPoolPlugin::default())
-        .add_plugins(SynchronizationPlugin)
         .add_plugins(TimePlugin)
-        .add_plugins(ReceivePlugin)
-        .add_plugins(AgentPlugin)
-        .insert_resource::<DbPool>(db_pool.into())
+        .add_plugins(TaskPoolPlugin::default())
         .insert_resource::<TaskCreator>(runtime.into())
+        .insert_resource::<DbPool>(db_pool.into())
         .add_plugins(ServerPlugin::new(configuration.game.clone(), server_id))
-        .add_plugins(WorldPlugin)
         .add_plugins(NetworkPlugin::new(network))
+        .add_plugins(ReceivePlugin)
+        .add_plugins(SynchronizationPlugin)
+        .add_plugins(AgentPlugin)
+        .add_plugins(PersistencePlugin)
+        .add_plugins(WorldPlugin)
         .add_plugins(LoginPlugin::new(queue))
         .add_plugins(GamePlugin)
         .add_plugins(MallPlugin)

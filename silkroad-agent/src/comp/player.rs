@@ -10,6 +10,8 @@ use crate::db::character::CharacterData;
 use crate::db::user::ServerUser;
 use crate::game::mind::Mind;
 use crate::input::PlayerInput;
+use crate::persistence::Persistable;
+use crate::sync::Reset;
 use bevy_ecs::prelude::*;
 use silkroad_game_base::{Character, Race, SpawningState, Stats};
 
@@ -75,6 +77,8 @@ pub(crate) struct PlayerBundle {
     sp: SP,
     exp: Experienced,
     mind: Mind,
+    persistence: Persistable,
+    stat_points: StatPoints,
 }
 
 impl PlayerBundle {
@@ -86,12 +90,14 @@ impl PlayerBundle {
         pos: Position,
         visibility: Visibility,
     ) -> Self {
-        let max_hp = player.character.max_hp();
-        let max_mana = player.character.max_mp();
+        let stat_points = StatPoints::new(player.character.stats, player.character.stat_points);
+        let level = player.character.level;
+        let max_hp = stat_points.stats().max_health(level);
+        let max_mana = stat_points.stats().max_mana(level);
         let sp = player.character.sp;
         let sp_exp = player.character.sp_exp;
         let exp = player.character.exp;
-        let level = player.character.level;
+        let max_level = player.character.max_level;
         Self {
             player,
             game_entity,
@@ -107,9 +113,70 @@ impl PlayerBundle {
             health: Health::new(max_hp),
             mana: Mana::with_max(max_mana),
             sp: SP::new(sp),
-            level: Leveled::new(level),
+            level: Leveled::new(level, max_level),
             exp: Experienced::new(exp, sp_exp as u64),
             mind: Mind::default(),
+            persistence: Persistable,
+            stat_points,
         }
+    }
+}
+
+#[derive(Component)]
+pub(crate) struct StatPoints {
+    stats: Stats,
+    remaining_points: u16,
+    has_gained_points: bool,
+    has_spent_points: bool,
+}
+
+impl StatPoints {
+    pub(crate) fn new(stats: Stats, remaining_points: u16) -> Self {
+        StatPoints {
+            stats,
+            remaining_points,
+            has_gained_points: false,
+            has_spent_points: false,
+        }
+    }
+
+    pub(crate) fn stats(&self) -> Stats {
+        self.stats
+    }
+
+    pub(crate) fn remaining_points(&self) -> u16 {
+        self.remaining_points
+    }
+
+    pub(crate) fn spend_str(&mut self) {
+        self.stats.increase_strength(1);
+        self.remaining_points -= 1;
+        self.has_spent_points = true;
+    }
+
+    pub(crate) fn spend_int(&mut self) {
+        self.stats.increase_intelligence(1);
+        self.remaining_points -= 1;
+        self.has_spent_points = true;
+    }
+
+    pub(crate) fn gain_points(&mut self, amount: u16) {
+        self.remaining_points = self.remaining_points.saturating_add(amount);
+        self.has_gained_points = true;
+    }
+
+    pub(crate) fn has_spent_points(&self) -> bool {
+        self.has_spent_points
+    }
+
+    pub(crate) fn has_gained_points(&self) -> bool {
+        self.has_gained_points
+    }
+}
+
+impl Reset for StatPoints {
+    fn reset(&mut self) {
+        self.has_gained_points = false;
+        self.has_spent_points = true;
     }
 }

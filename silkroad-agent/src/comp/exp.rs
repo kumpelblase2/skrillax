@@ -2,6 +2,7 @@ use crate::comp::EntityReference;
 use crate::sync::Reset;
 use bevy_ecs_macros::Component;
 use derive_more::Constructor;
+use std::cmp::max;
 
 const EXP_PER_SP: u64 = 400;
 
@@ -49,6 +50,10 @@ impl Experienced {
         self.experience
     }
 
+    pub(crate) fn sp_experience(&self) -> u64 {
+        self.sp_exp
+    }
+
     pub(crate) fn try_level_up(&mut self, required: u64) -> bool {
         if self.experience >= required {
             self.experience -= required;
@@ -90,6 +95,7 @@ impl SP {
 #[derive(Component, Default)]
 pub(crate) struct Leveled {
     level: u8,
+    max_level: u8,
     leveled_up: i8,
 }
 
@@ -104,8 +110,13 @@ impl Leveled {
         self.level
     }
 
+    pub(crate) fn max_level_reached(&self) -> u8 {
+        self.max_level
+    }
+
     pub(crate) fn level_up(&mut self) {
         self.level = self.level.saturating_add(1);
+        self.max_level = max(self.level, self.max_level);
         self.leveled_up += 1;
     }
 
@@ -118,7 +129,11 @@ impl Leveled {
         self.leveled_up > 0
     }
 
-    pub fn new(level: u8) -> Self {
-        Self { level, leveled_up: 0 }
+    pub fn new(level: u8, max_level: u8) -> Self {
+        Self {
+            level,
+            leveled_up: 0,
+            max_level,
+        }
     }
 }

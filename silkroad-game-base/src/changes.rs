@@ -2,9 +2,9 @@ use std::collections::LinkedList;
 
 /// Defines something that tracks its changes, i.e. has a list of [Change] elements.
 pub trait ChangeTracked {
-    type ChangeItem: Change;
+    type ChangeItem: Change + Send + Sync;
     /// Returns any changes that have occurred in the time since the last request.
-    fn changes(&mut self) -> Vec<Self::ChangeItem>;
+    fn changes(&mut self) -> Vec<Self::ChangeItem>; // TODO: maybe this should be a slice?
 }
 
 /// A result for trying to merge two changes together
@@ -100,6 +100,19 @@ fn merge_recursive<T: Change>(items: Vec<T>, new: T) -> Vec<T> {
 
     to_do_stack.extend(unchanged_stack.into_iter().rev());
     to_do_stack
+}
+
+/// Simpler variant of [ChangeTracked] which does not track individual changes,
+/// but instead can be represented as a change itself. In other words, if this
+/// type would be [ChangeTracked], all changes from it would implement [Change]
+/// by directly returning the last item. As such, for items that can be directly
+/// represented this way, it's much simpler to instead not collect the individual
+/// changes than to collect multiple changes that will be merged to the same
+/// result.
+pub trait ChangeProvided {
+    type Change;
+
+    fn as_change(&self) -> Self::Change;
 }
 
 #[cfg(test)]

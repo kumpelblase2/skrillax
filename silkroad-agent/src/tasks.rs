@@ -14,6 +14,12 @@ impl From<Arc<Runtime>> for TaskCreator {
     }
 }
 
+impl Clone for TaskCreator {
+    fn clone(&self) -> Self {
+        TaskCreator(self.0.clone())
+    }
+}
+
 impl Deref for TaskCreator {
     type Target = Runtime;
 

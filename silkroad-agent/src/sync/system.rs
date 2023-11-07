@@ -3,7 +3,7 @@ use crate::agent::MovementState;
 use crate::comp::damage::Invincible;
 use crate::comp::exp::{Experienced, Leveled, SP};
 use crate::comp::net::Client;
-use crate::comp::player::Player;
+use crate::comp::player::{Player, StatPoints};
 use crate::comp::pos::Position;
 use crate::comp::visibility::{Invisible, Visibility};
 use crate::comp::{GameEntity, Health, Mana};
@@ -407,5 +407,44 @@ pub(crate) fn collect_body_states(
             change_self: Some(update.into()),
             change_others: Some(update.into()),
         });
+    }
+}
+
+pub(crate) fn collect_stat_changes(
+    collector: Res<SynchronizationCollector>,
+    query: Query<(Entity, &Leveled, &StatPoints), Changed<StatPoints>>,
+) {
+    for (entity, level, stats) in query.iter() {
+        if stats.has_spent_points() {
+            collector.send_update(Update {
+                source: entity,
+                change_self: Some(
+                    CharacterStatsMessage {
+                        phys_attack_min: 100,
+                        phys_attack_max: 100,
+                        mag_attack_min: 100,
+                        mag_attack_max: 100,
+                        phys_defense: 100,
+                        mag_defense: 100,
+                        hit_rate: 100,
+                        parry_rate: 100,
+                        max_hp: stats.stats().max_health(level.current_level()),
+                        max_mp: stats.stats().max_mana(level.current_level()),
+                        strength: stats.stats().strength(),
+                        intelligence: stats.stats().intelligence(),
+                    }
+                    .into(),
+                ),
+                change_others: None,
+            })
+        }
+
+        if stats.has_gained_points() {
+            collector.send_update(Update {
+                source: entity,
+                change_self: Some(CharacterPointsUpdate::StatPoints(stats.remaining_points()).into()),
+                change_others: None,
+            });
+        }
     }
 }

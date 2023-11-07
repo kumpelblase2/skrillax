@@ -1,11 +1,12 @@
 use crate::comp::exp::{Experienced, Leveled};
+use crate::comp::player::StatPoints;
 use crate::comp::pos::Position;
 use crate::comp::{Health, Mana};
 use crate::sync::reset::AppResetExt;
 use crate::sync::system::{
     collect_alives, collect_body_states, collect_deaths, collect_movement_speed_change, collect_movement_update,
-    collect_pickup_animation, synchronize_updates, system_collect_bars_update, system_collect_exp_update,
-    system_collect_level_up, system_collect_sp_update,
+    collect_pickup_animation, collect_stat_changes, synchronize_updates, system_collect_bars_update,
+    system_collect_exp_update, system_collect_level_up, system_collect_sp_update,
 };
 use bevy_app::{App, Plugin, PostUpdate};
 use bevy_ecs::prelude::*;
@@ -81,6 +82,7 @@ impl Plugin for SynchronizationPlugin {
                     collect_deaths,
                     collect_alives,
                     collect_body_states,
+                    collect_stat_changes,
                 )
                     .in_set(SynchronizationStage::Collection),
             )
@@ -92,6 +94,7 @@ impl Plugin for SynchronizationPlugin {
             .reset::<Health>()
             .reset::<Mana>()
             .reset::<Experienced>()
+            .reset::<StatPoints>()
             .reset::<Leveled>();
     }
 }
