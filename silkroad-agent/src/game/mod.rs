@@ -1,6 +1,7 @@
 use crate::chat::ChatPlugin;
 use crate::comp::exp::{Experienced, Leveled, SP};
 use crate::comp::gold::GoldPouch;
+use crate::comp::mastery::MasteryKnowledge;
 use crate::comp::player::StatPoints;
 use crate::comp::pos::Position;
 use crate::comp::{Health, Mana};
@@ -117,6 +118,7 @@ impl Plugin for GamePlugin {
             .track_change_component::<Experienced>()
             .track_change_component::<SP>()
             .track_change_component::<GoldPouch>()
+            .track_change_component::<MasteryKnowledge>()
             .add_systems(Last, clear_visibility);
     }
 }

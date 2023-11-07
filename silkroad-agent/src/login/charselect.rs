@@ -176,14 +176,7 @@ pub(crate) fn handle_join(
                     player.character.masteries = character
                         .masteries
                         .iter()
-                        .map(|mastery| {
-                            (
-                                WorldData::masteries()
-                                    .find_id(mastery.mastery_id as u32)
-                                    .expect("Mastery should exist"),
-                                mastery.level as u8,
-                            )
-                        })
+                        .map(|mastery| (mastery.mastery_id as u32, mastery.level as u8))
                         .collect::<Vec<_>>();
 
                     let data = &character.character_data;
@@ -366,7 +359,7 @@ fn send_spawn(
             .masteries
             .iter()
             .map(|(mastery, level)| MasteryData {
-                id: mastery.ref_id(),
+                id: *mastery,
                 level: *level,
             })
             .collect(),

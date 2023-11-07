@@ -4,6 +4,7 @@ use crate::comp::damage::DamageReceiver;
 use crate::comp::exp::{Experienced, Leveled, SP};
 use crate::comp::gold::GoldPouch;
 use crate::comp::inventory::PlayerInventory;
+use crate::comp::mastery::MasteryKnowledge;
 use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health, Mana};
@@ -81,6 +82,7 @@ pub(crate) struct PlayerBundle {
     mind: Mind,
     persistence: Persistable,
     stat_points: StatPoints,
+    masteries: MasteryKnowledge,
 }
 
 impl PlayerBundle {
@@ -101,6 +103,7 @@ impl PlayerBundle {
         let sp_exp = player.character.sp_exp;
         let exp = player.character.exp;
         let max_level = player.character.max_level;
+        let master_knowledge = MasteryKnowledge::new(&player.character.masteries);
         Self {
             player,
             game_entity,
@@ -122,6 +125,7 @@ impl PlayerBundle {
             mind: Mind::default(),
             persistence: Persistable,
             stat_points,
+            masteries: master_knowledge,
         }
     }
 }

@@ -3,7 +3,7 @@ use crate::config::GameConfig;
 use crate::event::ClientDisconnectedEvent;
 use crate::ext::DbPool;
 use crate::tasks::TaskCreator;
-use apply::ApplyToDatabase;
+pub use apply::ApplyToDatabase;
 use bevy_app::{App, Plugin, PostUpdate};
 use bevy_ecs::component::ComponentId;
 use bevy_ecs::entity::Entity;
@@ -151,7 +151,7 @@ fn apply_changes_combined(
     mut disconnections: EventReader<ClientDisconnectedEvent>,
     task_creator: Res<TaskCreator>,
     db_pool: Res<DbPool>,
-    mut query: Query<(EntityRef, &Player)>,
+    query: Query<(EntityRef, &Player)>,
 ) {
     if components.0.is_empty() {
         return;
@@ -182,7 +182,7 @@ fn apply_changes_periodically(
     components: Res<PersistedComponents>,
     task_creator: Res<TaskCreator>,
     db_pool: Res<DbPool>,
-    mut query: Query<(EntityRef, &Player)>,
+    query: Query<(EntityRef, &Player)>,
 ) {
     if components.0.is_empty() {
         return;

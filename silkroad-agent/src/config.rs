@@ -78,8 +78,8 @@ pub(crate) struct UniqueSpawnOptions {
 #[derive(Deserialize, Default, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct MasteryConfig {
-    pub(crate) european_per_level: usize,
-    pub(crate) chinese_per_level: usize,
+    pub(crate) european_per_level: u16,
+    pub(crate) chinese_per_level: u16,
 }
 
 #[derive(Deserialize)]

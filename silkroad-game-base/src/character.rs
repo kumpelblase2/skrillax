@@ -1,5 +1,4 @@
 use crate::{Race, SpawningState, Stats};
-use silkroad_data::masterydata::RefMasteryData;
 use silkroad_data::skilldata::RefSkillData;
 
 pub struct Character {
@@ -21,6 +20,6 @@ pub struct Character {
     pub beginner_mark: bool,
     pub gm: bool,
     pub state: SpawningState,
-    pub masteries: Vec<(&'static RefMasteryData, u8)>,
+    pub masteries: Vec<(u32, u8)>,
     pub skills: Vec<&'static RefSkillData>,
 }

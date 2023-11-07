@@ -87,6 +87,10 @@ impl SP {
         self.sp += amount;
     }
 
+    pub(crate) fn spend(&mut self, amount: u32) {
+        self.sp -= amount;
+    }
+
     pub(crate) fn current(&self) -> u32 {
         self.sp
     }

@@ -3,6 +3,7 @@ use crate::agent::MovementState;
 use crate::comp::damage::Invincible;
 use crate::comp::exp::{Experienced, Leveled, SP};
 use crate::comp::gold::GoldPouch;
+use crate::comp::mastery::MasteryKnowledge;
 use crate::comp::net::Client;
 use crate::comp::player::{Player, StatPoints};
 use crate::comp::pos::Position;
@@ -17,6 +18,7 @@ use silkroad_protocol::combat::ReceiveExperience;
 use silkroad_protocol::movement::{
     EntityMovementInterrupt, MovementDestination, MovementSource, MovementType, PlayerMovementResponse,
 };
+use silkroad_protocol::skill::LevelUpMasteryResponse;
 use silkroad_protocol::world::{
     AliveState, BodyState, CharacterPointsUpdate, EntityBarUpdateSource, EntityBarUpdates, EntityBarsUpdate,
     EntityUpdateState, LevelUpEffect, PlayerPickupAnimation, UpdatedState,
@@ -466,5 +468,26 @@ pub(crate) fn collect_gold_changes(
             ),
             change_others: None,
         });
+    }
+}
+
+pub(crate) fn collect_mastery_changes(
+    collector: Res<SynchronizationCollector>,
+    query: Query<(Entity, &MasteryKnowledge), Changed<MasteryKnowledge>>,
+) {
+    for (entity, mastery) in query.iter() {
+        for mastery_ref in mastery.updated() {
+            collector.send_update(Update {
+                source: entity,
+                change_self: Some(
+                    LevelUpMasteryResponse::Success {
+                        mastery: *mastery_ref,
+                        new_level: mastery.level_of(*mastery_ref).unwrap_or(1),
+                    }
+                    .into(),
+                ),
+                change_others: None,
+            });
+        }
     }
 }
