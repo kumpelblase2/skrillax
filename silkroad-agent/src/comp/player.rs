@@ -2,6 +2,7 @@ use crate::agent::states::StateTransitionQueue;
 use crate::agent::{Agent, MovementState};
 use crate::comp::damage::DamageReceiver;
 use crate::comp::exp::{Experienced, Leveled, SP};
+use crate::comp::gold::GoldPouch;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
@@ -62,6 +63,7 @@ pub(crate) struct Buffed {
 pub(crate) struct PlayerBundle {
     player: Player,
     inventory: PlayerInventory,
+    gold: GoldPouch,
     game_entity: GameEntity,
     agent: Agent,
     pos: Position,
@@ -86,6 +88,7 @@ impl PlayerBundle {
         player: Player,
         game_entity: GameEntity,
         inventory: PlayerInventory,
+        gold: GoldPouch,
         agent: Agent,
         pos: Position,
         visibility: Visibility,
@@ -106,6 +109,7 @@ impl PlayerBundle {
             pos,
             buff: Buffed {},
             visibility,
+            gold,
             input: Default::default(),
             state_queue: Default::default(),
             speed: MovementState::default_player(),

@@ -1,4 +1,5 @@
 use crate::agent::Agent;
+use crate::comp::gold::GoldPouch;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::net::Client;
 use crate::comp::player::{Player, PlayerBundle};
@@ -169,8 +170,8 @@ pub(crate) fn handle_join(
                     }
 
                     let mut player = Player::from_db_data(playing.0.clone(), &character.character_data);
-                    let inventory =
-                        PlayerInventory::from_db(&character.items, 45, character.character_data.gold as u64);
+                    let inventory = PlayerInventory::from_db(&character.items, 45);
+                    let gold = GoldPouch::new(character.character_data.gold as u64);
 
                     player.character.masteries = character
                         .masteries
@@ -209,6 +210,7 @@ pub(crate) fn handle_join(
                             player,
                             game_entity,
                             inventory,
+                            gold,
                             agent,
                             position.clone(),
                             Visibility::with_radius(500.),

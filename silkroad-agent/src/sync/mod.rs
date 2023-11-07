@@ -1,5 +1,4 @@
 use crate::comp::exp::{Experienced, Leveled};
-use crate::comp::inventory::PlayerInventory;
 use crate::comp::player::StatPoints;
 use crate::comp::pos::Position;
 use crate::comp::{Health, Mana};
@@ -97,7 +96,6 @@ impl Plugin for SynchronizationPlugin {
             .reset::<Mana>()
             .reset::<Experienced>()
             .reset::<StatPoints>()
-            .reset::<Leveled>()
-            .reset::<PlayerInventory>();
+            .reset::<Leveled>();
     }
 }

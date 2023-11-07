@@ -1,6 +1,7 @@
 pub(crate) mod damage;
 pub(crate) mod drop;
 pub(crate) mod exp;
+pub(crate) mod gold;
 pub(crate) mod inventory;
 pub(crate) mod monster;
 pub(crate) mod net;

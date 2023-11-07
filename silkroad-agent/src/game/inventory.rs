@@ -1,3 +1,4 @@
+use crate::comp::gold::GoldPouch;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::net::Client;
 use crate::comp::player::Player;
@@ -17,14 +18,21 @@ use silkroad_protocol::inventory::{
 use std::cmp::max;
 
 pub(crate) fn handle_inventory_input(
-    mut query: Query<(&Client, &Player, &PlayerInput, &mut PlayerInventory, &Position)>,
+    mut query: Query<(
+        &Client,
+        &Player,
+        &PlayerInput,
+        &mut PlayerInventory,
+        &mut GoldPouch,
+        &Position,
+    )>,
     mut item_spawn: EventWriter<SpawnDrop>,
 ) {
-    for (client, player, input, mut inventory, position) in query.iter_mut() {
+    for (client, player, input, mut inventory, mut gold, position) in query.iter_mut() {
         if let Some(ref action) = input.inventory {
             match action.data {
                 InventoryOperationRequest::DropGold { amount } => {
-                    if amount > inventory.gold() {
+                    if amount > gold.amount() {
                         client.send(InventoryOperationResult::Error(InventoryOperationError::NotEnoughGold));
                         continue;
                     }
@@ -33,7 +41,7 @@ pub(crate) fn handle_inventory_input(
                         continue;
                     }
 
-                    inventory.spend_gold(amount);
+                    gold.spend(amount);
 
                     let item_ref = get_gold_ref_id(amount as u32);
                     item_spawn.send(SpawnDrop::new(

@@ -1,5 +1,5 @@
 use crate::comp::exp::{Experienced, Leveled, SP};
-use crate::comp::inventory::GoldChange;
+use crate::comp::gold::GoldChange;
 use crate::comp::player::StatPoints;
 use crate::comp::pos::Position;
 use crate::comp::{Health, Mana};

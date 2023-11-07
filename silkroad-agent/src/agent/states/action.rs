@@ -1,4 +1,5 @@
 use crate::agent::states::Idle;
+use crate::comp::gold::GoldPouch;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::net::Client;
 use crate::comp::{drop, EntityReference, GameEntity};
@@ -88,13 +89,13 @@ impl From<ActionDescription> for Action {
 pub(crate) struct Pickup(pub Entity, pub Option<Timer>);
 
 pub(crate) fn pickup(
-    mut query: Query<(Entity, &Client, &mut Pickup, &mut PlayerInventory)>,
+    mut query: Query<(Entity, &Client, &mut Pickup, &mut PlayerInventory, &mut GoldPouch)>,
     time: Res<Time>,
     target_query: Query<&drop::Drop>,
     mut cmd: Commands,
 ) {
     let delta = time.delta();
-    for (entity, client, mut pickup, mut inventory) in query.iter_mut() {
+    for (entity, client, mut pickup, mut inventory, mut gold) in query.iter_mut() {
         if let Some(cooldown) = pickup.1.as_mut() {
             if cooldown.tick(delta).just_finished() {
                 client.send(PerformActionResponse::Stop(PerformActionError::Completed));
@@ -120,7 +121,7 @@ pub(crate) fn pickup(
 
             match &drop.item.type_data {
                 ItemTypeData::Gold { amount } => {
-                    inventory.gain_gold(u64::from(*amount));
+                    gold.gain(u64::from(*amount));
                     client.send(PerformActionResponse::Do(DoActionResponseCode::Success));
                 },
                 _ => {
