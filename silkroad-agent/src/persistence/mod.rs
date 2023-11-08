@@ -79,13 +79,20 @@ impl AppPersistanceExt for App {
             .get_resource::<GameConfig>()
             .expect("Game config should exist.")
             .persist_interval;
-        self.add_systems(PostUpdate, (add_change_tracker::<T>, collect_changes::<T>))
-            .add_systems(
-                PostUpdate,
-                apply_changes::<T>
-                    .run_if(on_timer(Duration::from_secs(persist_interval)))
-                    .after(collect_changes::<T>),
-            );
+        self.add_systems(
+            PostUpdate,
+            (
+                add_change_tracker::<T>,
+                collect_changes::<T>,
+                apply_changes_exit::<T>.after(collect_changes::<T>),
+            ),
+        )
+        .add_systems(
+            PostUpdate,
+            apply_changes::<T>
+                .run_if(on_timer(Duration::from_secs(persist_interval)))
+                .after(collect_changes::<T>),
+        );
         self
     }
 
@@ -143,6 +150,29 @@ fn apply_changes<T: ChangeTracked + Component>(
                 change.apply(character_id, &pool).await;
             }
         });
+    }
+}
+
+fn apply_changes_exit<T: ChangeTracked + Component>(
+    mut query: Query<(&Player, &mut PersistenceCollection<T>)>,
+    mut event_reader: EventReader<ClientDisconnectedEvent>,
+    task_creator: Res<TaskCreator>,
+    pool: Res<DbPool>,
+) where
+    T::ChangeItem: ApplyToDatabase,
+{
+    for event in event_reader.iter() {
+        for (player, mut changes) in query.get_mut(event.0) {
+            let changes = mem::take(&mut changes.changes);
+            let optimized = changes.optimize();
+            let character_id = player.character.id;
+            let pool = pool.deref().deref().clone();
+            task_creator.spawn(async move {
+                for change in optimized {
+                    change.apply(character_id, &pool).await;
+                }
+            });
+        }
     }
 }
 

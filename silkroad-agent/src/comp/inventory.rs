@@ -1,9 +1,12 @@
 use crate::db::character::CharacterItem;
+use crate::persistence::ApplyToDatabase;
 use crate::world::WorldData;
+use axum::async_trait;
 use bevy_ecs::prelude::*;
 use silkroad_data::itemdata::RefItemData;
 use silkroad_definitions::type_id::{ObjectItem, ObjectType};
-use silkroad_game_base::{Inventory, Item, ItemTypeData};
+use silkroad_game_base::{ChangeTracked, Inventory, InventoryChange, Item, ItemTypeData};
+use sqlx::PgPool;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Component)]
@@ -22,6 +25,83 @@ impl Deref for PlayerInventory {
 impl DerefMut for PlayerInventory {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inventory
+    }
+}
+
+impl ChangeTracked for PlayerInventory {
+    type ChangeItem = InventoryChange;
+
+    fn changes(&mut self) -> Vec<Self::ChangeItem> {
+        self.inventory.changes()
+    }
+}
+
+#[async_trait]
+impl ApplyToDatabase for InventoryChange {
+    async fn apply(&self, character_id: u32, pool: &PgPool) {
+        match self {
+            InventoryChange::AddItem { slot, item } => {
+                sqlx::query!(
+                    "INSERT INTO character_items(character_id, item_obj_id, upgrade_level, slot, variance, amount) VALUES($1, $2, $3, $4, $5, $6) ON CONFLICT(character_id, slot) DO UPDATE SET item_obj_id = EXCLUDED.item_obj_id, upgrade_level = EXCLUDED.upgrade_level, variance = EXCLUDED.variance, amount = EXCLUDED.amount",
+                    character_id as i32,
+                    item.reference.common.ref_id as i32,
+                    item.type_data.upgrade_level().map(|a| a as i16).unwrap_or(0),
+                    *slot as i16,
+                    item.variance.map(|a| a as i64),
+                    item.type_data.amount() as i16 // This should be fine, since we should never have gold inside an item slot
+                ).execute(pool).await.expect("Should be able to insert item");
+            },
+            InventoryChange::ChangeTypeData { slot, new_item, .. } => {
+                sqlx::query!(
+                    "UPDATE character_items SET upgrade_level = $1, amount = $2 WHERE character_id = $3 AND slot = $4",
+                    new_item.upgrade_level().map(|a| a as i16).unwrap_or(0),
+                    new_item.amount() as i16, // This should be fine, since we should never have gold inside an item slot
+                    character_id as i32,
+                    *slot as i16,
+                )
+                .execute(pool)
+                .await
+                .expect("Should be able to change type data");
+            },
+            InventoryChange::MoveItem {
+                source_slot,
+                target_slot,
+            } => {
+                sqlx::query!(
+                    "UPDATE character_items SET slot = $1 WHERE character_id = $2 AND slot = $3",
+                    *target_slot as i16,
+                    character_id as i32,
+                    *source_slot as i16,
+                )
+                .execute(pool)
+                .await
+                .expect("Should be able to move item");
+            },
+            InventoryChange::RemoveItem { slot } => {
+                sqlx::query!(
+                    "DELETE FROM character_items WHERE character_id = $1 AND slot = $2",
+                    character_id as i32,
+                    *slot as i16,
+                )
+                .execute(pool)
+                .await
+                .expect("Should be able to remove item");
+            },
+            InventoryChange::Swap {
+                first_slot,
+                second_slot,
+            } => {
+                sqlx::query!(
+                    "UPDATE character_items SET slot = case slot when $2 then $3 when $3 then $2 end WHERE character_id = $1 AND slot in ($2, $3)",
+                    character_id as i32,
+                    *first_slot as i16,
+                    *second_slot as i16,
+                )
+                .execute(pool)
+                .await
+                .expect("Should be able to swap item");
+            },
+        }
     }
 }
 

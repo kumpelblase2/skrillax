@@ -4,6 +4,7 @@ use silkroad_data::DataEntry;
 use silkroad_definitions::inventory::EquipmentSlot;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
+use std::mem;
 
 pub const WEAPON_SLOT: u8 = 6;
 pub const GOLD_SLOT: u8 = 0xFE;
@@ -68,21 +69,18 @@ pub enum ItemTypeData {
 }
 
 impl ItemTypeData {
-    fn merge(self, other: Self) -> Result<Self, (Self, Self)> {
-        match &self {
-            ItemTypeData::Consumable { amount } => match &other {
-                ItemTypeData::Consumable { amount: new_amount } => Ok(ItemTypeData::Consumable {
-                    amount: *amount + *new_amount,
-                }),
-                _ => Err((self, other)),
-            },
-            ItemTypeData::Gold { amount } => match &other {
-                ItemTypeData::Gold { amount: new_amount } => Ok(ItemTypeData::Gold {
-                    amount: *amount + *new_amount,
-                }),
-                _ => Err((self, other)),
-            },
-            _ => Err((self, other)),
+    pub fn upgrade_level(&self) -> Option<u8> {
+        match self {
+            ItemTypeData::Equipment { upgrade_level } => Some(*upgrade_level),
+            _ => None,
+        }
+    }
+
+    pub fn amount(&self) -> u32 {
+        match self {
+            ItemTypeData::Consumable { amount } => u32::from(*amount),
+            ItemTypeData::Gold { amount } => *amount,
+            _ => 1,
         }
     }
 }
