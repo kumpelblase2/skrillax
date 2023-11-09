@@ -1,4 +1,4 @@
-use crate::db::character::{CharacterData, CharacterItem, CharacterMastery};
+use crate::db::character::{CharacterData, CharacterItem, CharacterMastery, CharacterSkill};
 use itertools::Itertools;
 use sqlx::PgPool;
 use std::borrow::Borrow;
@@ -9,6 +9,7 @@ pub struct DbCharacter {
     pub(crate) character_data: CharacterData,
     pub(crate) items: Vec<CharacterItem>,
     pub(crate) masteries: Vec<CharacterMastery>,
+    pub(crate) skills: Vec<CharacterSkill>,
 }
 
 impl DbCharacter {
@@ -26,17 +27,24 @@ impl DbCharacter {
             .unwrap()
             .into_iter()
             .into_group_map_by(|r| r.character_id);
+        let mut character_skills = CharacterSkill::fetch_for_character(&character_ids, pool.borrow())
+            .await
+            .unwrap()
+            .into_iter()
+            .into_group_map_by(|s| s.character_id);
 
         let mut all_characters = Vec::new();
 
         for character in characters {
             let items = character_items.remove(&character.id).unwrap_or_default();
             let masteries = character_masteries.remove(&character.id).unwrap_or_default();
+            let skills = character_skills.remove(&character.id).unwrap_or_default();
 
             all_characters.push(DbCharacter {
                 character_data: character,
                 items,
                 masteries,
+                skills,
             });
         }
 

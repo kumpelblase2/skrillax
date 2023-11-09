@@ -6,6 +6,7 @@ use crate::comp::gold::GoldPouch;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::mastery::MasteryKnowledge;
 use crate::comp::pos::Position;
+use crate::comp::skill::SkillBook;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health, Mana};
 use crate::db::character::CharacterData;
@@ -15,6 +16,7 @@ use crate::input::PlayerInput;
 use crate::persistence::Persistable;
 use crate::sync::Reset;
 use bevy_ecs::prelude::*;
+use derive_more::{Deref, From};
 use silkroad_game_base::{Character, Race, SpawningState, Stats};
 
 #[derive(Component)]
@@ -22,6 +24,9 @@ pub(crate) struct Player {
     pub user: ServerUser,
     pub character: Character,
 }
+
+#[derive(Component, Deref, Copy, Clone, From)]
+pub(crate) struct CharacterRace(Race);
 
 impl Player {
     fn from_db_character(data: &CharacterData) -> Character {
@@ -83,6 +88,8 @@ pub(crate) struct PlayerBundle {
     persistence: Persistable,
     stat_points: StatPoints,
     masteries: MasteryKnowledge,
+    skills: SkillBook,
+    race: CharacterRace,
 }
 
 impl PlayerBundle {
@@ -104,6 +111,8 @@ impl PlayerBundle {
         let exp = player.character.exp;
         let max_level = player.character.max_level;
         let master_knowledge = MasteryKnowledge::new(&player.character.masteries);
+        let skills = SkillBook::new(&player.character.skills);
+        let race = player.character.race.into();
         Self {
             player,
             game_entity,
@@ -126,6 +135,8 @@ impl PlayerBundle {
             persistence: Persistable,
             stat_points,
             masteries: master_knowledge,
+            skills,
+            race,
         }
     }
 }

@@ -1,18 +1,20 @@
 use crate::comp::exp::{Leveled, SP};
 use crate::comp::mastery::MasteryKnowledge;
 use crate::comp::net::Client;
-use crate::comp::player::Player;
+use crate::comp::player::CharacterRace;
+use crate::comp::skill::SkillBook;
 use crate::config::GameConfig;
 use crate::input::PlayerInput;
 use crate::world::WorldData;
 use bevy_ecs::prelude::*;
 use silkroad_game_base::Race;
 use silkroad_protocol::skill::{LearnSkillResponse, LevelUpMasteryError, LevelUpMasteryResponse};
+use std::ops::Deref;
 
 pub(crate) fn handle_mastery_levelup(
     mut query: Query<(
         &Client,
-        &Player,
+        &CharacterRace,
         &Leveled,
         &mut MasteryKnowledge,
         &mut SP,
@@ -22,7 +24,7 @@ pub(crate) fn handle_mastery_levelup(
 ) {
     let masteries = WorldData::masteries();
     let levels = WorldData::levels();
-    for (client, player, level, mut knowledge, mut sp, mut input) in query.iter_mut() {
+    for (client, race, level, mut knowledge, mut sp, mut input) in query.iter_mut() {
         if let Some(mastery_levelup) = input.mastery.take() {
             if masteries.find_id(mastery_levelup.mastery).is_none() {
                 client.send(LevelUpMasteryResponse::Error(LevelUpMasteryError::InsufficientSP)); // TODO
@@ -31,7 +33,7 @@ pub(crate) fn handle_mastery_levelup(
 
             let current_level = knowledge.level_of(mastery_levelup.mastery).unwrap_or(0);
 
-            let per_level_cap = match player.character.race {
+            let per_level_cap = match race.deref() {
                 Race::European => config.masteries.european_per_level,
                 Race::Chinese => config.masteries.chinese_per_level,
             };
@@ -59,15 +61,24 @@ pub(crate) fn handle_mastery_levelup(
     }
 }
 
-pub(crate) fn learn_skill(mut query: Query<(&Client, &MasteryKnowledge, &mut Player, &mut PlayerInput, &mut SP)>) {
-    for (client, mastery_knowledge, mut player, mut input, mut sp) in query.iter_mut() {
+pub(crate) fn learn_skill(
+    mut query: Query<(
+        &Client,
+        &MasteryKnowledge,
+        &mut SkillBook,
+        &CharacterRace,
+        &mut PlayerInput,
+        &mut SP,
+    )>,
+) {
+    for (client, mastery_knowledge, mut skill_book, race, mut input, mut sp) in query.iter_mut() {
         if let Some(learn) = input.skill_add.take() {
             let Some(skill) = WorldData::skills().find_id(learn.0) else {
                 client.send(LearnSkillResponse::Error(LevelUpMasteryError::InsufficientSP)); // TODO
                 continue;
             };
 
-            if skill.race != 3 && skill.race != player.character.race.as_skill_origin() {
+            if skill.race != 3 && skill.race != race.deref().as_skill_origin() {
                 client.send(LearnSkillResponse::Error(LevelUpMasteryError::InsufficientSP)); // TODO
                 continue;
             }
@@ -92,30 +103,13 @@ pub(crate) fn learn_skill(mut query: Query<(&Client, &MasteryKnowledge, &mut Pla
                 }
             }
 
-            for required_skill in skill.required_skills.iter().filter(|skill| skill.group != 0) {
-                if !player
-                    .character
-                    .skills
-                    .iter()
-                    .any(|skill| skill.group == required_skill.group && skill.level >= required_skill.level)
-                {
-                    client.send(LearnSkillResponse::Error(LevelUpMasteryError::InsufficientSP)); // TODO
-                    continue;
-                }
+            if !skill_book.has_required_skills_for(skill) {
+                client.send(LearnSkillResponse::Error(LevelUpMasteryError::InsufficientSP)); // TODO
+                continue;
             }
 
             sp.spend(skill.sp);
-
-            if let Some(pos) = player
-                .character
-                .skills
-                .iter()
-                .position(|existing_skill| existing_skill.group == skill.group)
-            {
-                player.character.skills[pos] = skill;
-            } else {
-                player.character.skills.push(skill);
-            }
+            skill_book.learn_skill(skill);
             client.send(LearnSkillResponse::Success(learn.0));
         }
     }

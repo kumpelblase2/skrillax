@@ -9,6 +9,7 @@ pub(crate) mod net;
 pub(crate) mod npc;
 pub(crate) mod player;
 pub(crate) mod pos;
+pub(crate) mod skill;
 pub(crate) mod spawner;
 pub(crate) mod visibility;
 

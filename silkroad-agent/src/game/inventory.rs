@@ -1,7 +1,8 @@
+use crate::comp::exp::Leveled;
 use crate::comp::gold::GoldPouch;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::net::Client;
-use crate::comp::player::Player;
+use crate::comp::player::CharacterRace;
 use crate::comp::pos::Position;
 use crate::game::drop::SpawnDrop;
 use crate::game::gold::get_gold_ref_id;
@@ -16,19 +17,21 @@ use silkroad_protocol::inventory::{
     InventoryOperationError, InventoryOperationRequest, InventoryOperationResponseData, InventoryOperationResult,
 };
 use std::cmp::max;
+use std::ops::Deref;
 
 pub(crate) fn handle_inventory_input(
     mut query: Query<(
         &Client,
-        &Player,
         &PlayerInput,
+        &Leveled,
+        &CharacterRace,
         &mut PlayerInventory,
         &mut GoldPouch,
         &Position,
     )>,
     mut item_spawn: EventWriter<SpawnDrop>,
 ) {
-    for (client, player, input, mut inventory, mut gold, position) in query.iter_mut() {
+    for (client, input, level, race, mut inventory, mut gold, position) in query.iter_mut() {
         if let Some(ref action) = input.inventory {
             match action.data {
                 InventoryOperationRequest::DropGold { amount } => {
@@ -69,9 +72,9 @@ pub(crate) fn handle_inventory_input(
                                 && source_item
                                     .reference
                                     .required_level
-                                    .map(|val| val.get() <= player.character.level)
+                                    .map(|val| val.get() <= level.current_level())
                                     .unwrap_or(true)
-                                && does_object_type_match_race(player.character.race, object_type);
+                                && does_object_type_match_race(*race.deref(), object_type);
                             // TODO: check if equipment requirement sex matches
                             //  check if required masteries matches
                             if !fits {

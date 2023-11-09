@@ -7,7 +7,7 @@ use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Playing};
 use crate::config::GameConfig;
-use crate::db::character::{CharacterData, CharacterItem};
+use crate::db::character::{CharacterData, CharacterItem, DbRace};
 use crate::ext::{DbPool, EntityIdPool};
 use crate::input::LoginInput;
 use crate::login::character_loader::DbCharacter;
@@ -23,14 +23,14 @@ use bevy_ecs::prelude::*;
 use cgmath::Vector3;
 use chrono::{TimeZone, Utc};
 use silkroad_data::DataEntry;
-use silkroad_game_base::{Heading, LocalPosition};
+use silkroad_game_base::{Heading, ItemTypeData, LocalPosition};
 use silkroad_protocol::auth::{AuthResponse, AuthResult, AuthResultError};
 use silkroad_protocol::character::{
     CharacterJoinResponse, CharacterListAction, CharacterListContent, CharacterListError, CharacterListRequestAction,
     CharacterListResponse, CharacterListResult, MacroStatus, MACRO_HUNT, MACRO_POTION, MACRO_SKILL,
 };
 use silkroad_protocol::inventory::{InventoryItemBindingData, InventoryItemContentData, InventoryItemData, RentInfo};
-use silkroad_protocol::skill::MasteryData;
+use silkroad_protocol::skill::{MasteryData, SkillData};
 use silkroad_protocol::spawn::{CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart};
 use silkroad_protocol::world::{ActionState, AliveState, BodyState, EntityState, JobType};
 use silkroad_protocol::SilkroadTime;
@@ -177,7 +177,13 @@ pub(crate) fn handle_join(
                         .masteries
                         .iter()
                         .map(|mastery| (mastery.mastery_id as u32, mastery.level as u8))
-                        .collect::<Vec<_>>();
+                        .collect();
+
+                    player.character.skills = character
+                        .skills
+                        .iter()
+                        .map(|skill| (skill.skill_group_id as u32, skill.level as u8))
+                        .collect();
 
                     let data = &character.character_data;
 
@@ -313,18 +319,24 @@ fn send_spawn(
             slot: *slot,
             rent_data: RentInfo::Empty,
             item_id: item.reference.ref_id(),
-            content_data: InventoryItemContentData::Equipment {
-                plus_level: item.upgrade_level(),
-                variance: item.variance.unwrap_or_default(),
-                durability: 1,
-                magic: vec![],
-                bindings_1: InventoryItemBindingData::new(1, 0),
-                bindings_2: InventoryItemBindingData::new(2, 0),
-                bindings_3: InventoryItemBindingData::new(3, 0),
-                bindings_4: InventoryItemBindingData::new(4, 0),
+            content_data: match item.type_data {
+                ItemTypeData::Equipment { upgrade_level } => InventoryItemContentData::Equipment {
+                    plus_level: upgrade_level,
+                    variance: item.variance.unwrap_or_default(),
+                    durability: 1,
+                    magic: vec![],
+                    bindings_1: InventoryItemBindingData::new(1, 0),
+                    bindings_2: InventoryItemBindingData::new(2, 0),
+                    bindings_3: InventoryItemBindingData::new(3, 0),
+                    bindings_4: InventoryItemBindingData::new(4, 0),
+                },
+                ItemTypeData::Consumable { amount } => InventoryItemContentData::Expendable { stack_size: amount },
+                _ => panic!("Missing inventory type representation."),
             },
         })
         .collect();
+
+    let skill_data = WorldData::skills();
 
     client.send(CharacterSpawn::new(
         SilkroadTime::default(),
@@ -363,7 +375,21 @@ fn send_spawn(
                 level: *level,
             })
             .collect(),
-        Vec::new(),
+        player
+            .character
+            .skills
+            .iter()
+            .flat_map(|(group, level)| {
+                skill_data
+                    .iter()
+                    .filter(|skill_ref| skill_ref.group == *group && skill_ref.level <= *level)
+                    .map(|skill_ref| skill_ref.ref_id)
+            })
+            .map(|ref_id| SkillData {
+                id: ref_id,
+                enabled: true,
+            })
+            .collect(),
         Vec::new(),
         Vec::new(),
         entity.unique_id,
@@ -434,6 +460,11 @@ pub(crate) fn create_character_from(
         beginner_mark: true,
         gm: false,
         last_logout: None,
+        race: if ref_id > 2000 {
+            DbRace::European
+        } else {
+            DbRace::Chinese
+        },
     };
 
     let items = vec![
@@ -479,5 +510,6 @@ pub(crate) fn create_character_from(
         character_data: character,
         items,
         masteries: vec![],
+        skills: vec![],
     }
 }

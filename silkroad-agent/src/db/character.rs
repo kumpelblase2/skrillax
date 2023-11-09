@@ -1,8 +1,35 @@
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
+use silkroad_game_base::Race;
 use sqlx::{Error, PgPool};
 use std::borrow::Borrow;
 use std::collections::HashMap;
+
+#[derive(sqlx::Type, Copy, Clone, Debug)]
+#[sqlx(type_name = "race")]
+#[sqlx(rename_all = "lowercase")]
+pub enum DbRace {
+    Chinese,
+    European,
+}
+
+impl From<Race> for DbRace {
+    fn from(value: Race) -> Self {
+        match value {
+            Race::European => Self::European,
+            Race::Chinese => Self::Chinese,
+        }
+    }
+}
+
+impl From<DbRace> for Race {
+    fn from(value: DbRace) -> Self {
+        match value {
+            DbRace::Chinese => Race::Chinese,
+            DbRace::European => Race::European,
+        }
+    }
+}
 
 #[derive(sqlx::FromRow, Clone)]
 pub struct CharacterData {
@@ -10,6 +37,7 @@ pub struct CharacterData {
     pub user_id: i32,
     pub server_id: i32,
     pub charname: String,
+    pub race: DbRace,
     pub character_type: i32,
     pub scale: i16,
     pub level: i16,
@@ -43,7 +71,7 @@ impl CharacterData {
     ) -> Result<Vec<CharacterData>, Error> {
         sqlx::query_as!(
             CharacterData,
-            "SELECT * FROM characters WHERE user_id = $1 AND server_id = $2 AND (deletion_end > NOW() OR deletion_end is null) ORDER BY id ASC",
+            "SELECT id, user_id, server_id, character_type, scale, level, exp, strength, intelligence, stat_points, current_hp, current_mp, charname, deletion_end, sp, x, y, z, max_level, region, berserk_points, gold, sp_exp, beginner_mark, gm, last_logout, rotation, race as \"race!: DbRace\" FROM characters WHERE user_id = $1 AND server_id = $2 AND (deletion_end > NOW() OR deletion_end is null) ORDER BY id ASC",
             user,
             shard as i32
         ).fetch_all(pool.borrow()).await
@@ -122,5 +150,28 @@ impl CharacterMastery {
                 .fetch_all(pool.borrow())
                 .await?;
         Ok(masteries)
+    }
+}
+
+#[derive(sqlx::FromRow, Copy, Clone)]
+pub struct CharacterSkill {
+    pub character_id: i32,
+    pub skill_group_id: i32,
+    pub level: i16,
+}
+
+impl CharacterSkill {
+    pub async fn fetch_for_character<T: Borrow<PgPool>>(
+        character_ids: &[i32],
+        pool: T,
+    ) -> Result<Vec<CharacterSkill>, Error> {
+        let skills = sqlx::query_as!(
+            CharacterSkill,
+            "SELECT character_id, skill_group_id, level FROM character_skills WHERE character_id in (SELECT * FROM UNNEST($1::INTEGER[]))",
+            character_ids
+        )
+                .fetch_all(pool.borrow())
+                .await?;
+        Ok(skills)
     }
 }

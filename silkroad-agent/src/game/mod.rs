@@ -5,6 +5,7 @@ use crate::comp::inventory::PlayerInventory;
 use crate::comp::mastery::MasteryKnowledge;
 use crate::comp::player::StatPoints;
 use crate::comp::pos::Position;
+use crate::comp::skill::SkillBook;
 use crate::comp::{Health, Mana};
 use crate::event::{
     DamageReceiveEvent, EntityDeath, LoadingFinishedEvent, PlayerLevelUp, SpawnMonster, UniqueKilledEvent,
@@ -121,6 +122,7 @@ impl Plugin for GamePlugin {
             .track_change_component::<GoldPouch>()
             .track_change_component::<MasteryKnowledge>()
             .track_component::<PlayerInventory>()
+            .track_component::<SkillBook>()
             .add_systems(Last, clear_visibility);
     }
 }
