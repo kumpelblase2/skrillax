@@ -12,6 +12,7 @@ use bevy_ecs::ptr::Ptr;
 use bevy_ecs::system::Commands;
 use bevy_ecs_macros::Component;
 use bevy_time::common_conditions::on_timer;
+use futures::future::join_all;
 use silkroad_game_base::{ChangeProvided, ChangeTracked, ToOptimizedChange};
 use std::mem;
 use std::ops::Deref;
@@ -146,9 +147,7 @@ fn apply_changes<T: ChangeTracked + Component>(
         let character_id = player.character.id;
         let pool = pool.deref().deref().clone();
         task_creator.spawn(async move {
-            for change in optimized {
-                change.apply(character_id, &pool).await;
-            }
+            join_all(optimized.iter().map(|c| c.apply(character_id, &pool))).await;
         });
     }
 }
@@ -162,7 +161,7 @@ fn apply_changes_exit<T: ChangeTracked + Component>(
     T::ChangeItem: ApplyToDatabase,
 {
     for event in event_reader.iter() {
-        for (player, mut changes) in query.get_mut(event.0) {
+        if let Ok((player, mut changes)) = query.get_mut(event.0) {
             let changes = mem::take(&mut changes.changes);
             let optimized = changes.optimize();
             let character_id = player.character.id;
