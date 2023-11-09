@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM character_items WHERE character_id = $1 AND slot = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "50d03f2f7db99a1102fbc5facb0989889c84e1d8b3300a14548b470ef0ac51eb"
+}

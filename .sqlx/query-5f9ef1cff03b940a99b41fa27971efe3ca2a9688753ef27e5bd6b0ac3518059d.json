@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO character_skills(character_id, skill_group_id, level) VALUES($1, $2, $3) ON CONFLICT(skill_group_id, character_id) DO UPDATE SET level = EXCLUDED.level",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5f9ef1cff03b940a99b41fa27971efe3ca2a9688753ef27e5bd6b0ac3518059d"
+}

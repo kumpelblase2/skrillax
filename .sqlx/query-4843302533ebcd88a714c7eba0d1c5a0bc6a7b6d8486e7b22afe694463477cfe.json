@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE character_items SET upgrade_level = $1, amount = $2 WHERE character_id = $3 AND slot = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int2",
+        "Int2",
+        "Int4",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4843302533ebcd88a714c7eba0d1c5a0bc6a7b6d8486e7b22afe694463477cfe"
+}

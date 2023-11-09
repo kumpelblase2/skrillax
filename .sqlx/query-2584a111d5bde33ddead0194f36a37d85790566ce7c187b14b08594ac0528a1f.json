@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM characters WHERE user_id = $1 AND server_id = $2 AND (deletion_end > NOW() OR deletion_end is null) ORDER BY id ASC",
+  "query": "SELECT id, user_id, server_id, character_type, scale, level, exp, strength, intelligence, stat_points, current_hp, current_mp, charname, deletion_end, sp, x, y, z, max_level, region, berserk_points, gold, sp_exp, beginner_mark, gm, last_logout, rotation, race as \"race!: DbRace\" FROM characters WHERE user_id = $1 AND server_id = $2 AND (deletion_end > NOW() OR deletion_end is null) ORDER BY id ASC",
   "describe": {
     "columns": [
       {
@@ -137,6 +137,21 @@
         "ordinal": 26,
         "name": "rotation",
         "type_info": "Int2"
+      },
+      {
+        "ordinal": 27,
+        "name": "race!: DbRace",
+        "type_info": {
+          "Custom": {
+            "name": "race",
+            "kind": {
+              "Enum": [
+                "chinese",
+                "european"
+              ]
+            }
+          }
+        }
       }
     ],
     "parameters": {
@@ -172,8 +187,9 @@
       false,
       false,
       true,
+      false,
       false
     ]
   },
-  "hash": "09a11418117d5182992d4606e13e7902c768b1ec7969094b2a92c2f061cd9bb1"
+  "hash": "2584a111d5bde33ddead0194f36a37d85790566ce7c187b14b08594ac0528a1f"
 }

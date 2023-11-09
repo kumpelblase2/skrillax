@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE characters SET x = $1, y = $2, z = $3, region = $4, rotation = $5 WHERE id = $6",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Float4",
+        "Float4",
+        "Float4",
+        "Int2",
+        "Int2",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8adfe8c5ab4c6555bb9db1db150cc34a5b01b32f6f9f50e5a7e8bf891cab4c06"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE character_items SET slot = case slot when $2 then $3 when $3 then $2 end WHERE character_id = $1 AND slot in ($2, $3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int2",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0cfcbb89978b491695dbb5868b4c0cf80bb6b421fe1cac99636eb43e7c4d1aae"
+}
