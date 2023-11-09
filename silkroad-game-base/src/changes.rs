@@ -65,6 +65,10 @@ where
     T: Change,
 {
     fn optimize(self) -> Self {
+        if self.len() <= 1 {
+            return self;
+        }
+
         self.into_iter()
             .fold(Vec::new(), |acc, next| merge_recursive(acc, next))
     }
