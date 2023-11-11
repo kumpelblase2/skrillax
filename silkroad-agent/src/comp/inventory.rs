@@ -38,7 +38,7 @@ impl ChangeTracked for PlayerInventory {
 
 #[async_trait]
 impl ApplyToDatabase for InventoryChange {
-    async fn apply(&self, character_id: u32, pool: &PgPool) {
+    async fn apply(&self, character_id: u32, pool: &PgPool) -> Result<(), sqlx::Error> {
         match self {
             InventoryChange::AddItem { slot, item } => {
                 sqlx::query!(
@@ -49,7 +49,7 @@ impl ApplyToDatabase for InventoryChange {
                     *slot as i16,
                     item.variance.map(|a| a as i64),
                     item.type_data.amount() as i16 // This should be fine, since we should never have gold inside an item slot
-                ).execute(pool).await.expect("Should be able to insert item");
+                ).execute(pool).await?;
             },
             InventoryChange::ChangeTypeData { slot, new_item, .. } => {
                 sqlx::query!(
@@ -60,8 +60,7 @@ impl ApplyToDatabase for InventoryChange {
                     *slot as i16,
                 )
                 .execute(pool)
-                .await
-                .expect("Should be able to change type data");
+                .await?;
             },
             InventoryChange::MoveItem {
                 source_slot,
@@ -74,8 +73,7 @@ impl ApplyToDatabase for InventoryChange {
                     *source_slot as i16,
                 )
                 .execute(pool)
-                .await
-                .expect("Should be able to move item");
+                .await?;
             },
             InventoryChange::RemoveItem { slot } => {
                 sqlx::query!(
@@ -84,8 +82,7 @@ impl ApplyToDatabase for InventoryChange {
                     *slot as i16,
                 )
                 .execute(pool)
-                .await
-                .expect("Should be able to remove item");
+                .await?;
             },
             InventoryChange::Swap {
                 first_slot,
@@ -98,10 +95,10 @@ impl ApplyToDatabase for InventoryChange {
                     *second_slot as i16,
                 )
                 .execute(pool)
-                .await
-                .expect("Should be able to swap item");
+                .await?;
             },
         }
+        Ok(())
     }
 }
 

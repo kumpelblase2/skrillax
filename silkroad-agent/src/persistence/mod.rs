@@ -17,6 +17,7 @@ use silkroad_game_base::{ChangeProvided, ChangeTracked, ToOptimizedChange};
 use std::mem;
 use std::ops::Deref;
 use std::time::Duration;
+use tracing::error;
 
 mod apply;
 
@@ -147,7 +148,10 @@ fn apply_changes<T: ChangeTracked + Component>(
         let character_id = player.character.id;
         let pool = pool.deref().deref().clone();
         task_creator.spawn(async move {
-            join_all(optimized.iter().map(|c| c.apply(character_id, &pool))).await;
+            let results = join_all(optimized.iter().map(|c| c.apply(character_id, &pool))).await;
+            for e in results.into_iter().filter_map(|res| res.err()) {
+                error!(error = %e, character_id = character_id, "Could not apply update");
+            }
         });
     }
 }
@@ -168,7 +172,9 @@ fn apply_changes_exit<T: ChangeTracked + Component>(
             let pool = pool.deref().deref().clone();
             task_creator.spawn(async move {
                 for change in optimized {
-                    change.apply(character_id, &pool).await;
+                    if let Err(e) = change.apply(character_id, &pool).await {
+                        error!(error = %e, character_id = character_id, "Could not apply update");
+                    }
                 }
             });
         }
@@ -201,7 +207,9 @@ fn apply_changes_combined(
             let pool = db_pool.deref().deref().clone();
 
             task_creator.spawn(async move {
-                change.apply(character_id, &pool).await;
+                if let Err(e) = change.apply(character_id, &pool).await {
+                    error!(error = %e, character_id = character_id, "Could not apply update");
+                }
             });
         }
     }
@@ -228,7 +236,9 @@ fn apply_changes_periodically(
             let pool = db_pool.deref().deref().clone();
 
             task_creator.spawn(async move {
-                change.apply(character_id, &pool).await;
+                if let Err(e) = change.apply(character_id, &pool).await {
+                    error!(error = %e, character_id = character_id, "Could not apply update");
+                }
             });
         }
     }

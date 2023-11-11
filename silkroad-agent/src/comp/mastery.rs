@@ -65,9 +65,9 @@ impl ChangeProvided for MasteryKnowledge {
 
 #[async_trait]
 impl ApplyToDatabase for MasteryChange {
-    async fn apply(&self, character_id: u32, pool: &PgPool) {
+    async fn apply(&self, character_id: u32, pool: &PgPool) -> Result<(), sqlx::Error> {
         if self.0.is_empty() {
-            return;
+            return Ok(());
         }
 
         let mut query = QueryBuilder::new("INSERT INTO character_masteries(character_id, mastery_id, level)");
@@ -86,7 +86,7 @@ impl ApplyToDatabase for MasteryChange {
             .push(" ON CONFLICT(character_id, mastery_id) DO UPDATE SET level = EXCLUDED.level")
             .build()
             .execute(pool)
-            .await
-            .expect("Should be able to update masteries.");
+            .await?;
+        Ok(())
     }
 }

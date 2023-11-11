@@ -9,7 +9,7 @@ use sqlx::PgPool;
 
 #[async_trait]
 pub trait ApplyToDatabase: Send + Sync {
-    async fn apply(&self, character_id: u32, pool: &PgPool);
+    async fn apply(&self, character_id: u32, pool: &PgPool) -> Result<(), sqlx::Error>;
 }
 
 pub struct PositionChange(GlobalPosition, Heading);
@@ -24,7 +24,7 @@ impl ChangeProvided for Position {
 
 #[async_trait]
 impl ApplyToDatabase for PositionChange {
-    async fn apply(&self, character_id: u32, pool: &PgPool) {
+    async fn apply(&self, character_id: u32, pool: &PgPool) -> Result<(), sqlx::Error> {
         let location = self.0.to_local();
         sqlx::query!(
             "UPDATE characters SET x = $1, y = $2, z = $3, region = $4, rotation = $5 WHERE id = $6",
@@ -36,8 +36,8 @@ impl ApplyToDatabase for PositionChange {
             character_id as i32
         )
         .execute(pool)
-        .await
-        .expect("Should be able to update");
+        .await?;
+        Ok(())
     }
 }
 
@@ -98,35 +98,35 @@ impl ChangeProvided for SP {
 
 #[async_trait]
 impl ApplyToDatabase for HealthChange {
-    async fn apply(&self, character_id: u32, pool: &PgPool) {
+    async fn apply(&self, character_id: u32, pool: &PgPool) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "UPDATE characters SET current_hp = $1 WHERE id = $2",
             self.0 as i32,
             character_id as i32
         )
         .execute(pool)
-        .await
-        .expect("Should be able to update");
+        .await?;
+        Ok(())
     }
 }
 
 #[async_trait]
 impl ApplyToDatabase for ManaChange {
-    async fn apply(&self, character_id: u32, pool: &PgPool) {
+    async fn apply(&self, character_id: u32, pool: &PgPool) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "UPDATE characters SET current_mp = $1 WHERE id = $2",
             self.0 as i32,
             character_id as i32
         )
         .execute(pool)
-        .await
-        .expect("Should be able to update");
+        .await?;
+        Ok(())
     }
 }
 
 #[async_trait]
 impl ApplyToDatabase for LevelChange {
-    async fn apply(&self, character_id: u32, pool: &PgPool) {
+    async fn apply(&self, character_id: u32, pool: &PgPool) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "UPDATE characters SET level = $1, max_level = $2 WHERE id = $3",
             self.0 as i16,
@@ -134,14 +134,14 @@ impl ApplyToDatabase for LevelChange {
             character_id as i32
         )
         .execute(pool)
-        .await
-        .expect("Should be able to update");
+        .await?;
+        Ok(())
     }
 }
 
 #[async_trait]
 impl ApplyToDatabase for StatsChange {
-    async fn apply(&self, character_id: u32, pool: &PgPool) {
+    async fn apply(&self, character_id: u32, pool: &PgPool) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "UPDATE characters SET strength = $1, intelligence = $2, stat_points = $3 WHERE id = $4",
             self.0.strength() as i16,
@@ -150,14 +150,14 @@ impl ApplyToDatabase for StatsChange {
             character_id as i32
         )
         .execute(pool)
-        .await
-        .expect("Should be able to update");
+        .await?;
+        Ok(())
     }
 }
 
 #[async_trait]
 impl ApplyToDatabase for ExperienceChange {
-    async fn apply(&self, character_id: u32, pool: &PgPool) {
+    async fn apply(&self, character_id: u32, pool: &PgPool) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "UPDATE characters SET exp = $1, sp_exp = $2 WHERE id = $3",
             self.0 as i64,
@@ -165,35 +165,35 @@ impl ApplyToDatabase for ExperienceChange {
             character_id as i32
         )
         .execute(pool)
-        .await
-        .expect("Should be able to update");
+        .await?;
+        Ok(())
     }
 }
 
 #[async_trait]
 impl ApplyToDatabase for SpChange {
-    async fn apply(&self, character_id: u32, pool: &PgPool) {
+    async fn apply(&self, character_id: u32, pool: &PgPool) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "UPDATE characters SET sp = $1 WHERE id = $2",
             self.0 as i32,
             character_id as i32
         )
         .execute(pool)
-        .await
-        .expect("Should be able to update");
+        .await?;
+        Ok(())
     }
 }
 
 #[async_trait]
 impl ApplyToDatabase for GoldChange {
-    async fn apply(&self, character_id: u32, pool: &PgPool) {
+    async fn apply(&self, character_id: u32, pool: &PgPool) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "UPDATE characters SET gold = $1 WHERE id = $2",
             self.0 as i32,
             character_id as i32
         )
         .execute(pool)
-        .await
-        .expect("Should be able to update");
+        .await?;
+        Ok(())
     }
 }

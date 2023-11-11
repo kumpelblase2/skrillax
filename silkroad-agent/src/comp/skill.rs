@@ -62,7 +62,7 @@ impl ChangeTracked for SkillBook {
 
 #[async_trait]
 impl ApplyToDatabase for LearnedSkill {
-    async fn apply(&self, character_id: u32, pool: &PgPool) {
+    async fn apply(&self, character_id: u32, pool: &PgPool) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "INSERT INTO character_skills(character_id, skill_group_id, level) VALUES($1, $2, $3) ON CONFLICT(skill_group_id, character_id) DO UPDATE SET level = EXCLUDED.level",
             character_id as i32,
@@ -70,7 +70,7 @@ impl ApplyToDatabase for LearnedSkill {
             self.1 as i16
         )
         .execute(pool)
-        .await
-        .expect("Should be able to insert skill");
+        .await?;
+        Ok(())
     }
 }
