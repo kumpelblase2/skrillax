@@ -353,7 +353,7 @@ dependencies = [
  "bevy_derive",
  "bevy_ecs",
  "bevy_reflect",
- "bevy_tasks",
+ "bevy_tasks 0.11.3",
  "bevy_utils",
  "downcast-rs",
  "wasm-bindgen",
@@ -370,7 +370,7 @@ dependencies = [
  "bevy_ecs",
  "bevy_math",
  "bevy_reflect",
- "bevy_tasks",
+ "bevy_tasks 0.11.3",
  "bevy_utils",
  "bytemuck",
 ]
@@ -396,7 +396,7 @@ dependencies = [
  "bevy_ecs_macros",
  "bevy_ptr",
  "bevy_reflect",
- "bevy_tasks",
+ "bevy_tasks 0.11.3",
  "bevy_utils",
  "downcast-rs",
  "event-listener",
@@ -487,6 +487,20 @@ name = "bevy_tasks"
 version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c73bbb847c83990d3927005090df52f8ac49332e1643d2ad9aac3cd2974e66bf"
+dependencies = [
+ "async-channel",
+ "async-executor",
+ "async-task",
+ "concurrent-queue",
+ "futures-lite",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
+name = "bevy_tasks"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4fefa7fe0da8923525f7500e274f1bd60dbd79918a25cf7d0dfa0a6ba15c1cf"
 dependencies = [
  "async-channel",
  "async-executor",
@@ -2811,7 +2825,7 @@ dependencies = [
  "bevy_core",
  "bevy_ecs",
  "bevy_ecs_macros",
- "bevy_tasks",
+ "bevy_tasks 0.12.1",
  "bevy_time",
  "byteorder",
  "bytes",
