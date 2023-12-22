@@ -43,7 +43,7 @@ pub(crate) fn handle_command(
     mut teleport_events: EventWriter<PlayerTeleportEvent>,
     mut exp_events: EventWriter<ReceiveExperienceEvent>,
 ) {
-    for event in command_events.iter() {
+    for event in command_events.read() {
         if let Ok((e, client, entity, pos, target, mut agent, player)) = query.get_mut(event.0) {
             if event.1.name == "pos" {
                 let pos = pos.position().to_local();
@@ -140,7 +140,7 @@ pub(crate) fn handle_command(
 }
 
 pub(crate) fn handle_teleport(mut teleport_events: EventReader<PlayerTeleportEvent>, mut query: Query<&mut Position>) {
-    for event in teleport_events.iter() {
+    for event in teleport_events.read() {
         if let Ok(mut pos) = query.get_mut(event.0) {
             pos.move_to(event.1);
         }

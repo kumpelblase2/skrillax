@@ -27,10 +27,9 @@ impl Plugin for AgentPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<MovementFinished>()
             .add_event::<ActionFinished>()
-            .configure_set(PreUpdate, AgentSet::Input)
-            .configure_set(Update, AgentSet::Transition)
-            .configure_set(Update, AgentSet::Execute.after(AgentSet::Transition))
-            .configure_set(PostUpdate, AgentSet::Broadcast)
+            .configure_sets(PreUpdate, AgentSet::Input)
+            .configure_sets(Update, (AgentSet::Transition, AgentSet::Execute).chain())
+            .configure_sets(PostUpdate, AgentSet::Broadcast)
             .add_systems(PreUpdate, movement_input.in_set(AgentSet::Input))
             .add_systems(
                 Update,

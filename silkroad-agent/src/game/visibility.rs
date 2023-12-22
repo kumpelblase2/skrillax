@@ -45,7 +45,7 @@ pub(crate) fn visibility_update(
         },
     );
 
-    query.par_iter_mut().for_each_mut(|(entity, game_entity, mut visibility, position)| {
+    query.par_iter_mut().for_each(|(entity, game_entity, mut visibility, position)| {
         let my_region = position.position().region();
         let close_regions = my_region.with_grid_neighbours();
         if close_regions.iter().any(|region| activity.is_region_active(region)) {

@@ -31,7 +31,7 @@ pub(crate) fn drop_gold(
 ) {
     let characters = WorldData::characters();
     let gold = WorldData::gold();
-    for event in death_events.iter() {
+    for event in death_events.read() {
         if let Ok((game_entity, pos)) = query.get(event.died.0) {
             let Some(monster_data) = characters.find_id(game_entity.ref_id) else {
                 continue;

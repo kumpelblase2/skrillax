@@ -26,7 +26,7 @@ pub(crate) fn do_spawn_mobs(
 ) {
     let mut rng = thread_rng();
     let characters = WorldData::characters();
-    for event in reader.iter() {
+    for event in reader.read() {
         let character_def = characters
             .find_id(event.ref_id)
             .expect("Should have character definition for monster spawn.");

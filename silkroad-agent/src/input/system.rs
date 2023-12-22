@@ -4,7 +4,7 @@ use crate::event::{ClientDisconnectedEvent, LoadingFinishedEvent};
 use crate::input::{LoginInput, PlayerInput};
 use crate::mall::event::MallOpenRequestEvent;
 use bevy_ecs::prelude::*;
-use bevy_time::Time;
+use bevy_time::{Real, Time};
 use silkroad_game_base::StatType;
 use silkroad_network::stream::{SendResult, Stream, StreamError};
 use silkroad_protocol::character::GameGuideResponse;
@@ -26,7 +26,7 @@ pub(crate) fn reset(mut player_input: Query<&mut PlayerInput>, mut login_input: 
 
 pub(crate) fn receive_game_inputs(
     mut query: Query<(Entity, &Client, &mut PlayerInput, &mut LastAction)>,
-    time: Res<Time>,
+    time: Res<Time<Real>>,
     settings: Res<GameConfig>,
     mut loading_events: EventWriter<LoadingFinishedEvent>,
     mut disconnect_events: EventWriter<ClientDisconnectedEvent>,
@@ -116,7 +116,7 @@ pub(crate) fn receive_game_inputs(
 
 pub(crate) fn receive_login_inputs(
     mut query: Query<(Entity, &Client, &mut LoginInput, &mut LastAction)>,
-    time: Res<Time>,
+    time: Res<Time<Real>>,
     settings: Res<GameConfig>,
     mut disconnect_events: EventWriter<ClientDisconnectedEvent>,
 ) {

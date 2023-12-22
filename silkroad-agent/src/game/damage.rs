@@ -25,7 +25,7 @@ pub(crate) fn handle_damage(
     sender_query: Query<(&GameEntity, Option<&Client>)>,
     mut entity_died: EventWriter<EntityDeath>,
 ) {
-    for damage_event in reader.iter() {
+    for damage_event in reader.read() {
         let Ok((mut health, mut controller, mut receiver, player, maybe_client, invincible)) =
             receiver_query.get_mut(damage_event.target.0)
         else {
@@ -103,7 +103,7 @@ pub(crate) fn handle_damage(
 }
 
 pub(crate) fn attack_player(mut query: Query<&mut Mind, With<Monster>>, mut events: EventReader<DamageReceiveEvent>) {
-    for event in events.iter() {
+    for event in events.read() {
         if let Ok(mut mind) = query.get_mut(event.target.0) {
             if !mind.has_goal() {
                 mind.attack(event.source)

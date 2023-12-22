@@ -376,7 +376,7 @@ pub(crate) fn collect_alives(
     mut reader: EventReader<LoadingFinishedEvent>,
     query: Query<&GameEntity>,
 ) {
-    for event in reader.iter() {
+    for event in reader.read() {
         let Ok(game_entity) = query.get(event.0) else {
             continue;
         };

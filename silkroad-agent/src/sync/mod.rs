@@ -67,7 +67,7 @@ pub(crate) struct SynchronizationPlugin;
 impl Plugin for SynchronizationPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SynchronizationCollector>()
-            .configure_set(
+            .configure_sets(
                 PostUpdate,
                 SynchronizationStage::Distribution.after(SynchronizationStage::Collection),
             )

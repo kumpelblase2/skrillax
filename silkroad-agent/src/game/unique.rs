@@ -27,7 +27,7 @@ pub(crate) fn unique_spawned(query: Query<(&GameEntity, &Monster), Added<Monster
 }
 
 pub(crate) fn unique_killed(mut events: EventReader<UniqueKilledEvent>, notify: Query<&Client>) {
-    for kill in events.iter() {
+    for kill in events.read() {
         notify.iter().for_each(|client| {
             client.send(GameNotification::uniquekilled(kill.unique.ref_id, kill.player.clone()));
         });

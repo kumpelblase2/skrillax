@@ -25,7 +25,7 @@ pub(crate) fn open_mall(
     db: Res<DbPool>,
     server_id: Res<ServerId>,
 ) {
-    for event in events.iter() {
+    for event in events.read() {
         if let Ok((client, player)) = query.get(event.0) {
             debug!("Requesting Mall from {}", player.user.username);
 

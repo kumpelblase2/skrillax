@@ -25,7 +25,7 @@ pub(crate) fn distribute_experience(
     lookup: Res<EntityLookup>,
     receiver_query: Query<(&GameEntity, &Position)>,
 ) {
-    for event in death_events.iter() {
+    for event in death_events.read() {
         let Ok((damage_distribution, death_location)) = dead_query.get(event.died.0) else {
             continue;
         };
@@ -55,7 +55,7 @@ pub(crate) fn receive_experience(
 ) {
     let level_map = WorldData::levels();
 
-    for event in experience_events.iter() {
+    for event in experience_events.read() {
         let Ok((mut level, mut experienced, mut sp)) = query.get_mut(event.target.0) else {
             continue;
         };

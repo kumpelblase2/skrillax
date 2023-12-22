@@ -4,7 +4,6 @@ use silkroad_data::DataEntry;
 use silkroad_definitions::inventory::EquipmentSlot;
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
-use std::mem;
 
 pub const WEAPON_SLOT: u8 = 6;
 pub const GOLD_SLOT: u8 = 0xFE;
@@ -428,7 +427,7 @@ impl Inventory {
     pub fn add_item(&mut self, mut item: Item) -> Option<u8> {
         if item.reference.max_stack_size > 1 {
             for i in self.find_slots_matching(item).collect::<Vec<_>>() {
-                let mut existing = self.items.get_mut(&i).expect("The matching slot should have an item");
+                let existing = self.items.get_mut(&i).expect("The matching slot should have an item");
                 if !existing.is_max_stacked() && existing.reference.ref_id() == item.reference.ref_id() {
                     return match (existing.type_data, item.type_data) {
                         (

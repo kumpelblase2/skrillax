@@ -164,7 +164,7 @@ fn apply_changes_exit<T: ChangeTracked + Component>(
 ) where
     T::ChangeItem: ApplyToDatabase,
 {
-    for event in event_reader.iter() {
+    for event in event_reader.read() {
         if let Ok((player, mut changes)) = query.get_mut(event.0) {
             let changes = mem::take(&mut changes.changes);
             let optimized = changes.optimize();
@@ -192,7 +192,7 @@ fn apply_changes_combined(
         return;
     }
 
-    for event in disconnections.iter() {
+    for event in disconnections.read() {
         let Ok((entity, player)) = query.get(event.0) else {
             continue;
         };

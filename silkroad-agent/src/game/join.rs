@@ -19,7 +19,7 @@ pub(crate) fn load_finished(
     daycycle: Res<DaylightCycle>,
     mut query: Query<(&Client, &GameEntity, &mut Player, &Leveled, &StatPoints)>,
 ) {
-    for event in reader.iter() {
+    for event in reader.read() {
         let (client, game_entity, mut player, level, stat_points) = match query.get_mut(event.0) {
             Ok(data) => data,
             _ => continue,
