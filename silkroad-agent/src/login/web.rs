@@ -4,10 +4,11 @@ use crate::{CapacityController, LoginQueue};
 use axum::extract::{FromRef, State};
 use axum::http::HeaderMap;
 use axum::routing::{get, post};
-use axum::{Json, Router, Server};
+use axum::{serve, Json, Router};
 use silkroad_rpc::{ReserveRequest, ReserveResponse, ServerStatusReport};
 use sqlx::PgPool;
 use std::net::SocketAddr;
+use tokio::net::TcpListener;
 use tracing::error;
 
 #[derive(Clone)]
@@ -92,9 +93,13 @@ impl WebServer {
         // TODO: this should be configurable on where it listens on
         let socket_addr = SocketAddr::from(([0, 0, 0, 0], port));
 
-        Server::bind(&socket_addr)
-            .serve(router.into_make_service())
-            .await
-            .expect("Should be able to bind webserver socket");
+        serve(
+            TcpListener::bind(socket_addr)
+                .await
+                .expect("Should be able to bind to web port"),
+            router.into_make_service(),
+        )
+        .await
+        .expect("Should be able to bind webserver socket");
     }
 }

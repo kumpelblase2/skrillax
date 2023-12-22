@@ -13,7 +13,7 @@ silkroad-data = { path = "../silkroad-data" }
 silkroad-game-base = { path = "../silkroad-game-base" }
 silkroad-definitions = { path = "../silkroad-definitions" }
 tokio = { workspace = true }
-axum = { version = "0.6", default-features = false, features = [ "http1", "json", "tokio", "tower-log", "macros"] }
+axum = { version = "0.7", default-features = false, features = [ "http1", "json", "tokio", "tower-log", "macros"] }
 bytes = "1.5"
 once_cell = { workspace = true }
 byteorder = { workspace = true }
