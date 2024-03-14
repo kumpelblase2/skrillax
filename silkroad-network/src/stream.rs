@@ -13,7 +13,7 @@ use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio_util::codec::{FramedRead, FramedWrite};
-use tracing::{debug, instrument, trace_span, warn};
+use tracing::{debug, warn};
 
 pub type StreamResult<T> = Result<T, StreamError>;
 pub type SendResult = StreamResult<()>;
@@ -79,8 +79,6 @@ impl StreamReader {
             match packet {
                 Ok(frame) => match frame {
                     SilkroadFrame::Packet { data, opcode, .. } => {
-                        let span = trace_span!("decoding", id = ?self.id);
-                        let _enter = span.enter();
                         return Ok(ClientPacket::deserialize(opcode, data)?);
                     },
                     SilkroadFrame::MassiveHeader {
@@ -96,8 +94,6 @@ impl StreamReader {
                     SilkroadFrame::MassiveContainer { inner, .. } => {
                         return match &self.massive_packet {
                             Some((opcode, count)) => {
-                                let span = trace_span!("decoding", id = ?self.id);
-                                let _enter = span.enter();
                                 let result = ClientPacket::deserialize(*opcode, inner)?;
                                 let new_count = *count - 1;
                                 if new_count > 0 {
@@ -136,7 +132,6 @@ impl StreamWriter {
         }
     }
 
-    #[instrument(skip_all)]
     pub async fn send<P: Into<ServerPacket>>(&mut self, packet: P) -> SendResult {
         let frames = SilkroadFrame::create_for(packet.into());
 

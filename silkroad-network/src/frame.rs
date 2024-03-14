@@ -5,7 +5,6 @@ use silkroad_security::security::{SilkroadSecurity, SilkroadSecurityError};
 use std::cmp::{max, min};
 use std::sync::{Arc, RwLock};
 use thiserror::Error;
-use tracing::trace_span;
 
 const MASSIVE_PACKET_OPCODE: u16 = 0x600D;
 
@@ -129,8 +128,6 @@ impl SilkroadFrame {
         let data = &data[0..total_size];
 
         let data = if encrypted {
-            let span = trace_span!("decryption");
-            let _enter = span.enter();
             let security = security.as_ref().ok_or(FrameError::MissingSecurity)?;
             let security = security.read().expect("Security RWLock should not get poisoned");
             security.decrypt(data)?
@@ -239,8 +236,6 @@ impl SilkroadFrame {
                 data,
             } => {
                 if *encrypted {
-                    let span = trace_span!("encryption");
-                    let _guard = span.enter();
                     let mut to_encrypt = BytesMut::with_capacity(data.len() + 4);
                     to_encrypt.put_u16_le(*opcode);
                     to_encrypt.put_u8(*count);
