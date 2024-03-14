@@ -236,8 +236,7 @@ impl GatewayNotice {
 pub struct PingServer {
     pub index: u8,
     pub domain: String,
-    pub unknown_1: u8,
-    pub unknown_2: u8,
+    pub unknown: u16,
 }
 
 impl PingServer {
@@ -245,8 +244,7 @@ impl PingServer {
         PingServer {
             index,
             domain,
-            unknown_1: 0xbd,
-            unknown_2: 0x32,
+            unknown: 0x32bd,
         }
     }
 }

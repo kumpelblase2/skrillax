@@ -195,12 +195,7 @@ impl Client {
                     writer.send(ShardListResponse { farms, shards }).await?;
                 },
                 ClientPacket::PingServerRequest(_) => {
-                    let ping_response = PingServerResponse::new(vec![PingServer {
-                        index: 1,
-                        domain: "localhost".to_string(),
-                        unknown_1: 0x32,
-                        unknown_2: 0xbd,
-                    }]);
+                    let ping_response = PingServerResponse::new(vec![PingServer::new(1, "localhost".to_string())]);
                     writer.send(ping_response).await?;
                 },
                 _ => {},
