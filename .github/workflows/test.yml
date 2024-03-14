@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     name: test
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: install toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: cargo generate lockfile
@@ -25,7 +25,7 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: install toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: cargo generate lockfile
