@@ -27,7 +27,7 @@ config = "0.14"
 log = "0.4"
 thiserror = "1.0"
 chrono = "0.4"
-bytes = "1.5"
+bytes = "1.6"
 clap = "4.4"
 pk2 = "0.1.0"
 serde = { version = "1", features = ["derive"] }

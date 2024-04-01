@@ -14,7 +14,7 @@ silkroad-game-base = { path = "../silkroad-game-base" }
 silkroad-definitions = { path = "../silkroad-definitions" }
 tokio = { workspace = true }
 axum = { version = "0.7", default-features = false, features = [ "http1", "json", "tokio", "tower-log", "macros"] }
-bytes = "1.5"
+bytes = "1.6"
 once_cell = { workspace = true }
 byteorder = { workspace = true }
 rand = { workspace = true }
