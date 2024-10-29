@@ -22,7 +22,7 @@ axum = { version = "0.7", default-features = false, features = [
     "tower-log",
     "macros",
 ] }
-bytes = "1.5"
+bytes = "1.8"
 once_cell.workspace = true
 byteorder.workspace = true
 rand.workspace = true
