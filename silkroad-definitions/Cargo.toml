@@ -6,11 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-silkroad-serde = { path = "../silkroad-serde", optional = true }
+skrillax-serde = { workspace = true, optional = true }
 num_enum = "0.7"
 num_enum_derive = "0.7"
 byteorder = { workspace = true }
 bytes = { workspace = true }
 
 [features]
-serde = ["dep:silkroad-serde"]
+serde = ["dep:skrillax-serde"]

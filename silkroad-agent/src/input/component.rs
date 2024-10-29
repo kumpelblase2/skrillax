@@ -2,7 +2,7 @@ use bevy_ecs::prelude::*;
 use silkroad_game_base::StatType;
 use silkroad_protocol::auth::{AuthRequest, LogoutRequest};
 use silkroad_protocol::character::{CharacterJoinRequest, CharacterListRequestAction};
-use silkroad_protocol::chat::ChatMessage;
+use silkroad_protocol::chat::ChatClientProtocol;
 use silkroad_protocol::combat::PerformAction;
 use silkroad_protocol::gm::GmCommand;
 use silkroad_protocol::inventory::InventoryOperation;
@@ -16,7 +16,7 @@ pub(crate) struct PlayerInput {
     pub logout: Option<LogoutRequest>,
     pub target: Option<TargetEntity>,
     pub untarget: Option<UnTargetEntity>,
-    pub chat: Vec<ChatMessage>,
+    pub chat: Vec<ChatClientProtocol>,
     pub action: Option<PerformAction>,
     pub movement: Option<MovementTarget>,
     pub rotation: Option<Rotation>,

@@ -2,10 +2,10 @@ use byteorder::ReadBytesExt;
 use bytes::{BufMut, BytesMut};
 use num_enum_derive::{IntoPrimitive, TryFromPrimitive};
 #[cfg(feature = "serde")]
-use silkroad_serde::{ByteSize, Deserialize, SerializationError, Serialize};
+use skrillax_serde::{ByteSize, Deserialize, SerializationError, Serialize};
 use std::io::Read;
 
-#[derive(IntoPrimitive, TryFromPrimitive, Copy, Clone, Eq, PartialEq)]
+#[derive(IntoPrimitive, TryFromPrimitive, Copy, Clone, Eq, PartialEq, Debug)]
 #[repr(u8)]
 pub enum EntityRarityType {
     Normal = 0,
@@ -19,7 +19,7 @@ pub enum EntityRarityType {
     Unique2,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct EntityRarity {
     party: bool,
     kind: EntityRarityType,

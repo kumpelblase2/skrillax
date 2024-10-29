@@ -1,6 +1,8 @@
-use silkroad_serde::*;
+use skrillax_packet::Packet;
+use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
+use skrillax_serde::*;
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Copy, Deserialize, ByteSize, Serialize, Debug)]
 pub enum InventoryOperationRequest {
     #[silkroad(value = 0x00)]
     Move { source: u8, target: u8, amount: u16 },
@@ -18,7 +20,7 @@ impl InventoryOperationRequest {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, ByteSize)]
+#[derive(Clone, Serialize, Deserialize, ByteSize, Debug)]
 #[silkroad(size = 4)]
 pub enum RentInfo {
     #[silkroad(value = 0)]
@@ -65,7 +67,7 @@ impl RentInfo {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Debug)]
 #[silkroad(size = 0)]
 pub enum ItemPickupData {
     Gold {
@@ -89,7 +91,7 @@ impl ItemPickupData {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Debug)]
 pub enum InventoryOperationResponseData {
     #[silkroad(value = 0x00)]
     UpdateSlots {
@@ -129,19 +131,19 @@ impl InventoryOperationResponseData {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize, Deserialize, Debug)]
 #[silkroad(size = 2)]
 pub enum ConsignmentErrorCode {
     #[silkroad(value = 0x700D)]
     NotEnoughGold,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub enum ConsignmentResult {
     #[silkroad(value = 1)]
     Success { items: Vec<ConsignmentItem> },
     #[silkroad(value = 2)]
-    Error { code: ConsignmentErrorCode },
+    Failure { code: ConsignmentErrorCode },
 }
 
 impl ConsignmentResult {
@@ -150,11 +152,11 @@ impl ConsignmentResult {
     }
 
     pub fn error(code: ConsignmentErrorCode) -> Self {
-        ConsignmentResult::Error { code }
+        ConsignmentResult::Failure { code }
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Debug)]
 #[silkroad(size = 0)]
 pub enum InventoryItemContentData {
     Equipment {
@@ -200,7 +202,7 @@ impl InventoryItemContentData {
     }
 }
 
-#[derive(Copy, Clone, Serialize, ByteSize)]
+#[derive(Copy, Clone, Serialize, ByteSize, Deserialize, Debug)]
 #[silkroad(size = 2)]
 pub enum InventoryOperationError {
     #[silkroad(value = 0x03)]
@@ -249,10 +251,11 @@ pub enum InventoryOperationError {
     RequiresSpecialtyBag,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0xB034)]
 pub enum InventoryOperationResult {
     #[silkroad(value = 2)]
-    Error(InventoryOperationError),
+    Failure(InventoryOperationError),
     #[silkroad(value = 1)]
     Success(InventoryOperationResponseData),
 }
@@ -309,13 +312,13 @@ impl InventoryItemData {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct InventoryAvatarItemData;
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct InventoryItemMagicData;
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct InventoryItemBindingData {
     pub kind: u8,
     pub value: u8,
@@ -339,7 +342,7 @@ impl CharacterSpawnItemData {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub struct ConsignmentItem {
     pub personal_id: u32,
     pub status: u8,
@@ -375,10 +378,12 @@ impl ConsignmentItem {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Copy, Deserialize, ByteSize, Serialize, Packet, Debug)]
+#[packet(opcode = 0x750E)]
 pub struct ConsignmentList;
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
+#[packet(opcode = 0xB50E)]
 pub struct ConsignmentResponse {
     pub result: ConsignmentResult,
 }
@@ -395,21 +400,36 @@ impl ConsignmentResponse {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Debug, Deserialize, ByteSize, Serialize, Packet)]
+#[packet(opcode = 0x7034)]
 pub struct InventoryOperation {
     pub data: InventoryOperationRequest,
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Copy, Clone, Deserialize, ByteSize, Serialize, Packet, Debug)]
+#[packet(opcode = 0x755D)]
 pub struct OpenItemMall;
 
-#[derive(Serialize, ByteSize, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Clone, Packet, Debug)]
+#[packet(opcode = 0xB55D)]
 pub struct OpenItemMallResponse(pub OpenItemMallResult);
 
-#[derive(Serialize, ByteSize, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Clone, Debug)]
 pub enum OpenItemMallResult {
     #[silkroad(value = 2)]
-    Error,
+    Failure,
     #[silkroad(value = 1)]
     Success { jid: u32, token: String },
+}
+
+define_inbound_protocol! { InventoryClientProtocol =>
+    OpenItemMall,
+    InventoryOperation,
+    ConsignmentList
+}
+
+define_outbound_protocol! { InventoryServerProtocol =>
+    OpenItemMallResponse,
+    ConsignmentResponse,
+    InventoryOperationResult
 }

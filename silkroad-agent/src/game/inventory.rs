@@ -17,7 +17,6 @@ use silkroad_protocol::inventory::{
     InventoryOperationError, InventoryOperationRequest, InventoryOperationResponseData, InventoryOperationResult,
 };
 use std::cmp::max;
-use std::ops::Deref;
 
 pub(crate) fn handle_inventory_input(
     mut query: Query<(
@@ -36,7 +35,9 @@ pub(crate) fn handle_inventory_input(
             match action.data {
                 InventoryOperationRequest::DropGold { amount } => {
                     if amount > gold.amount() {
-                        client.send(InventoryOperationResult::Error(InventoryOperationError::NotEnoughGold));
+                        client.send(InventoryOperationResult::Failure(
+                            InventoryOperationError::NotEnoughGold,
+                        ));
                         continue;
                     }
 
@@ -74,12 +75,12 @@ pub(crate) fn handle_inventory_input(
                                     .required_level
                                     .map(|val| val.get() <= level.current_level())
                                     .unwrap_or(true)
-                                && does_object_type_match_race(*race.deref(), object_type);
+                                && does_object_type_match_race(race.inner(), object_type);
                             // TODO: check if equipment requirement sex matches
                             //  check if required masteries matches
                             if !fits {
                                 // TODO: Use more appropriate error code
-                                client.send(InventoryOperationResult::Error(InventoryOperationError::Indisposable));
+                                client.send(InventoryOperationResult::Failure(InventoryOperationError::Indisposable));
                                 continue;
                             }
                         }
@@ -94,7 +95,9 @@ pub(crate) fn handle_inventory_input(
                             },
                         }
                     } else {
-                        client.send(InventoryOperationResult::Error(InventoryOperationError::InvalidTarget));
+                        client.send(InventoryOperationResult::Failure(
+                            InventoryOperationError::InvalidTarget,
+                        ));
                     }
                 },
                 InventoryOperationRequest::DropItem { .. } => {},

@@ -1,12 +1,15 @@
-use silkroad_serde::*;
+use skrillax_packet::Packet;
+use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
+use skrillax_serde::*;
 
-#[derive(Deserialize, Copy, Clone)]
+#[derive(Deserialize, Serialize, ByteSize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x70A2)]
 pub struct LevelUpMastery {
     pub mastery: u32,
     pub amount: u8,
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Debug)]
 #[silkroad(size = 2)]
 pub enum LevelUpMasteryError {
     #[silkroad(value = 0x3802)]
@@ -17,26 +20,29 @@ pub enum LevelUpMasteryError {
     ReachedTotalLimit,
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0xB0A2)]
 pub enum LevelUpMasteryResponse {
     #[silkroad(value = 1)]
     Success { mastery: u32, new_level: u8 },
     #[silkroad(value = 2)]
-    Error(LevelUpMasteryError),
+    Failure(LevelUpMasteryError),
 }
 
-#[derive(Deserialize, Copy, Clone)]
+#[derive(Deserialize, Serialize, ByteSize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x70A1)]
 pub struct LearnSkill(pub u32);
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0xB0A1)]
 pub enum LearnSkillResponse {
     #[silkroad(value = 1)]
     Success(u32),
     #[silkroad(value = 2)]
-    Error(LevelUpMasteryError), // TODO
+    Failure(LevelUpMasteryError), // TODO
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub struct MasteryData {
     pub id: u32,
     pub level: u8,
@@ -48,7 +54,7 @@ impl MasteryData {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub struct HotkeyData {
     pub slot: u8,
     pub kind: u8,
@@ -61,7 +67,7 @@ impl HotkeyData {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub struct SkillData {
     pub id: u32,
     pub enabled: bool,
@@ -71,4 +77,14 @@ impl SkillData {
     pub fn new(id: u32, enabled: bool) -> Self {
         SkillData { id, enabled }
     }
+}
+
+define_inbound_protocol! { SkillClientProtocol =>
+    LearnSkill,
+    LevelUpMastery
+}
+
+define_outbound_protocol! { SkillServerProtocol =>
+    LearnSkillResponse,
+    LevelUpMasteryResponse
 }

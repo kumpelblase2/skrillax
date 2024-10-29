@@ -3,16 +3,20 @@ use crate::config::GameConfig;
 use crate::event::{ClientDisconnectedEvent, LoadingFinishedEvent};
 use crate::input::{LoginInput, PlayerInput};
 use crate::mall::event::MallOpenRequestEvent;
+use crate::protocol::AgentClientProtocol;
 use bevy_ecs::prelude::*;
 use bevy_time::{Real, Time};
 use silkroad_game_base::StatType;
-use silkroad_network::stream::{SendResult, Stream, StreamError};
-use silkroad_protocol::character::GameGuideResponse;
-use silkroad_protocol::general::IdentityInformation;
-use silkroad_protocol::inventory::ConsignmentResponse;
-use silkroad_protocol::ClientPacket;
+use silkroad_protocol::auth::AuthProtocol;
+use silkroad_protocol::character::CharselectClientProtocol;
+use silkroad_protocol::combat::CombatClientProtocol;
+use silkroad_protocol::general::{BaseProtocol, IdentityInformation};
+use silkroad_protocol::gm::GmClientProtocol;
+use silkroad_protocol::inventory::{ConsignmentResponse, InventoryClientProtocol};
+use silkroad_protocol::movement::MovementClientProtocol;
+use silkroad_protocol::skill::SkillClientProtocol;
+use silkroad_protocol::world::{GameGuideResponse, StatClientProtocol, WorldClientProtocol};
 use std::time::Instant;
-use tracing::warn;
 
 pub(crate) fn reset(mut player_input: Query<&mut PlayerInput>, mut login_input: Query<&mut LoginInput>) {
     for mut input in player_input.iter_mut() {
@@ -35,70 +39,75 @@ pub(crate) fn receive_game_inputs(
     for (entity, client, mut input, mut last_action) in query.iter_mut() {
         let mut had_action = false;
         loop {
-            match client.received() {
+            match client.next() {
                 Ok(Some(packet)) => {
                     had_action = true;
-                    match packet {
-                        ClientPacket::ChatMessage(chat) => {
-                            input.chat.push(*chat);
+                    match *packet {
+                        AgentClientProtocol::ChatClientProtocol(chat) => {
+                            input.chat.push(chat);
                         },
-                        ClientPacket::Rotation(rotate) => {
-                            input.rotation = Some(*rotate);
+                        AgentClientProtocol::MovementClientProtocol(MovementClientProtocol::PlayerMovementRequest(
+                            req,
+                        )) => {
+                            input.movement = Some(req.kind);
                         },
-                        ClientPacket::PlayerMovementRequest(request) => {
-                            input.movement = Some(request.kind);
+                        AgentClientProtocol::MovementClientProtocol(MovementClientProtocol::Rotation(rotate)) => {
+                            input.rotation = Some(rotate);
                         },
-                        ClientPacket::LogoutRequest(logout) => {
-                            input.logout = Some(*logout);
+                        AgentClientProtocol::FriendListClientProtocol(friend_list) => {},
+                        AgentClientProtocol::SkillClientProtocol(SkillClientProtocol::LearnSkill(skill)) => {
+                            input.skill_add = Some(skill);
                         },
-                        ClientPacket::TargetEntity(target) => {
-                            input.target = Some(*target);
+                        AgentClientProtocol::SkillClientProtocol(SkillClientProtocol::LevelUpMastery(mastery)) => {
+                            input.mastery = Some(mastery);
                         },
-                        ClientPacket::UnTargetEntity(untarget) => {
-                            input.untarget = Some(*untarget);
+                        AgentClientProtocol::StatClientProtocol(stat) => match stat {
+                            StatClientProtocol::IncreaseStr(_) => input.increase_stats.push(StatType::STR),
+                            StatClientProtocol::IncreaseInt(_) => input.increase_stats.push(StatType::INT),
                         },
-                        ClientPacket::PerformAction(action) => {
-                            input.action = Some(*action);
+                        AgentClientProtocol::CombatClientProtocol(CombatClientProtocol::PerformAction(action)) => {
+                            input.action = Some(action);
                         },
-                        ClientPacket::GmCommand(command) => {
-                            input.gm = Some(*command);
+                        AgentClientProtocol::WorldClientProtocol(world) => match world {
+                            WorldClientProtocol::TargetEntity(target) => {
+                                input.target = Some(target);
+                            },
+                            WorldClientProtocol::UnTargetEntity(untarget) => {
+                                input.untarget = Some(untarget);
+                            },
+                            WorldClientProtocol::UpdateGameGuide(guide) => {
+                                client.send(GameGuideResponse::Success(guide.0));
+                            },
                         },
-                        ClientPacket::OpenItemMall(_) => {
-                            mall_events.send(MallOpenRequestEvent(entity));
-                        },
-                        ClientPacket::InventoryOperation(inventory) => {
-                            input.inventory = Some(*inventory);
-                        },
-                        ClientPacket::ConsignmentList(_) => {
-                            client.send(ConsignmentResponse::success_empty());
-                        },
-                        ClientPacket::AddFriend(_) => {},
-                        ClientPacket::CreateFriendGroup(_) => {},
-                        ClientPacket::DeleteFriend(_) => {},
-                        ClientPacket::UpdateGameGuide(guide) => {
-                            client.send(GameGuideResponse::Success(guide.0));
-                        },
-                        ClientPacket::FinishLoading(_) => {
+                        AgentClientProtocol::CharselectClientProtocol(CharselectClientProtocol::FinishLoading(_)) => {
                             loading_events.send(LoadingFinishedEvent(entity));
                         },
-                        ClientPacket::LevelUpMastery(mastery) => {
-                            input.mastery = Some(*mastery);
+                        AgentClientProtocol::InventoryClientProtocol(inventory) => match inventory {
+                            InventoryClientProtocol::OpenItemMall(_) => {
+                                mall_events.send(MallOpenRequestEvent(entity));
+                            },
+                            InventoryClientProtocol::InventoryOperation(inventory) => {
+                                input.inventory = Some(inventory);
+                            },
+                            InventoryClientProtocol::ConsignmentList(_) => {
+                                client.send(ConsignmentResponse::success_empty());
+                            },
                         },
-                        ClientPacket::LearnSkill(skill) => input.skill_add = Some(*skill),
-                        ClientPacket::IncreaseStr(_) => input.increase_stats.push(StatType::STR),
-                        ClientPacket::IncreaseInt(_) => input.increase_stats.push(StatType::INT),
+                        AgentClientProtocol::AuthProtocol(AuthProtocol::LogoutRequest(logout)) => {
+                            input.logout = Some(logout);
+                        },
+                        AgentClientProtocol::GmClientProtocol(GmClientProtocol::GmCommand(command)) => {
+                            input.gm = Some(command);
+                        },
                         _ => {},
                     }
                 },
                 Ok(None) => {
                     break;
                 },
-                Err(StreamError::StreamClosed) => {
+                Err(_) => {
                     disconnect_events.send(ClientDisconnectedEvent(entity));
                     break;
-                },
-                Err(e) => {
-                    warn!(id = ?client.0.id(), "Error when receiving. {:?}", e);
                 },
             }
         }
@@ -123,32 +132,34 @@ pub(crate) fn receive_login_inputs(
     for (entity, client, mut input, mut last_action) in query.iter_mut() {
         let mut had_action = false;
         loop {
-            match client.received() {
+            match client.next() {
                 Ok(Some(packet)) => {
                     had_action = true;
-                    match packet {
-                        ClientPacket::CharacterListRequest(request) => {
-                            input.list.push(request.action);
+                    match *packet {
+                        AgentClientProtocol::CharselectClientProtocol(charselect) => match charselect {
+                            CharselectClientProtocol::CharacterListRequest(request) => {
+                                input.list.push(request.action);
+                            },
+                            CharselectClientProtocol::CharacterJoinRequest(join) => {
+                                input.join = Some(join);
+                            },
+                            _ => {},
                         },
-                        ClientPacket::CharacterJoinRequest(join) => {
-                            input.join = Some(*join);
+                        AgentClientProtocol::AuthProtocol(AuthProtocol::AuthRequest(auth)) => {
+                            input.auth = Some(auth);
                         },
-                        ClientPacket::AuthRequest(auth) => {
-                            input.auth = Some(*auth);
+                        AgentClientProtocol::BaseProtocol(BaseProtocol::IdentityInformation(_id)) => {
+                            send_identity_information(client)
                         },
-                        ClientPacket::IdentityInformation(_id) => send_identity_information(client).unwrap(),
                         _ => {},
                     }
                 },
                 Ok(None) => {
                     break;
                 },
-                Err(StreamError::StreamClosed) => {
+                Err(_) => {
                     disconnect_events.send(ClientDisconnectedEvent(entity));
                     break;
-                },
-                Err(e) => {
-                    warn!(id = ?client.0.id(), "Error when receiving. {:?}", e);
                 },
             }
         }
@@ -164,6 +175,6 @@ pub(crate) fn receive_login_inputs(
     }
 }
 
-fn send_identity_information(client: &Stream) -> SendResult {
+fn send_identity_information(client: &Client) {
     client.send(IdentityInformation::new("AgentServer".to_string(), 0))
 }

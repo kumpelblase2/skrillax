@@ -11,8 +11,8 @@ pub(crate) fn increase_stats(mut query: Query<(&mut PlayerInput, &mut StatPoints
         for stat_increase in take(&mut input.increase_stats) {
             if stat_points.remaining_points() == 0 {
                 match stat_increase {
-                    StatType::STR => client.send(IncreaseStrResponse::Error(0)),
-                    StatType::INT => client.send(IncreaseIntResponse::Error(0)),
+                    StatType::STR => client.send(IncreaseStrResponse::Failure(0)),
+                    StatType::INT => client.send(IncreaseIntResponse::Failure(0)),
                 }
                 continue;
             }

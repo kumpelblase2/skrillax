@@ -8,5 +8,13 @@ byteorder = { workspace = true }
 chrono = { workspace = true }
 bytes = { workspace = true }
 thiserror = { workspace = true }
-silkroad-definitions = { path = "../silkroad-definitions", features = ["serde"] }
-silkroad-serde = { path = "../silkroad-serde", features = ["derive"] }
+silkroad-definitions = { path = "../silkroad-definitions", features = [
+    "serde",
+] }
+skrillax-serde = { workspace = true, features = [
+    "derive",
+] }
+skrillax-packet = { workspace = true, features = [
+    "derive",
+] }
+skrillax-protocol.workspace = true

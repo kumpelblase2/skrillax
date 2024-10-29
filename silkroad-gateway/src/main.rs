@@ -4,7 +4,9 @@ mod client;
 mod config;
 mod login;
 mod news;
+mod passcode;
 mod patch;
+mod protocol;
 mod server;
 
 use crate::agentserver::AgentServerManager;
@@ -14,8 +16,9 @@ use crate::login::{LoginProvider, RegistrationResult};
 use crate::news::NewsCacheAsync;
 use crate::patch::Patcher;
 use crate::server::GatewayServer;
-use anyhow::{anyhow, Context, Result};
 use clap::Parser;
+use color_eyre::eyre::{eyre, Context};
+use color_eyre::Result;
 use silkroad_protocol::login::Farm;
 use sqlx::PgPool;
 use std::net::{Ipv4Addr, SocketAddr};
@@ -30,6 +33,7 @@ const DEFAULT_LISTEN_PORT: u16 = 15779;
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
+    color_eyre::install()?;
     let configuration = get_config()?;
 
     let args = Cli::parse();
@@ -129,12 +133,12 @@ async fn run_command(command: &Commands, configuration: &GatewayServerConfig) ->
                     info!("Registered user {} with password {}.", username, password)
                 },
                 RegistrationResult::UsernameTaken => {
-                    return Err(anyhow!(
+                    return Err(eyre!(
                         "Could not create account, because an account with that username already exists."
                     ));
                 },
                 _ => {
-                    return Err(anyhow!("Could not create account."));
+                    return Err(eyre!("Could not create account."));
                 },
             }
         },

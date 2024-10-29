@@ -1,4 +1,6 @@
-use silkroad_serde::*;
+use skrillax_packet::Packet;
+use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
+use skrillax_serde::*;
 
 #[derive(Clone, Serialize, ByteSize)]
 pub struct GuildInformation {
@@ -35,7 +37,7 @@ impl GuildInformation {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Debug)]
 pub struct FriendListGroup {
     pub id: u16,
     pub name: String,
@@ -51,7 +53,7 @@ impl FriendListGroup {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Debug)]
 pub struct FriendListEntry {
     pub char_id: u32,
     pub name: String,
@@ -72,7 +74,8 @@ impl FriendListEntry {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x3305)]
 pub struct FriendListInfo {
     pub groups: Vec<FriendListGroup>,
     pub friends: Vec<FriendListEntry>,
@@ -84,17 +87,30 @@ impl FriendListInfo {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Deserialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x7302)]
 pub struct AddFriend {
     pub name: String,
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Deserialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x7310)]
 pub struct CreateFriendGroup {
     pub name: String,
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Deserialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x7304)]
 pub struct DeleteFriend {
     pub friend_character_id: u32,
+}
+
+define_inbound_protocol! { FriendListClientProtocol =>
+    AddFriend,
+    CreateFriendGroup,
+    DeleteFriend
+}
+
+define_outbound_protocol! { FriendListServerProtocol =>
+    FriendListInfo
 }

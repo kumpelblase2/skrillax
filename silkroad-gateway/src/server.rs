@@ -3,11 +3,10 @@ use crate::login::LoginProvider;
 use crate::news::NewsCacheAsync;
 use crate::patch::Patcher;
 use crate::AgentServerManager;
-use silkroad_network::sid::StreamId;
+use skrillax_server::Server;
 use std::io;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tokio::net::TcpListener;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info};
@@ -41,30 +40,30 @@ impl GatewayServer {
     }
 
     pub async fn run(self) -> Result<(), io::Error> {
-        let listener = TcpListener::bind(self.socket).await?;
+        let server = Server::new(self.socket)?;
         info!("Server up and accepting clients.");
         while let Some(connection) = tokio::select! {
-            connected = listener.accept() => Some(connected),
+            connected = server.await_client() => Some(connected),
             _ = self.cancellation.cancelled() => None
         } {
-            if let Ok((socket, addr)) = connection {
-                let id = StreamId::default();
-                debug!(?addr, ?id, "Accepted client");
-                let socket_cancel = self.cancellation.clone();
-                let news = self.news.clone();
-                let patcher = self.patcher.clone();
-                let login_provider = self.login_provider.clone();
-                let agent_servers = self.agent_servers.clone();
-                tokio::spawn(Client::handle_client(
-                    id,
-                    socket,
-                    socket_cancel,
-                    news,
-                    patcher,
-                    login_provider,
-                    agent_servers,
-                ));
-            }
+            debug!(
+                id = connection.id(),
+                socket = ?connection.remote_address(),
+                "Accepted client"
+            );
+            let socket_cancel = self.cancellation.child_token();
+            let news = self.news.clone();
+            let patcher = self.patcher.clone();
+            let login_provider = self.login_provider.clone();
+            let agent_servers = self.agent_servers.clone();
+            tokio::spawn(Client::handle_client(
+                connection,
+                socket_cancel,
+                news,
+                patcher,
+                login_provider,
+                agent_servers,
+            ));
         }
         Ok(())
     }

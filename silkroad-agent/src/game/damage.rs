@@ -39,7 +39,7 @@ pub(crate) fn handle_damage(
         if health.is_dead() {
             // TODO: this might be wrong
             if let Some(client) = attacker_client {
-                client.send(PerformActionUpdate::Error(PerformActionError::Completed))
+                client.send(PerformActionUpdate::Failure(PerformActionError::Completed))
             }
             continue;
         }

@@ -14,6 +14,7 @@ mod mall;
 mod net;
 mod persistence;
 mod population;
+mod protocol;
 mod server_plugin;
 mod sync;
 mod tasks;
@@ -40,7 +41,6 @@ use bevy_time::TimePlugin;
 use login::web::WebServer;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-use silkroad_network::server::SilkroadServer;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -103,16 +103,15 @@ fn main() {
     let listen_addr = format!("{}:{}", configuration.listen_address, configuration.listen_port)
         .parse()
         .expect("Just created address should be in a valid format");
-    let network = SilkroadServer::new(runtime.clone(), listen_addr).unwrap();
 
     info!("Listening for clients");
     App::new()
         .add_plugins(TimePlugin)
         .add_plugins(TaskPoolPlugin::default())
-        .insert_resource::<TaskCreator>(runtime.into())
+        .insert_resource::<TaskCreator>(runtime.clone().into())
         .insert_resource::<DbPool>(db_pool.into())
         .add_plugins(ServerPlugin::new(configuration.game.clone(), server_id))
-        .add_plugins(NetworkPlugin::new(network))
+        .add_plugins(NetworkPlugin::new(listen_addr, runtime))
         .add_plugins(ReceivePlugin)
         .add_plugins(SynchronizationPlugin)
         .add_plugins(AgentPlugin)

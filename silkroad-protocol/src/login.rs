@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
-use silkroad_serde::*;
+use skrillax_packet::Packet;
+use skrillax_serde::*;
 
-#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum SecurityCodeAction {
     #[silkroad(value = 1)]
     Define,
@@ -11,7 +12,7 @@ pub enum SecurityCodeAction {
     Unknown,
 }
 
-#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, Copy, Deserialize, Serialize, ByteSize, Debug)]
 pub enum PasscodeRequiredCode {
     #[silkroad(value = 0)]
     DefinePasscode,
@@ -23,7 +24,7 @@ pub enum PasscodeRequiredCode {
     PasscodeInvalid,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub enum PatchError {
     #[silkroad(value = 1)]
     InvalidVersion,
@@ -62,7 +63,7 @@ impl PatchError {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub enum PatchResult {
     #[silkroad(value = 1)]
     UpToDate { unknown: u8 },
@@ -80,7 +81,7 @@ impl PatchResult {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, Copy, Deserialize, Serialize, ByteSize, Debug)]
 pub enum PasscodeAccountStatus {
     #[silkroad(value = 4)]
     Ok,
@@ -88,21 +89,23 @@ pub enum PasscodeAccountStatus {
     EmailUnverified,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+type NormalDateTime = DateTime<Utc>;
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub enum BlockReason {
     #[silkroad(value = 2)]
     AccountInspection,
     #[silkroad(value = 1)]
-    Punishment { reason: String, end: DateTime<Utc> },
+    Punishment { reason: String, end: NormalDateTime },
 }
 
 impl BlockReason {
-    pub fn punishment(reason: String, end: DateTime<Utc>) -> Self {
+    pub fn punishment(reason: String, end: NormalDateTime) -> Self {
         BlockReason::Punishment { reason, end }
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub enum SecurityError {
     #[silkroad(value = 1)]
     InvalidCredentials { max_attempts: u32, current_attempts: u32 },
@@ -147,7 +150,7 @@ impl SecurityError {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub enum LoginResult {
     #[silkroad(value = 1)]
     Success {
@@ -157,7 +160,7 @@ pub enum LoginResult {
         unknown: u8,
     },
     #[silkroad(value = 2)]
-    Error { error: SecurityError },
+    LoginError { error: SecurityError },
     #[silkroad(value = 3)]
     Unknown,
 }
@@ -173,7 +176,7 @@ impl LoginResult {
     }
 
     pub fn error(error: SecurityError) -> Self {
-        LoginResult::Error { error }
+        LoginResult::LoginError { error }
     }
 }
 
@@ -194,7 +197,7 @@ impl QueueUpdateStatus {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub struct PatchFile {
     pub file_id: u32,
     pub filename: String,
@@ -215,11 +218,11 @@ impl PatchFile {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub struct GatewayNotice {
     pub subject: String,
     pub article: String,
-    pub published: DateTime<Utc>,
+    pub published: NormalDateTime,
 }
 
 impl GatewayNotice {
@@ -232,7 +235,7 @@ impl GatewayNotice {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub struct PingServer {
     pub index: u8,
     pub domain: String,
@@ -249,7 +252,7 @@ impl PingServer {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub struct Shard {
     pub id: u16,
     pub name: String,
@@ -268,7 +271,7 @@ impl Shard {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub struct Farm {
     pub id: u8,
     pub name: String,
@@ -280,14 +283,16 @@ impl Farm {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Serialize, Deserialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x6100)]
 pub struct PatchRequest {
     pub content: u8,
     pub module: String,
     pub version: u32,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, Deserialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0xA100, massive = true)]
 pub struct PatchResponse {
     pub result: PatchResult,
 }
@@ -310,7 +315,8 @@ impl PatchResponse {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Serialize, Deserialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x610A)]
 pub struct LoginRequest {
     pub unknown_1: u8,
     pub username: String,
@@ -319,7 +325,8 @@ pub struct LoginRequest {
     pub unknown_2: u8,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0xA10A, encrypted = true)]
 pub struct LoginResponse {
     pub result: LoginResult,
 }
@@ -331,19 +338,21 @@ impl LoginResponse {
 
     pub fn error(error: SecurityError) -> Self {
         LoginResponse {
-            result: LoginResult::Error { error },
+            result: LoginResult::error(error),
         }
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Serialize, Deserialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x6117)]
 pub struct SecurityCodeInput {
     pub action: SecurityCodeAction,
     pub inner_size: u16,
     pub data: [u8; 8],
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0xA117)]
 pub struct SecurityCodeResponse {
     pub account_status: PasscodeAccountStatus,
     pub result: u8,
@@ -368,12 +377,14 @@ impl SecurityCodeResponse {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x6104)]
 pub struct GatewayNoticeRequest {
     pub unknown: u8,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, Deserialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0xA104, massive = true)]
 pub struct GatewayNoticeResponse {
     #[silkroad(list_type = "length")]
     pub notices: Vec<GatewayNotice>,
@@ -385,10 +396,12 @@ impl GatewayNoticeResponse {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Serialize, Deserialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x6107)]
 pub struct PingServerRequest;
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0xA107)]
 pub struct PingServerResponse {
     #[silkroad(list_type = "length")]
     pub servers: Vec<PingServer>,
@@ -400,10 +413,12 @@ impl PingServerResponse {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Serialize, Deserialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x6101)]
 pub struct ShardListRequest;
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0xA101)]
 pub struct ShardListResponse {
     #[silkroad(list_type = "has-more")]
     pub farms: Vec<Farm>,
@@ -417,7 +432,8 @@ impl ShardListResponse {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x2116)]
 pub struct PasscodeRequiredResponse {
     pub result: PasscodeRequiredCode,
 }
@@ -454,7 +470,8 @@ impl PasscodeRequiredResponse {
 
 // This should be some kind of enum, because on error the last two bytes are (Error=0x2, WrongAttempts)
 // but on success it's (Ok=0x1, Unknown=0x3)
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0xA117)]
 pub struct PasscodeResponse {
     pub unknown_1: u8,
     pub status: u8,
@@ -471,7 +488,8 @@ impl PasscodeResponse {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet)]
+#[packet(opcode = 0x210E)]
 pub struct QueueUpdate {
     pub still_in_queue: bool,
     pub status: QueueUpdateStatus,

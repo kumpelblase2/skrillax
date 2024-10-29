@@ -87,11 +87,7 @@ pub(crate) fn system_collect_bars_update(
                         },
                     };
 
-                    collector.send_update(Update {
-                        source: entity,
-                        change_self: Some(update.clone().into()),
-                        change_others: Some(update.into()),
-                    })
+                    collector.send_update(Update::update_all(entity, update));
                 }
 
                 if let Some(change) = change_mp {
@@ -107,11 +103,7 @@ pub(crate) fn system_collect_bars_update(
                         },
                     };
 
-                    collector.send_update(Update {
-                        source: entity,
-                        change_self: Some(update.clone().into()),
-                        change_others: Some(update.into()),
-                    })
+                    collector.send_update(Update::update_all(entity, update));
                 }
             },
         }
@@ -142,20 +134,16 @@ pub(crate) fn system_collect_exp_update(
 ) {
     for (entity, level, exp) in query.iter_mut() {
         for event in exp.experience_gains() {
-            collector.send_update(Update {
-                source: entity,
-                change_self: Some(
-                    ReceiveExperience {
-                        exp_origin: event.from.map(|source| source.1.unique_id).unwrap_or(0),
-                        experience: event.exp,
-                        sp: event.sp_exp,
-                        unknown: 0,
-                        new_level: event.trigged_level_up.then(|| level.current_level() as u16),
-                    }
-                    .into(),
-                ),
-                change_others: None,
-            })
+            collector.send_update(Update::self_update(
+                entity,
+                ReceiveExperience {
+                    exp_origin: event.from.map(|source| source.1.unique_id).unwrap_or(0),
+                    experience: event.exp,
+                    sp: event.sp_exp,
+                    unknown: 0,
+                    new_level: event.trigged_level_up.then(|| level.current_level() as u16),
+                },
+            ));
         }
     }
 }
@@ -170,11 +158,7 @@ pub(crate) fn system_collect_level_up(
                 entity: game_entity.unique_id,
             };
 
-            collector.send_update(Update {
-                source: entity,
-                change_self: Some(animation.into()),
-                change_others: Some(animation.into()),
-            });
+            collector.send_update(Update::update_all(entity, animation));
 
             if let Some(player) = maybe_player {
                 let update = CharacterStatsMessage {
@@ -192,11 +176,7 @@ pub(crate) fn system_collect_level_up(
                     intelligence: player.character.stats.intelligence(),
                 };
 
-                collector.send_update(Update {
-                    source: entity,
-                    change_self: Some(update.into()),
-                    change_others: None,
-                });
+                collector.send_update(Update::self_update(entity, update));
             }
         }
     }
@@ -235,11 +215,7 @@ pub(crate) fn collect_movement_update(
                         entity_id: game_entity.unique_id,
                         position: pos.as_protocol(),
                     };
-                    collector.send_update(Update {
-                        source: entity,
-                        change_self: Some(packet.into()),
-                        change_others: Some(packet.into()),
-                    });
+                    collector.send_update(Update::update_all(entity, packet));
                     continue;
                 } else if pos.did_rotate() {
                     MovementUpdate::Turn(pos.rotation())
@@ -250,11 +226,7 @@ pub(crate) fn collect_movement_update(
         };
 
         let packet = create_movement_packet(game_entity, update);
-        collector.send_update(Update {
-            source: entity,
-            change_self: Some(packet.clone().into()),
-            change_others: Some(packet.into()),
-        });
+        collector.send_update(Update::update_all(entity, packet));
     }
 }
 
@@ -327,11 +299,7 @@ pub(crate) fn collect_movement_speed_change(
                 MovementSpeed::Walking => MovementType::Walking,
             }),
         };
-        collector.send_update(Update {
-            source: entity,
-            change_self: Some(update.into()),
-            change_others: Some(update.into()),
-        });
+        collector.send_update(Update::update_all(entity, update));
     }
 }
 
@@ -347,11 +315,7 @@ pub(crate) fn collect_pickup_animation(
                     entity: game_entity.unique_id,
                     rotation: pos.rotation().into(),
                 };
-                collector.send_update(Update {
-                    source: entity,
-                    change_self: Some(update.into()),
-                    change_others: Some(update.into()),
-                });
+                collector.send_update(Update::update_all(entity, update));
             }
         }
     }
@@ -457,17 +421,13 @@ pub(crate) fn collect_gold_changes(
     query: Query<(Entity, &GoldPouch), Changed<GoldPouch>>,
 ) {
     for (entity, gold) in query.iter() {
-        collector.send_update(Update {
-            source: entity,
-            change_self: Some(
-                CharacterPointsUpdate::Gold {
-                    amount: gold.amount(),
-                    display: true, // TODO: figure out when this should true and when false
-                }
-                .into(),
-            ),
-            change_others: None,
-        });
+        collector.send_update(Update::self_update(
+            entity,
+            CharacterPointsUpdate::Gold {
+                amount: gold.amount(),
+                display: true, // TODO: figure out when this should true and when false
+            },
+        ));
     }
 }
 
@@ -477,17 +437,13 @@ pub(crate) fn collect_mastery_changes(
 ) {
     for (entity, mastery) in query.iter() {
         for mastery_ref in mastery.updated() {
-            collector.send_update(Update {
-                source: entity,
-                change_self: Some(
-                    LevelUpMasteryResponse::Success {
-                        mastery: *mastery_ref,
-                        new_level: mastery.level_of(*mastery_ref).unwrap_or(1),
-                    }
-                    .into(),
-                ),
-                change_others: None,
-            });
+            collector.send_update(Update::self_update(
+                entity,
+                LevelUpMasteryResponse::Success {
+                    mastery: *mastery_ref,
+                    new_level: mastery.level_of(*mastery_ref).unwrap_or(1),
+                },
+            ));
         }
     }
 }

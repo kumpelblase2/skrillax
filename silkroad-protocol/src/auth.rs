@@ -1,6 +1,8 @@
-use silkroad_serde::*;
+use skrillax_packet::Packet;
+use skrillax_protocol::define_protocol;
+use skrillax_serde::*;
 
-#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum LogoutMode {
     #[silkroad(value = 1)]
     Logout,
@@ -8,12 +10,12 @@ pub enum LogoutMode {
     Restart,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub enum LogoutResult {
     #[silkroad(value = 1)]
     Success { seconds_to_logout: u32, mode: LogoutMode },
     #[silkroad(value = 2)]
-    Error { error: u16 },
+    Failure { error: u16 },
 }
 
 impl LogoutResult {
@@ -25,15 +27,15 @@ impl LogoutResult {
     }
 
     pub fn error(error: u16) -> Self {
-        LogoutResult::Error { error }
+        LogoutResult::Failure { error }
     }
 
     pub fn wait_30_seconds() -> Self {
-        LogoutResult::Error { error: 0x0804 }
+        LogoutResult::Failure { error: 0x0804 }
     }
 }
 
-#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, Deserialize, ByteSize, Debug)]
 pub enum AuthResultError {
     #[silkroad(value = 2)]
     InvalidData,
@@ -45,12 +47,12 @@ pub enum AuthResultError {
     IpLimit,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub enum AuthResult {
     #[silkroad(value = 1)]
     Success { unknown_1: u8, unknown_2: u8 },
     #[silkroad(value = 2)]
-    Error { code: AuthResultError },
+    Failure { code: AuthResultError },
 }
 
 impl AuthResult {
@@ -62,11 +64,12 @@ impl AuthResult {
     }
 
     pub fn error(code: AuthResultError) -> Self {
-        AuthResult::Error { code }
+        AuthResult::Failure { code }
     }
 }
 
-#[derive(Clone, ByteSize, Deserialize)]
+#[derive(Clone, ByteSize, Deserialize, Serialize, Packet, Debug)]
+#[packet(opcode = 0x6103)]
 pub struct AuthRequest {
     pub token: u32,
     pub username: String,
@@ -75,7 +78,8 @@ pub struct AuthRequest {
     pub mac_bytes: [u8; 6],
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
+#[packet(opcode = 0xA103)]
 pub struct AuthResponse {
     pub result: AuthResult,
 }
@@ -86,12 +90,14 @@ impl AuthResponse {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Deserialize, ByteSize, Serialize, Packet, Debug)]
+#[packet(opcode = 0x7005)]
 pub struct LogoutRequest {
     pub mode: LogoutMode,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
+#[packet(opcode = 0xB005)]
 pub struct LogoutResponse {
     pub result: LogoutResult,
 }
@@ -102,10 +108,12 @@ impl LogoutResponse {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
+#[packet(opcode = 0x300A)]
 pub struct LogoutFinished;
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
+#[packet(opcode = 0x2212)]
 pub struct Disconnect {
     pub unknown: u8,
 }
@@ -114,4 +122,13 @@ impl Disconnect {
     pub fn new() -> Self {
         Disconnect { unknown: 0xFF }
     }
+}
+
+define_protocol! { AuthProtocol =>
+    LogoutRequest,
+    LogoutResponse,
+    LogoutFinished,
+    AuthRequest,
+    AuthResponse,
+    Disconnect
 }

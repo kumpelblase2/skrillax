@@ -1,4 +1,4 @@
-use silkroad_serde::SerializationError;
+use skrillax_serde::SerializationError;
 use std::io;
 use std::io::Error;
 use std::string::{FromUtf16Error, FromUtf8Error};

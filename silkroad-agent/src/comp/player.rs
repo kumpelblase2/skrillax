@@ -28,6 +28,12 @@ pub(crate) struct Player {
 #[derive(Component, Deref, Copy, Clone, From)]
 pub(crate) struct CharacterRace(Race);
 
+impl CharacterRace {
+    pub(crate) fn inner(&self) -> Race {
+        self.0
+    }
+}
+
 impl Player {
     fn from_db_character(data: &CharacterData) -> Character {
         Character {

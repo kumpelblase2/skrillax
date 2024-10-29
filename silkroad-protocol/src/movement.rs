@@ -1,7 +1,9 @@
-use silkroad_serde::*;
+use skrillax_packet::Packet;
+use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
+use skrillax_serde::*;
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum MovementType {
     #[silkroad(value = 0)]
     Running,
@@ -9,7 +11,7 @@ pub enum MovementType {
     Walking,
 }
 
-#[derive(Copy, Clone, Serialize, Deserialize, ByteSize)]
+#[derive(Copy, Clone, Serialize, Deserialize, ByteSize, Debug)]
 pub enum MovementTarget {
     #[silkroad(value = 1)]
     TargetLocation { region: u16, x: u16, y: u16, z: u16 },
@@ -27,7 +29,7 @@ impl MovementTarget {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum EntityMovementState {
     #[silkroad(value = 1)]
     Moving {
@@ -65,7 +67,7 @@ impl EntityMovementState {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, Deserialize, ByteSize, Debug)]
 pub enum MovementDestination {
     #[silkroad(value = 0)]
     Direction { moving: bool, heading: u16 },
@@ -83,7 +85,7 @@ impl MovementDestination {
     }
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Copy, Clone, Deserialize, Debug)]
 pub struct Position {
     pub region: u16,
     pub pos_x: f32,
@@ -104,7 +106,7 @@ impl Position {
     }
 }
 
-#[derive(Copy, Clone, Debug, Deserialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize, ByteSize)]
 pub struct Location {
     pub region: u16,
     pub pos_x: f32,
@@ -118,7 +120,7 @@ impl Display for Location {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub struct MovementSource {
     pub region: u16,
     pub x: u16,
@@ -132,12 +134,14 @@ impl MovementSource {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, Deserialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x7021)]
 pub struct PlayerMovementRequest {
     pub kind: MovementTarget,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Packet, Debug)]
+#[packet(opcode = 0xB021)]
 pub struct PlayerMovementResponse {
     pub player_id: u32,
     pub destination: MovementDestination,
@@ -154,20 +158,34 @@ impl PlayerMovementResponse {
     }
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0xB023)]
 pub struct EntityMovementInterrupt {
     pub entity_id: u32,
     pub position: Position,
 }
 
-#[derive(Clone, Serialize, Deserialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, Deserialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x7024)]
 pub struct Rotation {
     pub heading: u16,
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x30D0)]
 pub struct ChangeSpeed {
     pub entity: u32,
     pub walk_speed: f32,
     pub running_speed: f32,
+}
+
+define_inbound_protocol! { MovementClientProtocol =>
+    PlayerMovementRequest,
+    Rotation
+}
+
+define_outbound_protocol! { MovementServerProtocol =>
+    PlayerMovementResponse,
+    EntityMovementInterrupt,
+    ChangeSpeed
 }

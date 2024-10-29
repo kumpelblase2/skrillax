@@ -1,7 +1,10 @@
 use silkroad_definitions::rarity::EntityRarity;
-use silkroad_serde::*;
+use skrillax_packet::Packet;
+use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
+use skrillax_serde::*;
 
-#[derive(Deserialize, ByteSize)]
+#[derive(Deserialize, ByteSize, Serialize, Packet, Debug, Clone)]
+#[packet(opcode = 0x7010)]
 #[silkroad(size = 2)]
 pub enum GmCommand {
     #[silkroad(value = 0x0D)]
@@ -22,7 +25,7 @@ pub enum GmCommand {
     KillMonster { unique_id: u32, unknown: u8 },
 }
 
-#[derive(Serialize, ByteSize, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Clone, Debug)]
 #[silkroad(size = 2)]
 pub enum GmSuccessResult {
     #[silkroad(value = 1)]
@@ -41,15 +44,16 @@ pub enum GmSuccessResult {
     CheckMacroUserOk,
 }
 
-#[derive(Serialize, ByteSize, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Clone, Debug)]
 pub enum GmResponseResult {
     #[silkroad(value = 1)]
     Success(GmSuccessResult),
     #[silkroad(value = 0)]
-    Error,
+    Failure,
 }
 
-#[derive(Serialize, ByteSize, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Clone, Packet, Debug)]
+#[packet(opcode = 0xB010)]
 pub struct GmResponse {
     pub result: GmResponseResult,
 }
@@ -70,4 +74,12 @@ impl GmResponse {
             }),
         }
     }
+}
+
+define_inbound_protocol! { GmClientProtocol =>
+    GmCommand
+}
+
+define_outbound_protocol! { GmServerProtocol =>
+    GmResponse
 }

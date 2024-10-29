@@ -1,10 +1,11 @@
+use crate::protocol::AgentClientProtocol;
 use bevy_ecs_macros::Resource;
 use derive_more::{Deref, DerefMut, From};
 use id_pool::IdPool;
 use silkroad_data::npc_pos::NpcPosition;
 use silkroad_game_base::LocalLocation;
 use silkroad_navmesh::GlobalNavmesh;
-use silkroad_network::server::SilkroadServer;
+use skrillax_server::Server;
 use sqlx::PgPool;
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -37,7 +38,7 @@ impl Navmesh {
 }
 
 #[derive(Resource, Deref, DerefMut, From)]
-pub struct ServerResource(SilkroadServer);
+pub struct ServerResource(Server<AgentClientProtocol>);
 
 #[derive(Resource, Deref, DerefMut, From)]
 pub struct NpcPositionList(Vec<NpcPosition>);

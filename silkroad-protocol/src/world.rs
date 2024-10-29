@@ -1,7 +1,9 @@
 use crate::movement::MovementType;
-use silkroad_serde::*;
+use skrillax_packet::Packet;
+use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
+use skrillax_serde::*;
 
-#[derive(Clone, Eq, PartialEq, Copy, Serialize, Deserialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, Copy, Serialize, Deserialize, ByteSize, Debug)]
 pub enum PvpCape {
     #[silkroad(value = 0)]
     None,
@@ -17,7 +19,7 @@ pub enum PvpCape {
     Yellow,
 }
 
-#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum AliveState {
     #[silkroad(value = 0)]
     Spawning,
@@ -27,7 +29,7 @@ pub enum AliveState {
     Dead,
 }
 
-#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum JobType {
     #[silkroad(value = 0)]
     None,
@@ -39,7 +41,7 @@ pub enum JobType {
     Hunter,
 }
 
-#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum PlayerKillState {
     #[silkroad(value = 0xFF)]
     None,
@@ -49,7 +51,7 @@ pub enum PlayerKillState {
     Red,
 }
 
-#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum ActiveScroll {
     #[silkroad(value = 0)]
     None,
@@ -59,7 +61,7 @@ pub enum ActiveScroll {
     JobScroll,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub enum InteractOptions {
     #[silkroad(value = 0)]
     None,
@@ -73,7 +75,7 @@ impl InteractOptions {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum BodyState {
     #[silkroad(value = 0)]
     None,
@@ -93,7 +95,7 @@ pub enum BodyState {
     Invisible,
 }
 
-#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum WeatherType {
     #[silkroad(value = 1)]
     Clear,
@@ -103,7 +105,7 @@ pub enum WeatherType {
     Snow,
 }
 
-#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum ActionState {
     #[silkroad(value = 0)]
     None,
@@ -115,7 +117,7 @@ pub enum ActionState {
     Sitting,
 }
 
-#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize, Debug)]
 #[silkroad(size = 2)]
 pub enum TargetEntityError {
     // FIXME: this is not quite right.
@@ -123,14 +125,14 @@ pub enum TargetEntityError {
     InvalidTarget,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Debug)]
 #[silkroad(size = 0)]
 pub enum TargetEntityData {
     Monster { unknown: u32, interact_data: Option<u8> },
     NPC { talk_options: Option<InteractOptions> },
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Debug)]
 pub enum TargetEntityResult {
     #[silkroad(value = 2)]
     Failure { error: TargetEntityError },
@@ -169,7 +171,7 @@ impl TargetEntityResult {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct EntityState {
     pub alive: AliveState,
     pub unknown1: u8,
@@ -206,7 +208,7 @@ impl EntityState {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub struct ActiveBuffData {
     pub id: u32,
     pub token: u32,
@@ -218,7 +220,8 @@ impl ActiveBuffData {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Packet, Debug)]
+#[packet(opcode = 0x3020)]
 pub struct CelestialUpdate {
     pub unique_id: u32,
     pub moon_position: u16,
@@ -237,7 +240,8 @@ impl CelestialUpdate {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Packet, Debug)]
+#[packet(opcode = 0x34F2)]
 pub struct LunarEventInfo {
     pub unknown_1: u8,
     pub unknown_2: u8,
@@ -260,19 +264,21 @@ impl LunarEventInfo {
     }
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Copy, Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct CooldownInfo {
     pub ref_id: u32,
     pub cooldown: u32,
 }
 
-#[derive(Serialize, ByteSize, Default, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Default, Clone, Packet, Debug)]
+#[packet(opcode = 0x3077)]
 pub struct CharacterFinished {
     pub item_cooldowns: Vec<CooldownInfo>,
     pub skill_cooldowns: Vec<CooldownInfo>,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Packet, Debug)]
+#[packet(opcode = 0x3809)]
 pub struct WeatherUpdate {
     pub kind: WeatherType,
     pub speed: u8,
@@ -284,7 +290,8 @@ impl WeatherUpdate {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
+#[packet(opcode = 0x300C)]
 #[silkroad(size = 2)]
 pub enum GameNotification {
     #[silkroad(value = 0xc05)]
@@ -303,7 +310,7 @@ impl GameNotification {
     }
 }
 
-#[derive(Copy, Clone, Serialize, ByteSize)]
+#[derive(Copy, Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub enum UpdatedState {
     #[silkroad(value = 0)]
     Life(AliveState),
@@ -319,7 +326,8 @@ pub enum UpdatedState {
     Scroll(u8),
 }
 
-#[derive(Clone, Copy, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Packet, Debug)]
+#[packet(opcode = 0x30BF)]
 pub struct EntityUpdateState {
     pub unique_id: u32,
     pub update: UpdatedState,
@@ -348,12 +356,14 @@ impl EntityUpdateState {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Copy, Deserialize, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x7045)]
 pub struct TargetEntity {
     pub unique_id: u32,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0xB045)]
 pub struct TargetEntityResponse {
     pub result: TargetEntityResult,
 }
@@ -364,12 +374,14 @@ impl TargetEntityResponse {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Copy, Deserialize, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x704B)]
 pub struct UnTargetEntity {
     pub unique_id: u32,
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Copy, Clone, Deserialize, Packet, Debug)]
+#[packet(opcode = 0xB04B)]
 pub struct UnTargetEntityResponse {
     pub success: bool,
 }
@@ -380,7 +392,7 @@ impl UnTargetEntityResponse {
     }
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Debug)]
 #[silkroad(size = 2)]
 pub enum EntityBarUpdateSource {
     #[silkroad(value = 0x01)]
@@ -392,7 +404,7 @@ pub enum EntityBarUpdateSource {
 }
 
 // Maybe this should be a bitflag?
-#[derive(Serialize, ByteSize, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Clone, Debug)]
 pub enum EntityBarUpdates {
     #[silkroad(value = 0)]
     None,
@@ -410,7 +422,8 @@ pub enum EntityBarUpdates {
     },
 }
 
-#[derive(Serialize, ByteSize, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Clone, Packet, Debug)]
+#[packet(opcode = 0x3057)]
 pub struct EntityBarsUpdate {
     pub unique_id: u32,
     pub source: EntityBarUpdateSource,
@@ -435,7 +448,8 @@ impl EntityBarsUpdate {
     }
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x304E)]
 pub enum CharacterPointsUpdate {
     #[silkroad(value = 1)]
     Gold { amount: u64, display: bool },
@@ -453,36 +467,78 @@ impl CharacterPointsUpdate {
     }
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x3036)]
 pub struct PlayerPickupAnimation {
     pub entity: u32,
     pub rotation: u8,
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x3054)]
 pub struct LevelUpEffect {
     /// Unique ID of the entity that levelled up
     pub entity: u32,
 }
 
-#[derive(Deserialize, Copy, Clone)]
+#[derive(Deserialize, Serialize, ByteSize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x70EA)]
+pub struct UpdateGameGuide(pub u64);
+
+#[derive(Serialize, ByteSize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0xB0EA)]
+pub enum GameGuideResponse {
+    #[silkroad(value = 1)]
+    Success(u64),
+}
+
+#[derive(Deserialize, Serialize, ByteSize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x7051)]
 pub struct IncreaseStr;
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0xB050)]
 pub enum IncreaseStrResponse {
     #[silkroad(value = 1)]
     Success,
     #[silkroad(value = 2)]
-    Error(u16),
+    Failure(u16),
 }
 
-#[derive(Deserialize, Copy, Clone)]
+#[derive(Deserialize, Serialize, ByteSize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x7051)]
 pub struct IncreaseInt;
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0xB051)]
 pub enum IncreaseIntResponse {
     #[silkroad(value = 1)]
     Success,
     #[silkroad(value = 2)]
-    Error(u16),
+    Failure(u16),
+}
+
+define_inbound_protocol! { StatClientProtocol =>
+    IncreaseStr,
+    IncreaseInt
+}
+
+define_outbound_protocol! { StatServerProtocol =>
+    IncreaseStrResponse,
+    IncreaseIntResponse
+}
+
+define_inbound_protocol! { WorldClientProtocol =>
+    TargetEntity,
+    UnTargetEntity,
+    UpdateGameGuide
+}
+
+define_outbound_protocol! { WorldServerProtocol =>
+    TargetEntityResponse,
+    UnTargetEntityResponse,
+    EntityBarsUpdate,
+    LevelUpEffect,
+    PlayerPickupAnimation,
+    GameGuideResponse
 }

@@ -2,17 +2,27 @@ use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent};
 use crate::ext::ServerResource;
 use crate::net::net::{accept, connected, disconnected};
 use bevy_app::{App, Plugin, PreUpdate};
-use silkroad_network::server::SilkroadServer;
+use skrillax_server::Server;
+use std::net::SocketAddr;
+use std::sync::Arc;
+use tokio::runtime::Runtime;
 
 mod net;
 
 pub struct NetworkPlugin {
-    server: SilkroadServer,
+    server: SocketAddr,
+    runtime: Arc<Runtime>,
 }
 
 impl Plugin for NetworkPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource::<ServerResource>(self.server.clone().into())
+        let server = self.runtime.block_on(async {
+            Server::new(self.server.clone())
+                .expect("Should be able to create the server")
+                .into()
+        });
+
+        app.insert_resource::<ServerResource>(server)
             .add_systems(PreUpdate, (accept, disconnected, connected))
             .add_event::<ClientDisconnectedEvent>()
             .add_event::<ClientConnectedEvent>();
@@ -20,7 +30,7 @@ impl Plugin for NetworkPlugin {
 }
 
 impl NetworkPlugin {
-    pub fn new(server: SilkroadServer) -> Self {
-        Self { server }
+    pub fn new(server: SocketAddr, runtime: Arc<Runtime>) -> Self {
+        Self { server, runtime }
     }
 }

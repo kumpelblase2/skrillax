@@ -1,8 +1,10 @@
 use crate::movement::Location;
-use silkroad_serde::*;
+use skrillax_packet::Packet;
+use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
+use skrillax_serde::*;
 use std::fmt::{Display, Formatter};
 
-#[derive(Deserialize, Copy, Clone, Debug)]
+#[derive(Deserialize, Serialize, ByteSize, Copy, Clone, Debug)]
 pub enum ActionTarget {
     #[silkroad(value = 0)]
     None,
@@ -28,7 +30,7 @@ impl ActionTarget {
     }
 }
 
-#[derive(Deserialize, Copy, Clone)]
+#[derive(Deserialize, Serialize, ByteSize, Copy, Clone, Debug)]
 pub enum DoActionType {
     #[silkroad(value = 1)]
     Attack { target: ActionTarget },
@@ -40,7 +42,8 @@ pub enum DoActionType {
     CancelBuff { ref_id: u32, target: ActionTarget },
 }
 
-#[derive(Deserialize, Copy, Clone)]
+#[derive(Deserialize, Copy, Clone, Packet, Debug, Serialize, ByteSize)]
+#[packet(opcode = 0x7074)]
 pub enum PerformAction {
     #[silkroad(value = 1)]
     Do(DoActionType),
@@ -48,15 +51,16 @@ pub enum PerformAction {
     Stop,
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Debug)]
 pub enum DoActionResponseCode {
     #[silkroad(value = 1)]
     Success,
     #[silkroad(value = 3)]
-    Error(u16),
+    Failure(u16),
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Debug, Packet)]
+#[packet(opcode = 0xB074)]
 pub enum PerformActionResponse {
     #[silkroad(value = 1)]
     Do(DoActionResponseCode),
@@ -64,21 +68,21 @@ pub enum PerformActionResponse {
     Stop(PerformActionError),
 }
 
-#[derive(Serialize, ByteSize, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Clone, Debug)]
 pub struct DamageContent {
     pub damage_instances: u8,
     #[silkroad(list_type = "length")]
     pub entities: Vec<PerEntityDamage>,
 }
 
-#[derive(Serialize, ByteSize, Clone)]
+#[derive(Serialize, ByteSize, Clone, Deserialize, Debug)]
 pub struct PerEntityDamage {
     pub target: u32,
     #[silkroad(list_type = "none")]
     pub damage: Vec<SkillPartDamage>,
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Copy, Clone, Deserialize, Debug)]
 pub enum DamageKind {
     #[silkroad(value = 1)]
     Standard,
@@ -86,7 +90,7 @@ pub enum DamageKind {
     Critical,
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Copy, Clone, Deserialize, Debug)]
 pub struct DamageValue {
     pub kind: DamageKind,
     pub amount: u32,
@@ -107,7 +111,7 @@ impl DamageValue {
 }
 
 // Maybe this should be a bitflag instead?
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Copy, Clone, Deserialize, Debug)]
 pub enum SkillPartDamage {
     #[silkroad(value = 0)]
     Default(DamageValue),
@@ -117,7 +121,7 @@ pub enum SkillPartDamage {
     Abort,
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Debug)]
 pub enum PerformActionError {
     #[silkroad(value = 0x00)]
     Completed,
@@ -149,7 +153,7 @@ pub enum PerformActionError {
     InsufficientHP,
 }
 
-#[derive(Serialize, ByteSize, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Clone, Debug)]
 pub enum ActionType {
     #[silkroad(value = 0)]
     None,
@@ -159,7 +163,8 @@ pub enum ActionType {
     Teleport,
 }
 
-#[derive(Serialize, ByteSize, Clone)]
+#[derive(Serialize, ByteSize, Deserialize, Clone, Packet, Debug)]
+#[packet(opcode = 0xB070)]
 pub enum PerformActionUpdate {
     #[silkroad(value = 1)]
     Success {
@@ -172,7 +177,7 @@ pub enum PerformActionUpdate {
         kind: ActionType,
     },
     #[silkroad(value = 2)]
-    Error(PerformActionError),
+    Failure(PerformActionError),
 }
 
 impl PerformActionUpdate {
@@ -189,7 +194,8 @@ impl PerformActionUpdate {
     }
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
+#[derive(Serialize, ByteSize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x3056)]
 pub struct ReceiveExperience {
     /// Unique ID of the entity that provided the experience
     pub exp_origin: u32,
@@ -202,4 +208,14 @@ pub struct ReceiveExperience {
     /// If the player reached a new level thanks to this experience and what the new level is
     #[silkroad(size = 0)]
     pub new_level: Option<u16>,
+}
+
+define_inbound_protocol! { CombatClientProtocol =>
+    PerformAction
+}
+
+define_outbound_protocol! { CombatServerProtocol =>
+    PerformActionResponse,
+    PerformActionUpdate,
+    ReceiveExperience
 }

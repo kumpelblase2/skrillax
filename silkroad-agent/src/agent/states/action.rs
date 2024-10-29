@@ -134,7 +134,9 @@ pub(crate) fn pickup(
                             },
                         ));
                     } else {
-                        client.send(InventoryOperationResult::Error(InventoryOperationError::InventoryFull));
+                        client.send(InventoryOperationResult::Failure(
+                            InventoryOperationError::InventoryFull,
+                        ));
                     }
                     client.send(PerformActionResponse::Stop(PerformActionError::Completed));
                 },

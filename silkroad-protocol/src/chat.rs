@@ -1,6 +1,8 @@
-use silkroad_serde::*;
+use skrillax_packet::Packet;
+use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
+use skrillax_serde::*;
 
-#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Debug, Serialize, ByteSize, Deserialize)]
 pub enum ChatTarget {
     #[silkroad(value = 1)]
     All,
@@ -26,7 +28,7 @@ pub enum ChatTarget {
     Notice,
 }
 
-#[derive(Clone, ByteSize, Serialize)]
+#[derive(Clone, ByteSize, Serialize, Deserialize, Debug)]
 pub enum ChatSource {
     #[silkroad(value = 1)]
     All { sender: u32 },
@@ -94,7 +96,7 @@ impl ChatSource {
     }
 }
 
-#[derive(Copy, Clone, Serialize, ByteSize)]
+#[derive(Copy, Clone, Serialize, ByteSize, Deserialize, Debug)]
 #[silkroad(size = 2)]
 pub enum ChatErrorCode {
     #[silkroad(value = 3)]
@@ -105,21 +107,22 @@ pub enum ChatErrorCode {
     InvalidCommand,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum ChatMessageResult {
     #[silkroad(value = 1)]
     Success,
     #[silkroad(value = 2)]
-    Error { code: ChatErrorCode },
+    Failure { code: ChatErrorCode },
 }
 
 impl ChatMessageResult {
     pub fn error(code: ChatErrorCode) -> Self {
-        ChatMessageResult::Error { code }
+        ChatMessageResult::Failure { code }
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x3535)]
 pub struct TextCharacterInitialization {
     // TODO this should be raw
     pub characters: Vec<u64>,
@@ -131,7 +134,8 @@ impl TextCharacterInitialization {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet, Deserialize, Debug)]
+#[packet(opcode = 0x3026)]
 pub struct ChatUpdate {
     pub source: ChatSource,
     #[silkroad(size = 2)]
@@ -144,7 +148,8 @@ impl ChatUpdate {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Deserialize, ByteSize, Serialize, Packet, Debug)]
+#[packet(opcode = 0x7025)]
 pub struct ChatMessage {
     pub target: ChatTarget,
     pub index: u8,
@@ -156,7 +161,8 @@ pub struct ChatMessage {
     pub message: String,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Deserialize, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0xB025)]
 pub struct ChatMessageResponse {
     pub result: ChatMessageResult,
     pub target: ChatTarget,
@@ -167,4 +173,14 @@ impl ChatMessageResponse {
     pub fn new(result: ChatMessageResult, target: ChatTarget, index: u8) -> Self {
         ChatMessageResponse { result, target, index }
     }
+}
+
+define_inbound_protocol! { ChatClientProtocol =>
+    ChatMessage
+}
+
+define_outbound_protocol! { ChatServerProtocol =>
+    ChatMessageResponse,
+    ChatUpdate,
+    TextCharacterInitialization
 }

@@ -1,6 +1,9 @@
-use silkroad_serde::*;
+use skrillax_packet::Packet;
+use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
+use skrillax_serde::*;
+use std::fmt::{Debug, Formatter};
 
-#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, Deserialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, Deserialize, ByteSize, Debug)]
 pub enum CharacterListAction {
     #[silkroad(value = 1)]
     Create,
@@ -18,7 +21,7 @@ pub enum CharacterListAction {
     AssignJob,
 }
 
-#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Debug)]
 #[silkroad(size = 2)]
 pub enum CharacterListError {
     #[silkroad(value = 0x403)]
@@ -47,7 +50,7 @@ pub enum CharacterListError {
     CouldntConnectToServer,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Debug)]
 #[silkroad(size = 0)]
 pub enum CharacterListContent {
     Characters {
@@ -71,7 +74,7 @@ impl CharacterListContent {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Debug)]
 pub enum CharacterListResult {
     #[silkroad(value = 1)]
     Ok { content: CharacterListContent },
@@ -89,7 +92,7 @@ impl CharacterListResult {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Deserialize, ByteSize, Debug)]
 pub enum CharacterListRequestAction {
     #[silkroad(value = 1)]
     Create {
@@ -153,7 +156,7 @@ impl CharacterListRequestAction {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Debug)]
 pub enum CharacterJoinResult {
     #[silkroad(value = 1)]
     Success,
@@ -178,6 +181,25 @@ pub enum TimeInformation {
     Playable { last_logout: SilkroadTime },
 }
 
+impl Debug for TimeInformation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TimeInformation::Deleting {
+                last_logout,
+                deletion_time_remaining,
+            } => f
+                .debug_struct("TimeInformation::Deleting")
+                .field("last_logout", &last_logout.timestamp())
+                .field("deletion_time_remaining", deletion_time_remaining)
+                .finish(),
+            TimeInformation::Playable { last_logout } => f
+                .debug_struct("TimeInformation::Playable")
+                .field("last_logout", &last_logout.timestamp())
+                .finish(),
+        }
+    }
+}
+
 impl TimeInformation {
     pub fn deleting(last_logout: SilkroadTime, deletion_time_remaining: u32) -> Self {
         TimeInformation::Deleting {
@@ -191,7 +213,7 @@ impl TimeInformation {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Debug)]
 pub struct CharacterListEquippedItem {
     pub id: u32,
     pub upgrade_level: u8,
@@ -203,7 +225,7 @@ impl CharacterListEquippedItem {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Debug, Serialize, ByteSize)]
 pub struct CharacterListAvatarItem {
     pub id: u32,
 }
@@ -214,7 +236,7 @@ impl CharacterListAvatarItem {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Debug)]
 pub struct CharacterListEntry {
     pub ref_id: u32,
     pub name: String,
@@ -282,7 +304,8 @@ impl CharacterListEntry {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0xB007)]
 pub struct CharacterListResponse {
     pub action: CharacterListAction,
     pub result: CharacterListResult,
@@ -294,17 +317,20 @@ impl CharacterListResponse {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Deserialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x7007)]
 pub struct CharacterListRequest {
     pub action: CharacterListRequestAction,
 }
 
-#[derive(Clone, Deserialize, ByteSize)]
+#[derive(Clone, Deserialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x7001)]
 pub struct CharacterJoinRequest {
     pub character_name: String,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0xB001)]
 pub struct CharacterJoinResponse {
     pub result: CharacterJoinResult,
 }
@@ -323,7 +349,8 @@ impl CharacterJoinResponse {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x303D)]
 pub struct CharacterStatsMessage {
     pub phys_attack_min: u32,
     pub phys_attack_max: u32,
@@ -371,14 +398,15 @@ impl CharacterStatsMessage {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x3601)]
 pub struct UnknownPacket {
     pub unknown_1: u8,
     #[silkroad(size = 4)]
     pub unknown_2: Vec<UnknownPacketInner>,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Debug)]
 pub struct UnknownPacketInner {
     unknown: u32,
     unknown_2: Option<u32>,
@@ -393,7 +421,8 @@ impl UnknownPacket {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Copy, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0xB602)]
 pub struct UnknownPacket2 {
     pub unknown_1: u8,
     pub id: u32,
@@ -414,7 +443,8 @@ pub const MACRO_POTION: u8 = 1;
 pub const MACRO_SKILL: u8 = 2;
 pub const MACRO_HUNT: u8 = 4;
 
-#[derive(Serialize, ByteSize, Clone)]
+#[derive(Serialize, ByteSize, Clone, Packet)]
+#[packet(opcode = 0x3555)]
 pub enum MacroStatus {
     #[silkroad(value = 0)]
     Possible(u8, u8),
@@ -422,14 +452,19 @@ pub enum MacroStatus {
     Disabled(String, String, u8),
 }
 
-#[derive(Deserialize, Copy, Clone)]
+#[derive(Deserialize, Serialize, ByteSize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x34c6)]
 pub struct FinishLoading;
 
-#[derive(Deserialize, Copy, Clone)]
-pub struct UpdateGameGuide(pub u64);
+define_inbound_protocol! { CharselectClientProtocol =>
+    CharacterListRequest,
+    CharacterJoinRequest,
+    FinishLoading
+}
 
-#[derive(Serialize, ByteSize, Copy, Clone)]
-pub enum GameGuideResponse {
-    #[silkroad(value = 1)]
-    Success(u64),
+define_outbound_protocol! { CharselectServerProtocol =>
+    CharacterJoinResponse,
+    CharacterStatsMessage,
+    UnknownPacket,
+    UnknownPacket2
 }

@@ -16,7 +16,8 @@ use bevy_ecs::prelude::{Commands, Query, Res};
 use silkroad_definitions::type_id::{ObjectConsumable, ObjectConsumableCurrency, ObjectItem, ObjectType};
 use silkroad_game_base::{Item, ItemTypeData};
 use silkroad_protocol::chat::{
-    ChatErrorCode, ChatMessage, ChatMessageResponse, ChatMessageResult, ChatSource, ChatTarget, ChatUpdate,
+    ChatClientProtocol, ChatErrorCode, ChatMessage, ChatMessageResponse, ChatMessageResult, ChatSource, ChatTarget,
+    ChatUpdate,
 };
 use silkroad_protocol::gm::{GmCommand, GmResponse};
 use tracing::debug;
@@ -37,6 +38,8 @@ pub(crate) fn handle_chat(
 ) {
     for (entity, client, game_entity, input, visibility, player) in query.iter_mut() {
         for message in input.chat.iter() {
+            let ChatClientProtocol::ChatMessage(message) = message;
+
             debug!(id = ?client.0.id(), "Received chat message: {} @ {}", message.message, message.index);
             if !can_send_message(message, player) {
                 client.send(ChatMessageResponse::new(

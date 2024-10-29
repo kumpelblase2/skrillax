@@ -5,7 +5,8 @@ use crate::skill::{HotkeyData, MasteryData, SkillData};
 use crate::world::{ActiveScroll, EntityState, InteractOptions, JobType, PlayerKillState, PvpCape};
 use chrono::{DateTime, Utc};
 use silkroad_definitions::rarity::EntityRarity;
-use silkroad_serde::*;
+use skrillax_packet::Packet;
+use skrillax_serde::*;
 
 #[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize)]
 pub enum GroupSpawnType {
@@ -54,10 +55,12 @@ pub enum ItemSpawnData {
     },
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet)]
+#[packet(opcode = 0x34A5)]
 pub struct CharacterSpawnStart;
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet)]
+#[packet(opcode = 0x3013)]
 pub struct CharacterSpawn {
     pub time: SilkroadTime,
     pub ref_id: u32,
@@ -273,10 +276,12 @@ impl CharacterSpawn {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet)]
+#[packet(opcode = 0x34A6)]
 pub struct CharacterSpawnEnd;
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet)]
+#[packet(opcode = 0x3016)]
 pub struct EntityDespawn {
     pub entity_id: u32,
 }
@@ -287,7 +292,8 @@ impl EntityDespawn {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet)]
+#[packet(opcode = 0x3015)]
 pub struct EntitySpawn {
     pub spawn_data: EntityTypeSpawnData,
     pub unknown_3: u8,
@@ -306,7 +312,8 @@ impl EntitySpawn {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet)]
+#[packet(opcode = 0x3017)]
 pub struct GroupEntitySpawnStart {
     pub kind: GroupSpawnType,
     pub amount: u16,
@@ -325,7 +332,8 @@ impl GroupEntitySpawnStart {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet)]
+#[packet(opcode = 0x3019)]
 pub struct GroupEntitySpawnData {
     #[silkroad(list_type = "none")]
     pub content: Vec<GroupSpawnDataContent>,
@@ -337,7 +345,8 @@ impl GroupEntitySpawnData {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Packet)]
+#[packet(opcode = 0x3018)]
 pub struct GroupEntitySpawnEnd;
 
 #[derive(Clone, Serialize, ByteSize)]

@@ -8,9 +8,6 @@ struct LoginDbResult {
     passcode: Option<String>,
 }
 
-#[derive(sqlx::FromRow, Clone)]
-struct IdResult(i32);
-
 pub(crate) enum LoginResult {
     Success(i32),
     MissingPasscode,
