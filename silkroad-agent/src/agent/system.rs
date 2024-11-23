@@ -37,7 +37,7 @@ macro_rules! auto_transition {
         ) {
             for (entity, mut transitions) in query.iter_mut() {
                 if transitions.transition_to_new_state::<$component>(entity, &mut cmd) {
-                    writer.send($event(entity))
+                    writer.send($event(entity));
                 }
             }
         }
@@ -55,7 +55,7 @@ pub(crate) fn transition_from_attacking(
 ) {
     for (entity, mut transitions, action) in query.iter_mut() {
         if transitions.transition_to_higher_state::<Action>(entity, &mut cmd) {
-            writer.send(ActionFinished(entity))
+            writer.send(ActionFinished(entity));
         } else {
             // TODO: check if action finished
         }

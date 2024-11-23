@@ -20,7 +20,7 @@ pub struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         let data_location = &app
-            .world
+            .world()
             .get_resource::<GameConfig>()
             .expect("Game settings should exist")
             .data_location;

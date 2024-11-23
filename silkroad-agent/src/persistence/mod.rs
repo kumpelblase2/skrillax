@@ -48,7 +48,7 @@ pub struct PersistencePlugin;
 impl Plugin for PersistencePlugin {
     fn build(&self, app: &mut App) {
         let persist_interval = app
-            .world
+            .world()
             .get_resource::<GameConfig>()
             .expect("Game config should exist.")
             .persist_interval;
@@ -77,7 +77,7 @@ impl AppPersistanceExt for App {
         T::ChangeItem: ApplyToDatabase,
     {
         let persist_interval = self
-            .world
+            .world()
             .get_resource::<GameConfig>()
             .expect("Game config should exist.")
             .persist_interval;
@@ -102,9 +102,9 @@ impl AppPersistanceExt for App {
     where
         T::Change: ApplyToDatabase,
     {
-        let comp = self.world.init_component::<T>();
+        let comp = self.world_mut().init_component::<T>();
         let mut persistence_collection = self
-            .world
+            .world_mut()
             .get_resource_mut::<PersistedComponents>()
             .expect("Persistence plugin should be initialized.");
 
