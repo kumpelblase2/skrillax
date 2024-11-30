@@ -1,9 +1,9 @@
 use crate::community::GuildInformation;
-use crate::inventory::{CharacterSpawnItemData, InventoryAvatarItemData, InventoryItemData};
+use crate::inventory::{BagContent, CharacterSpawnItemData};
 use crate::movement::{EntityMovementState, Position};
 use crate::skill::{HotkeyData, MasteryData, SkillData};
 use crate::world::{ActiveScroll, EntityState, InteractOptions, JobType, PlayerKillState, PvpCape};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Datelike, TimeZone, Timelike, Utc};
 use silkroad_definitions::rarity::EntityRarity;
 use skrillax_packet::Packet;
 use skrillax_serde::*;
@@ -59,6 +59,57 @@ pub enum ItemSpawnData {
 #[packet(opcode = 0x34A5)]
 pub struct CharacterSpawnStart;
 
+#[derive(Clone, Serialize, ByteSize, Deserialize, Copy)]
+pub struct ServiceEndTime {
+    day: u8,
+    year: u8,
+    month: u8,
+    hour: u8,
+    minute: u8,
+}
+
+impl<T: TimeZone> From<DateTime<T>> for ServiceEndTime {
+    fn from(value: DateTime<T>) -> Self {
+        ServiceEndTime {
+            day: value.day() as u8,
+            year: (value.year() - 2000) as u8,
+            month: value.month0() as u8,
+            hour: value.hour() as u8,
+            minute: value.minute() as u8,
+        }
+    }
+}
+
+#[derive(Clone, Serialize, ByteSize, Deserialize)]
+pub struct CollectionBookTheme {
+    pub index: u32,
+    pub start: SilkroadTime,
+    pub pages: u32,
+}
+
+#[derive(Clone, Serialize, ByteSize, Deserialize)]
+pub struct JobInformation {
+    pub job_name: String,
+    pub job_rank: u8,
+    pub job_title: u8,
+    pub job_type: JobType,
+    pub job_level: u8,
+    pub job_exp: u64,
+}
+
+impl JobInformation {
+    pub fn empty() -> Self {
+        Self {
+            job_name: String::new(),
+            job_rank: 0,
+            job_title: 0,
+            job_type: JobType::None,
+            job_level: 0,
+            job_exp: 0,
+        }
+    }
+}
+
 #[derive(Clone, Serialize, ByteSize, Packet)]
 #[packet(opcode = 0x3013)]
 pub struct CharacterSpawn {
@@ -82,18 +133,16 @@ pub struct CharacterSpawn {
     pub player_kills_penalty: u32,
     pub berserk_level: u8,
     pub free_pvp: u8,
-    pub fortress_war_mark: u8,
-    pub service_end: DateTime<Utc>,
+    // pub fortress_war_mark: u8,
+    pub service_end: ServiceEndTime,
     pub user_type: u8,
     pub server_max_level: u8,
     pub unknown_2: u16,
-    pub inventory_size: u8,
-    pub inventory_items: Vec<InventoryItemData>,
-    pub avatar_item_size: u8,
-    pub avatar_items: Vec<InventoryAvatarItemData>,
-    pub unknown_3: u8,
-    pub unknown_4: u8,
-    pub unknown_5: u16,
+    pub inventory: BagContent,
+    pub avatar_items: BagContent,
+    pub specialty_bag: BagContent,
+    pub job_bag: BagContent,
+    pub unknown_5: u8,
     #[silkroad(list_type = "break")]
     pub masteries: Vec<MasteryData>,
     pub unknown_6: u8,
@@ -103,21 +152,14 @@ pub struct CharacterSpawn {
     pub completed_quests: Vec<u32>,
     pub active_quests: Vec<ActiveQuestData>,
     pub unknown_8: u8,
-    pub unknown_9: u32,
+    #[silkroad(size = 4)]
+    pub collection_book: Vec<CollectionBookTheme>,
     pub unique_id: u32,
     pub position: Position,
-    pub destination_flag: u8,
-    pub unknown_10: u8,
-    pub unknown_11: u8,
-    pub angle: u16,
+    pub movement: EntityMovementState,
     pub entity_state: EntityState,
     pub character_name: String,
-    pub unknown_14: u16,
-    pub job_name: String,
-    pub job_type: JobType,
-    pub job_level: u8,
-    pub job_exp: u32,
-    pub job_contribution: u32,
+    pub job_information: JobInformation,
     pub job_reward: u32,
     pub pvp_state: u8,
     pub transport_flag: bool,
@@ -165,24 +207,18 @@ impl CharacterSpawn {
         service_end: DateTime<Utc>,
         user_type: u8,
         server_max_level: u8,
-        inventory_size: u8,
-        inventory_items: Vec<InventoryItemData>,
-        avatar_item_size: u8,
-        avatar_items: Vec<InventoryAvatarItemData>,
+        inventory: BagContent,
+        avatar_items: BagContent,
         masteries: Vec<MasteryData>,
         skills: Vec<SkillData>,
         completed_quests: Vec<u32>,
         active_quests: Vec<ActiveQuestData>,
         unique_id: u32,
         position: Position,
-        destination_flag: u8,
-        angle: u16,
+        movement: EntityMovementState,
         entity_state: EntityState,
         character_name: String,
-        job_name: String,
-        job_type: JobType,
-        job_level: u8,
-        job_exp: u32,
+        job_information: JobInformation,
         job_contribution: u32,
         job_reward: u32,
         pvp_state: u8,
@@ -219,17 +255,15 @@ impl CharacterSpawn {
             player_kills_penalty,
             berserk_level,
             free_pvp,
-            fortress_war_mark,
-            service_end,
+            // fortress_war_mark,
+            service_end: service_end.into(),
             user_type,
             server_max_level,
             unknown_2: 0x0107,
-            inventory_size,
-            inventory_items,
-            avatar_item_size,
+            inventory,
             avatar_items,
-            unknown_3: 0,
-            unknown_4: 0xb,
+            specialty_bag: BagContent::empty(),
+            job_bag: BagContent::new(0xb, Vec::new()),
             unknown_5: 0,
             masteries,
             unknown_6: 0,
@@ -237,21 +271,13 @@ impl CharacterSpawn {
             completed_quests,
             active_quests,
             unknown_8: 0,
-            unknown_9: 0,
+            collection_book: Vec::new(),
             unique_id,
             position,
-            destination_flag,
-            unknown_10: 1,
-            unknown_11: 0,
-            angle,
+            movement,
             entity_state,
             character_name,
-            unknown_14: 0,
-            job_name,
-            job_type,
-            job_level,
-            job_exp,
-            job_contribution,
+            job_information,
             job_reward,
             pvp_state,
             transport_flag,
@@ -295,20 +321,13 @@ impl EntityDespawn {
 #[derive(Clone, Serialize, ByteSize, Packet)]
 #[packet(opcode = 0x3015)]
 pub struct EntitySpawn {
+    pub ref_id: u32,
     pub spawn_data: EntityTypeSpawnData,
-    pub unknown_3: u8,
-    pub unknown_4: u32,
-    pub unknown_5: u8,
 }
 
 impl EntitySpawn {
-    pub fn new(spawn_data: EntityTypeSpawnData) -> Self {
-        EntitySpawn {
-            spawn_data,
-            unknown_3: 5,
-            unknown_4: 0,
-            unknown_5: 4,
-        }
+    pub fn new(ref_id: u32, spawn_data: EntityTypeSpawnData) -> Self {
+        EntitySpawn { ref_id, spawn_data }
     }
 }
 
@@ -438,10 +457,11 @@ pub enum EntityTypeSpawnData {
         active_scroll: ActiveScroll,
         unknown2: u8,
         guild: GuildInformation,
-        unknown3: [u8; 9],
+        unknown3: [u8; 11],
         equipment_cooldown: bool,
         pk_state: PlayerKillState,
         unknown4: u8,
+        unknown5: u8,
     },
     NPC {
         unique_id: u32,
@@ -493,7 +513,7 @@ impl EntityTypeSpawnData {
         in_combat: bool,
         active_scroll: ActiveScroll,
         guild: GuildInformation,
-        unknown3: [u8; 9],
+        unknown3: [u8; 11],
         equipment_cooldown: bool,
         pk_state: PlayerKillState,
     ) -> Self {
@@ -523,6 +543,7 @@ impl EntityTypeSpawnData {
             equipment_cooldown,
             pk_state,
             unknown4: 0xFF,
+            unknown5: 0x01,
         }
     }
 

@@ -152,9 +152,10 @@ pub(crate) fn player_visibility_update(
                                 is_friendly: 0,
                                 siege_unknown: 0,
                             },
-                            unknown3: [0; 9],
+                            unknown3: [0; 11],
                             equipment_cooldown: false,
                             unknown4: 0,
+                            unknown5: 0,
                         },
                     });
                 } else if let Some(monster) = monster_opt {
@@ -166,7 +167,8 @@ pub(crate) fn player_visibility_update(
                             position: pos.as_protocol(),
                             movement: pos.as_movement(),
                             entity_state: entity_state_from_agent(agent),
-                            interaction_options: InteractOptions::talk(vec![5]),
+                            // Somehow doesn't matter right now *shrug*
+                            interaction_options: InteractOptions::None,
                             rarity: monster.rarity,
                             unknown: 0,
                         },

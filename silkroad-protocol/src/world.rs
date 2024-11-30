@@ -66,12 +66,12 @@ pub enum InteractOptions {
     #[silkroad(value = 0)]
     None,
     #[silkroad(value = 2)]
-    Talk { options: Vec<u8> },
+    Talk(u64),
 }
 
 impl InteractOptions {
-    pub fn talk(options: Vec<u8>) -> Self {
-        InteractOptions::Talk { options }
+    pub fn talk(options: u64) -> Self {
+        InteractOptions::Talk(options)
     }
 }
 
@@ -165,7 +165,7 @@ impl TargetEntityResult {
             unique_id,
             health: None,
             entity_data: TargetEntityData::NPC {
-                talk_options: Some(InteractOptions::talk(vec![])),
+                talk_options: Some(InteractOptions::None),
             },
         }
     }

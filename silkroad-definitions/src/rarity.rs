@@ -21,8 +21,14 @@ pub enum EntityRarityType {
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct EntityRarity {
-    party: bool,
     kind: EntityRarityType,
+    party: bool,
+}
+
+impl EntityRarity {
+    pub fn new(party: bool, kind: EntityRarityType) -> Self {
+        Self { party, kind }
+    }
 }
 
 impl PartialEq<EntityRarityType> for EntityRarity {

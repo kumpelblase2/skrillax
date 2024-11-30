@@ -283,14 +283,28 @@ impl InventoryOperationResult {
 }
 
 #[derive(Clone, Serialize, ByteSize)]
-pub struct JobBagContent {
-    pub items: Vec<InventoryItemData>,
+pub struct BagContent {
+    pub size: u8,
+    #[silkroad(when = "size > 0")]
+    pub items: Option<BagItems>,
 }
 
-impl JobBagContent {
-    pub fn new(items: Vec<InventoryItemData>) -> Self {
-        JobBagContent { items }
+impl BagContent {
+    pub fn new(size: u8, items: Vec<InventoryItemData>) -> Self {
+        BagContent {
+            size,
+            items: Some(BagItems { inner: items }),
+        }
     }
+
+    pub fn empty() -> Self {
+        BagContent { size: 0, items: None }
+    }
+}
+
+#[derive(Clone, Serialize, ByteSize)]
+pub struct BagItems {
+    pub inner: Vec<InventoryItemData>,
 }
 
 #[derive(Clone, Serialize, ByteSize)]
@@ -311,9 +325,6 @@ impl InventoryItemData {
         }
     }
 }
-
-#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
-pub struct InventoryAvatarItemData;
 
 #[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct InventoryItemMagicData;

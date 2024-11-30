@@ -27,12 +27,15 @@ use silkroad_game_base::{Heading, ItemTypeData, LocalPosition};
 use silkroad_protocol::auth::{AuthResponse, AuthResult, AuthResultError};
 use silkroad_protocol::character::{
     CharacterJoinResponse, CharacterListAction, CharacterListContent, CharacterListError, CharacterListRequestAction,
-    CharacterListResponse, CharacterListResult, MacroStatus, MACRO_HUNT, MACRO_POTION, MACRO_SKILL,
+    CharacterListResponse, CharacterListResult, MacroStatus, UnknownPacket, UnknownPacket2, MACRO_POTION,
 };
-use silkroad_protocol::inventory::{InventoryItemBindingData, InventoryItemContentData, InventoryItemData, RentInfo};
+use silkroad_protocol::inventory::{
+    BagContent, InventoryItemBindingData, InventoryItemContentData, InventoryItemData, RentInfo,
+};
+use silkroad_protocol::login::UnknownLargePacket;
 use silkroad_protocol::skill::{MasteryData, SkillData};
-use silkroad_protocol::spawn::{CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart};
-use silkroad_protocol::world::{ActionState, AliveState, BodyState, EntityState, JobType};
+use silkroad_protocol::spawn::{CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, JobInformation};
+use silkroad_protocol::world::{ActionState, AliveState, BodyState, EntityState};
 use silkroad_protocol::SilkroadTime;
 use tracing::debug;
 
@@ -202,7 +205,13 @@ pub(crate) fn handle_join(
 
                     send_spawn(client, &game_entity, &player, &inventory, &position, settings.max_level);
 
-                    client.send(MacroStatus::Possible(MACRO_POTION | MACRO_HUNT | MACRO_SKILL, 0));
+                    client.send(MacroStatus::Possible(
+                        MACRO_POTION, /*| MACRO_HUNT | MACRO_SKILL*/
+                        0,
+                    ));
+                    client.send(UnknownLargePacket::new());
+                    client.send(UnknownPacket::new());
+                    client.send(UnknownPacket2::new(game_entity.unique_id));
 
                     cmd.entity(entity)
                         .insert(PlayerBundle::new(
@@ -362,10 +371,8 @@ fn send_spawn(
         Utc.with_ymd_and_hms(2000, 1, 1, 0, 0, 0).unwrap(),
         0,
         max_level,
-        inventory.size() as u8,
-        inventory_items,
-        5,
-        Vec::new(),
+        BagContent::new(inventory.size() as u8, inventory_items),
+        BagContent::new(5, Vec::new()),
         player
             .character
             .masteries
@@ -394,14 +401,10 @@ fn send_spawn(
         Vec::new(),
         entity.unique_id,
         position.as_protocol(),
-        0,
-        position.rotation().into(),
+        position.as_movement(),
         entity_state,
         character_data.name.clone(),
-        String::new(),
-        JobType::None, // TODO
-        1,
-        0,
+        JobInformation::empty(),
         0,
         0,
         0,
