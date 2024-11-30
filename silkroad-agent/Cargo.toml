@@ -22,11 +22,8 @@ axum = { version = "0.7", default-features = false, features = [
     "tower-log",
     "macros",
 ] }
-bytes = "1.8"
 once_cell.workspace = true
-byteorder.workspace = true
 rand.workspace = true
-crossbeam-channel = "0.5"
 tracing.workspace = true
 config.workspace = true
 sqlx.workspace = true
@@ -35,12 +32,12 @@ serde.workspace = true
 thiserror.workspace = true
 chrono.workspace = true
 itertools = "*"
-bevy_ecs = "0.14"
-bevy_ecs_macros = "0.14"
-bevy_core = "0.14"
-bevy_app = "0.14"
-bevy_tasks = "0.14"
-bevy_time = "0.14"
+bevy_ecs = "0.15"
+bevy_ecs_macros = "0.15"
+bevy_core = "0.15"
+bevy_app = "0.15"
+bevy_tasks = "0.15"
+bevy_time = "0.15"
 cgmath = "0.18"
 pk2.workspace = true
 id-pool = { version = "0.2", features = ["u32"], default-features = false }

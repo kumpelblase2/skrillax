@@ -75,7 +75,7 @@ pub(crate) fn movement(
     navmesh: Res<Navmesh>,
     mut finish_movement: EventWriter<MovementFinished>,
 ) {
-    let delta = time.delta_seconds_f64() as f32;
+    let delta = time.delta_secs();
     for (entity, mut pos, agent, movement, speed_state) in query.iter_mut() {
         let speed = agent.get_speed_value(*speed_state.deref());
         let (next_location, heading, finished) = match movement.0 {

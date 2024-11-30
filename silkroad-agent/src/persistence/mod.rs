@@ -14,6 +14,7 @@ use bevy_ecs_macros::Component;
 use bevy_time::common_conditions::on_timer;
 use futures::future::join_all;
 use silkroad_game_base::{ChangeProvided, ChangeTracked, ToOptimizedChange};
+use sqlx::PgPool;
 use std::mem;
 use std::ops::Deref;
 use std::time::Duration;
@@ -102,7 +103,7 @@ impl AppPersistanceExt for App {
     where
         T::Change: ApplyToDatabase,
     {
-        let comp = self.world_mut().init_component::<T>();
+        let comp = self.world_mut().register_component::<T>();
         let mut persistence_collection = self
             .world_mut()
             .get_resource_mut::<PersistedComponents>()
@@ -198,20 +199,7 @@ fn apply_changes_combined(
         };
 
         let character_id = player.character.id;
-        for config in components.0.iter() {
-            let Some(ptr) = entity.get_by_id(config.component) else {
-                continue;
-            };
-
-            let change = (config.change_provider)(ptr);
-            let pool = db_pool.deref().deref().clone();
-
-            task_creator.spawn(async move {
-                if let Err(e) = change.apply(character_id, &pool).await {
-                    error!(error = %e, character_id = character_id, "Could not apply update");
-                }
-            });
-        }
+        execute_db_update(&components, &task_creator, &db_pool, entity, character_id);
     }
 }
 
@@ -227,19 +215,29 @@ fn apply_changes_periodically(
 
     for (entity, player) in query.iter() {
         let character_id = player.character.id;
-        for config in components.0.iter() {
-            let Some(ptr) = entity.get_by_id(config.component) else {
-                continue;
-            };
+        execute_db_update(&components, &task_creator, &db_pool, entity, character_id);
+    }
+}
 
-            let change = (config.change_provider)(ptr);
-            let pool = db_pool.deref().deref().clone();
+fn execute_db_update(
+    components: &PersistedComponents,
+    task_creator: &TaskCreator,
+    db_pool: &PgPool,
+    entity: EntityRef,
+    character_id: u32,
+) {
+    for config in components.0.iter() {
+        let Ok(ptr) = entity.get_by_id(config.component) else {
+            continue;
+        };
 
-            task_creator.spawn(async move {
-                if let Err(e) = change.apply(character_id, &pool).await {
-                    error!(error = %e, character_id = character_id, "Could not apply update");
-                }
-            });
-        }
+        let change = (config.change_provider)(ptr);
+        let pool = db_pool.clone();
+
+        task_creator.spawn(async move {
+            if let Err(e) = change.apply(character_id, &pool).await {
+                error!(error = %e, character_id = character_id, "Could not apply update");
+            }
+        });
     }
 }
