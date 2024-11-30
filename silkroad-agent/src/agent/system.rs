@@ -69,12 +69,12 @@ pub(crate) fn movement_input(mut query: Query<(&Client, &PlayerInput, &mut State
                 MovementTarget::TargetLocation { region, x, y, z } => {
                     let local_position = position.position().to_local();
                     let target_pos = LocalPosition(region.into(), Vector3::new(x.into(), y.into(), z.into()));
-                    debug!(id = ?client.id(), "Movement: {} -> {}", local_position, target_pos);
+                    debug!(identifier = ?client.id(), "Movement: {} -> {}", local_position, target_pos);
                     agent.request_transition(Moving(MovementGoal::Location(target_pos.to_global())));
                 },
                 MovementTarget::Direction { unknown, angle } => {
                     let direction = Heading::from(angle);
-                    debug!(id = ?client.id(), "Movement: {} / {}({})", unknown, direction.0, angle);
+                    debug!(identifier = ?client.id(), "Movement: {} / {}({})", unknown, direction.0, angle);
                     agent.request_transition(Moving(MovementGoal::Direction(direction)));
                 },
             }

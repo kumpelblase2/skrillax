@@ -40,7 +40,7 @@ pub(crate) fn handle_chat(
         for message in input.chat.iter() {
             let ChatClientProtocol::ChatMessage(message) = message;
 
-            debug!(id = ?client.0.id(), "Received chat message: {} @ {}", message.message, message.index);
+            debug!(identifier = ?client.id(), "Received chat message: {} @ {}", message.message, message.index);
             if !can_send_message(message, player) {
                 client.send(ChatMessageResponse::new(
                     ChatMessageResult::error(ChatErrorCode::InvalidTarget),

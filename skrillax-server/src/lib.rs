@@ -4,14 +4,13 @@ use skrillax_stream::packet::AsPacket;
 use skrillax_stream::stream::{InStreamError, OutStreamError, SilkroadStreamRead, SilkroadStreamWrite, SilkroadTcpExt};
 use skrillax_stream::InputProtocol;
 use std::io::{self, ErrorKind};
-use std::marker::PhantomData;
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::{TcpListener, TcpSocket, TcpStream};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
-use tracing::{instrument, trace, warn};
+use tracing::{debug, instrument, trace, warn};
 
 static STREAM_IDENTIFIER: AtomicU64 = AtomicU64::new(1);
 
@@ -44,7 +43,7 @@ impl<I: InputProtocol + Send + 'static> Connection<I> {
         self.remote_addr
     }
 
-    #[instrument(skip(socket, inbound, outbound))]
+    #[instrument(skip(socket, inbound, outbound, cancel))]
     async fn handle(
         socket: TcpStream,
         identifier: u64,
@@ -89,14 +88,14 @@ impl<I: InputProtocol + Send + 'static> Connection<I> {
                         Err(OutStreamError::IoError(io_error)) => {
                             cancel.cancel();
                             if matches!(io_error.kind(), ErrorKind::UnexpectedEof | ErrorKind::ConnectionReset) {
-                                trace!(id = identifier, "Connection was closed by the peer.");
+                                trace!(identifier, "Connection was closed by the peer.");
                             } else {
-                                warn!(id = identifier, %io_error, "Encountered some I/O error in connection.");
+                                warn!(identifier, %io_error, "Encountered some I/O error in connection.");
                             }
                             return;
                         }
                         Err(OutStreamError::Framing(_)) => {
-                            warn!(id = identifier, "Tried to send an encrypted packet, but encryption was not set up.");
+                            warn!(identifier, "Tried to send an encrypted packet, but encryption was not set up.");
                         }
                     }
                 }
@@ -125,6 +124,7 @@ impl<I: InputProtocol + Send + 'static> Connection<I> {
                             }
                         },
                         Err(InStreamError::EndOfStream) => {
+                            debug!("Disconnected.");
                             return;
                         },
                         Err(InStreamError::UnmatchedOpcode(opcode)) => {
@@ -132,7 +132,7 @@ impl<I: InputProtocol + Send + 'static> Connection<I> {
                             continue;
                         },
                         Err(other) => {
-                            warn!(%other, "Unexpected error occurred.");
+                            warn!(error = %other, "Unexpected error occurred.");
                             cancel.cancel();
                             return;
                         }
