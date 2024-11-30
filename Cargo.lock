@@ -340,7 +340,7 @@ version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fbfc33a4c6b80760bb8bf850a2cc65a1e031da62fd3ca8b552189104dc98514"
 dependencies = [
- "bevy_macro_utils",
+ "bevy_macro_utils 0.14.2",
  "quote",
  "syn 2.0.79",
 ]
@@ -351,7 +351,7 @@ version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ee4222406637f3c8e3991a99788cfcde76097bf997c311f1b6297364057483f"
 dependencies = [
- "bevy_ecs_macros",
+ "bevy_ecs_macros 0.14.2",
  "bevy_ptr",
  "bevy_reflect",
  "bevy_tasks",
@@ -370,7 +370,19 @@ version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36b573430b67aff7bde8292257494f39343401379bfbda64035ba4918bba7b20"
 dependencies = [
- "bevy_macro_utils",
+ "bevy_macro_utils 0.14.2",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.79",
+]
+
+[[package]]
+name = "bevy_ecs_macros"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb4296b3254b8bd29769f6a4512731b2e6c4b163343ca18b72316927315b6096"
+dependencies = [
+ "bevy_macro_utils 0.15.0",
  "proc-macro2",
  "quote",
  "syn 2.0.79",
@@ -381,6 +393,18 @@ name = "bevy_macro_utils"
 version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfc65e570012e64a21f3546df68591aaede8349e6174fb500071677f54f06630"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.79",
+ "toml_edit",
+]
+
+[[package]]
+name = "bevy_macro_utils"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3954dbb56a66a6c09c783e767f6ceca0dc0492c22e536e2aeaefb5545eac33c6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -417,7 +441,7 @@ version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "967d5da1882ec3bb3675353915d3da909cafac033cbf31e58727824a1ad2a288"
 dependencies = [
- "bevy_macro_utils",
+ "bevy_macro_utils 0.14.2",
  "proc-macro2",
  "quote",
  "syn 2.0.79",
@@ -2647,7 +2671,7 @@ dependencies = [
  "bevy_app",
  "bevy_core",
  "bevy_ecs",
- "bevy_ecs_macros",
+ "bevy_ecs_macros 0.15.0",
  "bevy_tasks",
  "bevy_time",
  "byteorder",
