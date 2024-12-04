@@ -3,6 +3,11 @@ name = "silkroad-protocol"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["v657"]
+v657 = []
+v594 = []
+
 [dependencies]
 byteorder = { workspace = true }
 chrono = { workspace = true }

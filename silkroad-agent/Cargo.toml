@@ -3,9 +3,14 @@ name = "silkroad-agent"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["v657"]
+v657 = ["silkroad-protocol/v657"]
+v594 = ["silkroad-protocol/v594"]
+
 [dependencies]
 tracing-subscriber.workspace = true
-silkroad-protocol = { path = "../silkroad-protocol" }
+silkroad-protocol = { path = "../silkroad-protocol", default-features = false }
 silkroad-rpc = { path = "../silkroad-rpc" }
 silkroad-navmesh = { path = "../silkroad-navmesh", features = ["pk2"] }
 silkroad-data = { path = "../silkroad-data" }

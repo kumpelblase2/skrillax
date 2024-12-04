@@ -133,8 +133,12 @@ pub struct CharacterSpawn {
     pub player_kills_penalty: u32,
     pub berserk_level: u8,
     pub free_pvp: u8,
-    // pub fortress_war_mark: u8,
+    #[cfg(feature = "v594")]
+    pub fortress_war_mark: u8,
+    #[cfg(feature = "v657")]
     pub service_end: ServiceEndTime,
+    #[cfg(feature = "v594")]
+    pub service_end: DateTime<Utc>,
     pub user_type: u8,
     pub server_max_level: u8,
     pub unknown_2: u16,
@@ -152,7 +156,7 @@ pub struct CharacterSpawn {
     pub completed_quests: Vec<u32>,
     pub active_quests: Vec<ActiveQuestData>,
     pub unknown_8: u8,
-    #[silkroad(size = 4)]
+    #[silkroad(size = 3)]
     pub collection_book: Vec<CollectionBookTheme>,
     pub unique_id: u32,
     pub position: Position,
@@ -203,7 +207,7 @@ impl CharacterSpawn {
         player_kills_penalty: u32,
         berserk_level: u8,
         free_pvp: u8,
-        fortress_war_mark: u8,
+        #[cfg(feature = "v594")] fortress_war_mark: u8,
         service_end: DateTime<Utc>,
         user_type: u8,
         server_max_level: u8,
@@ -219,7 +223,6 @@ impl CharacterSpawn {
         entity_state: EntityState,
         character_name: String,
         job_information: JobInformation,
-        job_contribution: u32,
         job_reward: u32,
         pvp_state: u8,
         transport_flag: bool,
@@ -255,7 +258,8 @@ impl CharacterSpawn {
             player_kills_penalty,
             berserk_level,
             free_pvp,
-            // fortress_war_mark,
+            #[cfg(feature = "v594")]
+            fortress_war_mark,
             service_end: service_end.into(),
             user_type,
             server_max_level,
@@ -457,10 +461,14 @@ pub enum EntityTypeSpawnData {
         active_scroll: ActiveScroll,
         unknown2: u8,
         guild: GuildInformation,
+        #[cfg(feature = "v594")]
+        unknown3: [u8; 9],
+        #[cfg(feature = "v657")]
         unknown3: [u8; 11],
         equipment_cooldown: bool,
         pk_state: PlayerKillState,
         unknown4: u8,
+        #[cfg(feature = "v657")]
         unknown5: u8,
     },
     NPC {
@@ -513,7 +521,6 @@ impl EntityTypeSpawnData {
         in_combat: bool,
         active_scroll: ActiveScroll,
         guild: GuildInformation,
-        unknown3: [u8; 11],
         equipment_cooldown: bool,
         pk_state: PlayerKillState,
     ) -> Self {
@@ -539,10 +546,14 @@ impl EntityTypeSpawnData {
             active_scroll,
             unknown2: 0,
             guild,
-            unknown3,
+            #[cfg(feature = "v594")]
+            unknown3: [0; 9],
+            #[cfg(feature = "v657")]
+            unknown3: [0; 11],
             equipment_cooldown,
             pk_state,
             unknown4: 0xFF,
+            #[cfg(feature = "v657")]
             unknown5: 0x01,
         }
     }

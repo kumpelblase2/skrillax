@@ -209,9 +209,12 @@ pub(crate) fn handle_join(
                         MACRO_POTION, /*| MACRO_HUNT | MACRO_SKILL*/
                         0,
                     ));
-                    client.send(UnknownLargePacket::new());
-                    client.send(UnknownPacket::new());
-                    client.send(UnknownPacket2::new(game_entity.unique_id));
+                    #[cfg(feature = "v657")]
+                    {
+                        client.send(UnknownLargePacket::new());
+                        client.send(UnknownPacket::new());
+                        client.send(UnknownPacket2::new(game_entity.unique_id));
+                    }
 
                     cmd.entity(entity)
                         .insert(PlayerBundle::new(
@@ -367,6 +370,7 @@ fn send_spawn(
         0,
         0,
         0,
+        #[cfg(feature = "v594")]
         0x4,
         Utc.with_ymd_and_hms(2000, 1, 1, 0, 0, 0).unwrap(),
         0,
@@ -401,11 +405,10 @@ fn send_spawn(
         Vec::new(),
         entity.unique_id,
         position.as_protocol(),
-        position.as_movement(),
+        position.as_standing(),
         entity_state,
         character_data.name.clone(),
         JobInformation::empty(),
-        0,
         0,
         0,
         false,

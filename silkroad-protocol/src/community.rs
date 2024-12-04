@@ -35,6 +35,19 @@ impl GuildInformation {
             siege_unknown: 0,
         }
     }
+
+    pub fn none() -> Self {
+        GuildInformation {
+            name: "".to_string(),
+            id: 0,
+            member: "".to_string(),
+            last_icon_rev: 0,
+            union_id: 0,
+            last_union_icon_rev: 0,
+            is_friendly: 0,
+            siege_unknown: 0,
+        }
+    }
 }
 
 #[derive(Clone, Serialize, ByteSize, Debug)]

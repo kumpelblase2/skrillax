@@ -46,7 +46,7 @@ impl Position {
 
     pub fn as_standing(&self) -> EntityMovementState {
         EntityMovementState::Standing {
-            movement_type: MovementType::Walking,
+            movement_type: MovementType::Running,
             unknown: 0,
             angle: self.rotation.into(),
         }

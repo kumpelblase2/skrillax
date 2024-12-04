@@ -220,11 +220,9 @@ impl PatchFile {
 
 #[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub struct GatewayNotice {
-    // #[cfg_attr(feature = "v657", silkroad(size = 2))]
-    #[silkroad(size = 2)]
+    #[cfg_attr(feature = "v657", silkroad(size = 2))]
     pub subject: String,
-    // #[cfg_attr(feature = "v657", silkroad(size = 2))]
-    #[silkroad(size = 2)]
+    #[cfg_attr(feature = "v657", silkroad(size = 2))]
     pub article: String,
     pub published: NormalDateTime,
 }
@@ -241,8 +239,11 @@ impl GatewayNotice {
 
 #[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub struct PingServer {
+    #[cfg(feature = "v594")]
+    pub index: u8,
     pub domain: String,
     pub unknown: u16,
+    #[cfg(feature = "v657")]
     pub index: u8,
 }
 
@@ -259,7 +260,7 @@ impl PingServer {
 #[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub struct Shard {
     pub id: u16,
-    #[silkroad(size = 2)]
+    #[cfg_attr(feature = "v657", silkroad(size = 2))]
     pub name: String,
     pub status: u8,
     pub is_online: bool,
