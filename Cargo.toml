@@ -13,7 +13,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-tokio = { version = "1.34", features = ["full"] }
+tokio = { version = "1.42", features = ["full"] }
 once_cell = "1.18"
 byteorder = "1.5"
 rand = "0.8"
