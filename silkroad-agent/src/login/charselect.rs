@@ -387,14 +387,26 @@ fn send_spawn(
             .skills
             .iter()
             .flat_map(|(group, level)| {
-                skill_data
+                let skills_of_group = skill_data
                     .iter()
-                    .filter(|skill_ref| skill_ref.group == *group && skill_ref.level <= *level)
-                    .map(|skill_ref| skill_ref.ref_id)
-            })
-            .map(|ref_id| SkillData {
-                id: ref_id,
-                enabled: true,
+                    .filter(|skill_ref| skill_ref.group == *group)
+                    .collect::<Vec<_>>();
+
+                let max = skills_of_group
+                    .iter()
+                    .map(|skill_ref| skill_ref.level)
+                    .max()
+                    .unwrap_or(1);
+                let reached_max = max == *level;
+
+                skills_of_group
+                    .into_iter()
+                    .filter(|skill_ref| skill_ref.level <= *level)
+                    .map(|skill_ref| SkillData {
+                        id: skill_ref.ref_id,
+                        enabled: !reached_max,
+                    })
+                    .collect::<Vec<_>>()
             })
             .collect(),
         Vec::new(),
