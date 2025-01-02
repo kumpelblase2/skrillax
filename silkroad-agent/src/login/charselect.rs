@@ -401,7 +401,7 @@ fn send_spawn(
         Vec::new(),
         entity.unique_id,
         position.as_protocol(),
-        position.as_movement(),
+        position.as_standing(),
         entity_state,
         character_data.name.clone(),
         JobInformation::empty(),

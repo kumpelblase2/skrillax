@@ -5,9 +5,9 @@ use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum MovementType {
-    #[silkroad(value = 0)]
-    Running,
     #[silkroad(value = 1)]
+    Running,
+    #[silkroad(value = 0)]
     Walking,
 }
 
