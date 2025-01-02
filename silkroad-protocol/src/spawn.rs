@@ -152,7 +152,7 @@ pub struct CharacterSpawn {
     pub completed_quests: Vec<u32>,
     pub active_quests: Vec<ActiveQuestData>,
     pub unknown_8: u8,
-    #[silkroad(size = 4)]
+    #[silkroad(size = 3)]
     pub collection_book: Vec<CollectionBookTheme>,
     pub unique_id: u32,
     pub position: Position,
