@@ -2,6 +2,7 @@
 
 mod agent;
 mod chat;
+mod cmd;
 mod comp;
 mod config;
 mod db;
@@ -21,6 +22,7 @@ mod tasks;
 mod world;
 
 use crate::agent::AgentPlugin;
+use crate::cmd::CommandPlugin;
 use crate::config::get_config;
 use crate::db::server::ServerRegistration;
 use crate::ext::DbPool;
@@ -120,5 +122,6 @@ fn main() {
         .add_plugins(LoginPlugin::new(queue))
         .add_plugins(GamePlugin)
         .add_plugins(MallPlugin)
+        .add_plugins(CommandPlugin)
         .run();
 }

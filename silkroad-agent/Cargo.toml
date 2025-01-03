@@ -43,3 +43,4 @@ pk2.workspace = true
 id-pool = { version = "0.2", features = ["u32"], default-features = false }
 derive_more = "0.99.17"
 futures = "0.3"
+gumdrop = "0.8.1"

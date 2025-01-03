@@ -1,9 +1,8 @@
-use crate::chat::command::Command;
 use crate::comp::monster::SpawnedBy;
 use crate::comp::{EntityReference, GameEntity};
 use bevy_ecs::prelude::*;
 use silkroad_data::skilldata::RefSkillData;
-use silkroad_game_base::{GlobalLocation, GlobalPosition};
+use silkroad_game_base::GlobalLocation;
 
 #[derive(Event)]
 pub(crate) struct ClientConnectedEvent(pub Entity);
@@ -35,12 +34,6 @@ pub(crate) struct DamageReceiveEvent {
     pub attack: AttackDefinition,
     pub amount: u32,
 }
-
-#[derive(Event)]
-pub(crate) struct PlayerCommandEvent(pub Entity, pub Command);
-
-#[derive(Event)]
-pub(crate) struct PlayerTeleportEvent(pub Entity, pub GlobalPosition);
 
 #[derive(Event)]
 pub(crate) struct EntityDeath {

@@ -1,4 +1,4 @@
-use crate::chat::command::Command;
+use crate::cmd::{CommandExecutionExt, Sender};
 use crate::comp::damage::Invincible;
 use crate::comp::monster::SpawnedBy;
 use crate::comp::net::Client;
@@ -6,7 +6,7 @@ use crate::comp::player::Player;
 use crate::comp::pos::Position;
 use crate::comp::visibility::{Invisible, Visibility};
 use crate::comp::GameEntity;
-use crate::event::{PlayerCommandEvent, SpawnMonster};
+use crate::event::SpawnMonster;
 use crate::game::drop::SpawnDrop;
 use crate::input::PlayerInput;
 use crate::world::{EntityLookup, WorldData};
@@ -34,7 +34,7 @@ pub(crate) fn handle_chat(
     mut query: Query<(Entity, &Client, &GameEntity, &PlayerInput, &Visibility, &Player)>,
     lookup: Res<EntityLookup>,
     others: Query<(&Client, &Player)>,
-    mut command_events: EventWriter<PlayerCommandEvent>,
+    mut cmds: Commands,
 ) {
     for (entity, client, game_entity, input, visibility, player) in query.iter_mut() {
         for message in input.chat.iter() {
@@ -71,14 +71,7 @@ pub(crate) fn handle_chat(
                 ChatTarget::AllGm => {
                     if message.message.starts_with('.') {
                         let message_without_dot = message.message.trim_start_matches('.');
-                        let cmd = Command::from(message_without_dot);
-                        command_events.send(PlayerCommandEvent(entity, cmd));
-
-                        client.send(ChatMessageResponse::new(
-                            ChatMessageResult::Success,
-                            message.target,
-                            message.index,
-                        ));
+                        cmds.enqueue_chat_command(Sender::Player(entity), message_without_dot.to_string());
                         continue;
                     }
 
