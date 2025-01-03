@@ -94,6 +94,12 @@ impl ChatSource {
     pub fn academy(sender: String) -> Self {
         ChatSource::Academy { sender }
     }
+
+    pub fn system() -> Self {
+        ChatSource::Global {
+            sender: String::from("System"),
+        }
+    }
 }
 
 #[derive(Copy, Clone, Serialize, ByteSize, Deserialize, Debug)]
