@@ -1,7 +1,7 @@
 use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent};
 use crate::ext::ServerResource;
 use crate::net::net::{accept, connected, disconnected};
-use bevy_app::{App, Plugin, PreUpdate};
+use bevy_app::{App, First, Plugin};
 use skrillax_server::Server;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -16,14 +16,16 @@ pub struct NetworkPlugin {
 
 impl Plugin for NetworkPlugin {
     fn build(&self, app: &mut App) {
+        // Need to run this inside a `block_on` to ensure we're inside tokio and can
+        // `spawn()` more tasks.
         let server = self.runtime.block_on(async {
-            Server::new(self.server.clone())
+            Server::new(self.server)
                 .expect("Should be able to create the server")
                 .into()
         });
 
         app.insert_resource::<ServerResource>(server)
-            .add_systems(PreUpdate, (accept, disconnected, connected))
+            .add_systems(First, (accept, disconnected, connected))
             .add_event::<ClientDisconnectedEvent>()
             .add_event::<ClientConnectedEvent>();
     }

@@ -20,11 +20,11 @@ impl Dead {
     }
 
     pub fn should_despawn(&mut self, delta: Duration) -> bool {
-        return if let Some(timer) = self.despawn.as_mut() {
+        if let Some(timer) = self.despawn.as_mut() {
             timer.tick(delta).just_finished()
         } else {
             false
-        };
+        }
     }
 }
 

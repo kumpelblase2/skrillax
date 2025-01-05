@@ -26,9 +26,8 @@ use thiserror::Error;
 pub(crate) fn load_lines<T: FromStr>(source: &str) -> Result<Vec<T>, T::Err> {
     let mut all_lines = Vec::new();
     for line in source.lines().filter(|line| !line.is_empty()) {
-        let parsed = line.parse().map_err(|err| {
+        let parsed = line.parse().inspect_err(|err| {
             println!("Error with line: {line}");
-            err
         })?;
         all_lines.push(parsed);
     }

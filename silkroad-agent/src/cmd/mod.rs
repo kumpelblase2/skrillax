@@ -240,12 +240,10 @@ fn output_results(mut results: EventReader<CommandResult>, sender_query: Query<&
                 source: ChatSource::system(),
                 message: result.outcome.to_string(),
             });
+        } else if result.outcome.is_positive() {
+            info!("{}", result.outcome);
         } else {
-            if result.outcome.is_positive() {
-                info!("{}", result.outcome);
-            } else {
-                warn!("{}", result.outcome);
-            }
+            warn!("{}", result.outcome);
         }
     }
 }
@@ -410,7 +408,7 @@ struct PrintPos {
 fn handle_print_pos(
     mut invocations: EventReader<CommandInvocation<PrintPos>>,
     mut results: EventWriter<CommandResult>,
-    mut query: Query<&Position>,
+    query: Query<&Position>,
 ) {
     for change_speed in invocations.read() {
         let Sender::Player(player_entity) = change_speed.sender else {
@@ -424,7 +422,7 @@ fn handle_print_pos(
         let pos = query.get(player_entity).unwrap();
         results.send(CommandResult {
             receiver: change_speed.sender,
-            outcome: CommandOutcome::Success(Some(format_position(&pos, change_speed.args.global))),
+            outcome: CommandOutcome::Success(Some(format_position(pos, change_speed.args.global))),
         });
     }
 }
@@ -438,8 +436,8 @@ struct PrintTarget {
 fn handle_print_target(
     mut invocations: EventReader<CommandInvocation<PrintTarget>>,
     mut results: EventWriter<CommandResult>,
-    mut query: Query<Option<&Target>>,
-    mut query_pos: Query<&Position>,
+    query: Query<Option<&Target>>,
+    query_pos: Query<&Position>,
 ) {
     for change_speed in invocations.read() {
         let Sender::Player(player_entity) = change_speed.sender else {
@@ -462,7 +460,7 @@ fn handle_print_target(
 
         results.send(CommandResult {
             receiver: change_speed.sender,
-            outcome: CommandOutcome::Success(Some(format_position(&target_pos, change_speed.args.global))),
+            outcome: CommandOutcome::Success(Some(format_position(target_pos, change_speed.args.global))),
         });
     }
 }

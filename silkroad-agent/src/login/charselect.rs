@@ -236,7 +236,7 @@ pub(crate) fn handle_join(
                             inventory,
                             gold,
                             agent,
-                            position.clone(),
+                            position,
                             Visibility::with_radius(500.),
                             hotbar,
                         ))

@@ -28,13 +28,13 @@ impl SkillBook {
     }
 
     pub(crate) fn has_required_skills_for(&self, skill: &RefSkillData) -> bool {
-        return skill
+        skill
             .required_skills
             .iter()
             .filter(|skill| skill.group != 0)
             .all(|required_skill| {
                 self.skills.get(&required_skill.group).copied().unwrap_or(0) >= required_skill.level
-            });
+            })
     }
 }
 

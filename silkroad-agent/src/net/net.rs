@@ -45,7 +45,9 @@ pub(crate) fn disconnected(
             let id = player.character.id;
             task_creator.spawn(CharacterData::update_last_played_of(id, pool.clone()));
         }
-        cmd.entity(entity).despawn();
+        if let Some(mut cmd) = cmd.get_entity(entity) {
+            cmd.despawn();
+        }
     }
 }
 

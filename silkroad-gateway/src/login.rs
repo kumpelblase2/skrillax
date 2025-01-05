@@ -109,10 +109,10 @@ impl LoginProvider {
             .is_ok(),
         };
 
-        return if res {
+        if res {
             RegistrationResult::Success
         } else {
             RegistrationResult::DatabaseError
-        };
+        }
     }
 }

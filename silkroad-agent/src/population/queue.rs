@@ -93,14 +93,14 @@ impl LoginQueue {
             .expect("Reservation mutex should not be poisoned");
         Self::cleanup_registrations(&mut reservations);
 
-        return match reservations.iter().position(|reservation| reservation.token == token) {
+        match reservations.iter().position(|reservation| reservation.token == token) {
             Some(index) => {
                 let play_token = self.capacity.add_playing();
                 let reservation = reservations.remove(index);
                 Ok((play_token, reservation.content))
             },
             _ => Err(ReservationError::NoSuchToken),
-        };
+        }
     }
 
     fn cleanup_registrations(reservations: &mut Vec<Reservation<ServerUser>>) {

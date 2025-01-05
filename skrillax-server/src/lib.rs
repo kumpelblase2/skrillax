@@ -119,7 +119,7 @@ impl<I: InputProtocol + Send + 'static> Connection<I> {
                     match recv {
                         Ok(packet) => {
                             let to_send = inbound_sender.send(packet);
-                            if let Err(_) = to_send.await {
+                            if to_send.await.is_err() {
                                 return;
                             }
                         },
