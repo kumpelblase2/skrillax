@@ -7,7 +7,7 @@ use silkroad_protocol::combat::PerformAction;
 use silkroad_protocol::gm::GmCommand;
 use silkroad_protocol::inventory::InventoryOperation;
 use silkroad_protocol::movement::{MovementTarget, Rotation};
-use silkroad_protocol::skill::{LearnSkill, LevelUpMastery};
+use silkroad_protocol::skill::{HotbarItem, LearnSkill, LevelUpMastery};
 use silkroad_protocol::world::{TargetEntity, UnTargetEntity};
 use std::mem;
 
@@ -25,6 +25,7 @@ pub(crate) struct PlayerInput {
     pub mastery: Option<LevelUpMastery>,
     pub skill_add: Option<LearnSkill>,
     pub increase_stats: Vec<StatType>,
+    pub hotbar: Option<Vec<HotbarItem>>,
 }
 
 impl PlayerInput {

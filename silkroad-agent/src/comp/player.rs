@@ -6,7 +6,7 @@ use crate::comp::gold::GoldPouch;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::mastery::MasteryKnowledge;
 use crate::comp::pos::Position;
-use crate::comp::skill::SkillBook;
+use crate::comp::skill::{Hotbar, SkillBook};
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health, Mana};
 use crate::db::character::CharacterData;
@@ -96,6 +96,7 @@ pub(crate) struct PlayerBundle {
     masteries: MasteryKnowledge,
     skills: SkillBook,
     race: CharacterRace,
+    hotbar: Hotbar,
 }
 
 impl PlayerBundle {
@@ -107,6 +108,7 @@ impl PlayerBundle {
         agent: Agent,
         pos: Position,
         visibility: Visibility,
+        hotbar: Hotbar,
     ) -> Self {
         let stat_points = StatPoints::new(player.character.stats, player.character.stat_points);
         let level = player.character.level;
@@ -143,6 +145,7 @@ impl PlayerBundle {
             masteries: master_knowledge,
             skills,
             race,
+            hotbar,
         }
     }
 }

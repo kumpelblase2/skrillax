@@ -55,19 +55,6 @@ impl MasteryData {
 }
 
 #[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Debug)]
-pub struct HotkeyData {
-    pub slot: u8,
-    pub kind: u8,
-    pub data: u32,
-}
-
-impl HotkeyData {
-    pub fn new(slot: u8, kind: u8, data: u32) -> Self {
-        HotkeyData { slot, kind, data }
-    }
-}
-
-#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub struct SkillData {
     pub id: u32,
     pub enabled: bool,
@@ -79,9 +66,25 @@ impl SkillData {
     }
 }
 
+#[derive(Packet, Deserialize, Serialize, ByteSize, Debug, Clone)]
+#[packet(opcode = 0x7156)]
+pub struct HotbarUpdate {
+    pub size: u32, // not sure why this is needed?
+    pub content: Vec<HotbarItem>,
+}
+
+#[derive(Deserialize, Serialize, ByteSize, Debug, Clone)]
+pub struct HotbarItem {
+    pub slot: u8,
+    pub action_flag: u8,
+    // The meaning of the `action_data` changes depending on the above `action_flag`
+    pub action_data: u32,
+}
+
 define_inbound_protocol! { SkillClientProtocol =>
     LearnSkill,
-    LevelUpMastery
+    LevelUpMastery,
+    HotbarUpdate
 }
 
 define_outbound_protocol! { SkillServerProtocol =>

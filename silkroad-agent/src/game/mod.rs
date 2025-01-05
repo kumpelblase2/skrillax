@@ -5,7 +5,7 @@ use crate::comp::inventory::PlayerInventory;
 use crate::comp::mastery::MasteryKnowledge;
 use crate::comp::player::StatPoints;
 use crate::comp::pos::Position;
-use crate::comp::skill::SkillBook;
+use crate::comp::skill::{Hotbar, SkillBook};
 use crate::comp::{Health, Mana};
 use crate::event::{
     DamageReceiveEvent, EntityDeath, LoadingFinishedEvent, PlayerLevelUp, SpawnMonster, UniqueKilledEvent,
@@ -20,6 +20,7 @@ use crate::game::exp::{
     ReceiveExperienceEvent,
 };
 use crate::game::gold::drop_gold;
+use crate::game::hotbar::update_hotbar;
 use crate::game::inventory::handle_inventory_input;
 use crate::game::join::load_finished;
 use crate::game::logout::{handle_logout, tick_logout};
@@ -44,6 +45,7 @@ mod daylight;
 pub(crate) mod drop;
 pub(crate) mod exp;
 mod gold;
+mod hotbar;
 pub(crate) mod inventory;
 mod join;
 pub(crate) mod logout;
@@ -110,6 +112,7 @@ impl Plugin for GamePlugin {
                     unique_killed,
                     advance_daylight,
                     create_drops,
+                    update_hotbar,
                 ),
             )
             .track_change_component::<Position>()
@@ -123,6 +126,7 @@ impl Plugin for GamePlugin {
             .track_change_component::<MasteryKnowledge>()
             .track_component::<PlayerInventory>()
             .track_component::<SkillBook>()
+            .track_component::<Hotbar>()
             .add_systems(Last, clear_visibility);
     }
 }

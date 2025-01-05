@@ -61,6 +61,9 @@ pub(crate) fn receive_game_inputs(
                         AgentClientProtocol::SkillClientProtocol(SkillClientProtocol::LevelUpMastery(mastery)) => {
                             input.mastery = Some(mastery);
                         },
+                        AgentClientProtocol::SkillClientProtocol(SkillClientProtocol::HotbarUpdate(hotbar)) => {
+                            input.hotbar = Some(hotbar.content);
+                        },
                         AgentClientProtocol::StatClientProtocol(stat) => match stat {
                             StatClientProtocol::IncreaseStr(_) => input.increase_stats.push(StatType::STR),
                             StatClientProtocol::IncreaseInt(_) => input.increase_stats.push(StatType::INT),

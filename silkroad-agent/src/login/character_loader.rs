@@ -1,4 +1,6 @@
-use crate::db::character::{CharacterData, CharacterItem, CharacterMastery, CharacterSkill};
+use crate::db::character::{
+    CharacterData, CharacterHotbar, CharacterItem, CharacterMastery, CharacterSkill, HotbarEntry,
+};
 use itertools::Itertools;
 use sqlx::PgPool;
 use std::borrow::Borrow;
@@ -10,6 +12,7 @@ pub struct DbCharacter {
     pub(crate) items: Vec<CharacterItem>,
     pub(crate) masteries: Vec<CharacterMastery>,
     pub(crate) skills: Vec<CharacterSkill>,
+    pub(crate) hotbar: Vec<HotbarEntry>,
 }
 
 impl DbCharacter {
@@ -33,18 +36,26 @@ impl DbCharacter {
             .into_iter()
             .into_group_map_by(|s| s.character_id);
 
+        let mut hotbar_entries = CharacterHotbar::fetch_hotbar_entries(&character_ids, pool.borrow())
+            .await
+            .unwrap()
+            .into_iter()
+            .into_group_map_by(|e| e.character_id);
+
         let mut all_characters = Vec::new();
 
         for character in characters {
             let items = character_items.remove(&character.id).unwrap_or_default();
             let masteries = character_masteries.remove(&character.id).unwrap_or_default();
             let skills = character_skills.remove(&character.id).unwrap_or_default();
+            let hotbar = hotbar_entries.remove(&character.id).unwrap_or_default();
 
             all_characters.push(DbCharacter {
                 character_data: character,
                 items,
                 masteries,
                 skills,
+                hotbar,
             });
         }
 

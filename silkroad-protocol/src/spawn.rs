@@ -1,7 +1,7 @@
 use crate::community::GuildInformation;
 use crate::inventory::{BagContent, CharacterSpawnItemData};
 use crate::movement::{EntityMovementState, Position};
-use crate::skill::{HotkeyData, MasteryData, SkillData};
+use crate::skill::{HotbarItem, MasteryData, SkillData};
 use crate::world::{ActiveScroll, EntityState, InteractOptions, JobType, PlayerKillState, PvpCape};
 use chrono::{DateTime, Datelike, TimeZone, Timelike, Utc};
 use silkroad_definitions::rarity::EntityRarity;
@@ -172,7 +172,7 @@ pub struct CharacterSpawn {
     pub jid: u32,
     pub gm: bool,
     pub unknown_19: u32,
-    pub hotkeys: Vec<HotkeyData>,
+    pub hotkeys: Vec<HotbarItem>,
     pub unknown_20: u8,
     pub auto_hp: u16,
     pub auto_mp: u16,
@@ -227,7 +227,7 @@ impl CharacterSpawn {
         pvp_flag: u8,
         jid: u32,
         gm: bool,
-        hotkeys: Vec<HotkeyData>,
+        hotkeys: Vec<HotbarItem>,
         auto_hp: u16,
         auto_mp: u16,
         auto_pill: u16,

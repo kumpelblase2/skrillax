@@ -4,6 +4,7 @@ use crate::comp::inventory::PlayerInventory;
 use crate::comp::net::Client;
 use crate::comp::player::{Player, PlayerBundle};
 use crate::comp::pos::Position;
+use crate::comp::skill::Hotbar;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Playing};
 use crate::config::GameConfig;
@@ -33,7 +34,7 @@ use silkroad_protocol::inventory::{
     BagContent, InventoryItemBindingData, InventoryItemContentData, InventoryItemData, RentInfo,
 };
 use silkroad_protocol::login::UnknownLargePacket;
-use silkroad_protocol::skill::{MasteryData, SkillData};
+use silkroad_protocol::skill::{HotbarItem, MasteryData, SkillData};
 use silkroad_protocol::spawn::{CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, JobInformation};
 use silkroad_protocol::world::{ActionState, AliveState, BodyState, EntityState};
 use silkroad_protocol::SilkroadTime;
@@ -175,6 +176,13 @@ pub(crate) fn handle_join(
                     let mut player = Player::from_db_data(playing.0.clone(), &character.character_data);
                     let inventory = PlayerInventory::from_db(&character.items, 45);
                     let gold = GoldPouch::new(character.character_data.gold as u64);
+                    let hotbar = Hotbar::from_list(
+                        &character
+                            .hotbar
+                            .iter()
+                            .map(|e| (e.slot as u8, e.kind as u8, e.data as u32))
+                            .collect::<Vec<_>>(),
+                    );
 
                     player.character.masteries = character
                         .masteries
@@ -203,7 +211,15 @@ pub(crate) fn handle_join(
 
                     client.send(CharacterJoinResponse::success());
 
-                    send_spawn(client, &game_entity, &player, &inventory, &position, settings.max_level);
+                    send_spawn(
+                        client,
+                        &game_entity,
+                        &player,
+                        &inventory,
+                        &position,
+                        settings.max_level,
+                        &hotbar,
+                    );
 
                     client.send(MacroStatus::Possible(
                         MACRO_POTION, /*| MACRO_HUNT | MACRO_SKILL*/
@@ -222,6 +238,7 @@ pub(crate) fn handle_join(
                             agent,
                             position.clone(),
                             Visibility::with_radius(500.),
+                            hotbar,
                         ))
                         .remove::<CharacterSelect>()
                         .remove::<LoginInput>();
@@ -305,6 +322,7 @@ fn send_spawn(
     inventory: &PlayerInventory,
     position: &Position,
     max_level: u8,
+    hotbar: &Hotbar,
 ) {
     client.send(CharacterSpawnStart);
 
@@ -425,7 +443,14 @@ fn send_spawn(
         0xFF,
         player.user.id as u32,
         character_data.gm,
-        Vec::new(),
+        hotbar
+            .used_entries()
+            .map(|(slot, kind, data)| HotbarItem {
+                slot,
+                action_flag: kind,
+                action_data: data,
+            })
+            .collect(),
         0,
         1,
         1,
@@ -526,5 +551,6 @@ pub(crate) fn create_character_from(
         items,
         masteries: vec![],
         skills: vec![],
+        hotbar: vec![], // TODO fill with default actions
     }
 }

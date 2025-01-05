@@ -175,3 +175,28 @@ impl CharacterSkill {
         Ok(skills)
     }
 }
+
+#[derive(sqlx::FromRow, Copy, Clone)]
+pub struct HotbarEntry {
+    pub character_id: i32,
+    pub slot: i16,
+    pub kind: i16,
+    pub data: i32,
+}
+
+pub struct CharacterHotbar;
+impl CharacterHotbar {
+    pub async fn fetch_hotbar_entries<T: Borrow<PgPool>>(
+        character_ids: &[i32],
+        pool: T,
+    ) -> Result<Vec<HotbarEntry>, Error> {
+        let entries = sqlx::query_as!(
+            HotbarEntry,
+            "SELECT character_id, slot, kind, data FROM hotbar_entries WHERE character_id in (SELECT * FROM UNNEST($1::INTEGER[]))",
+            character_ids
+        )
+        .fetch_all(pool.borrow())
+        .await?;
+        Ok(entries)
+    }
+}
