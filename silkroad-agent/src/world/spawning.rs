@@ -57,7 +57,8 @@ pub(crate) fn spawn_npcs(
             ObjectType::Entity(ObjectEntity::NonPlayer(ObjectNonPlayer::Monster(
                 ObjectMonster::General
             )))
-        ) && character_data.rarity == EntityRarityType::Normal {
+        ) && character_data.rarity == EntityRarityType::Normal
+        {
             let pos = LocalPosition(spawn.region.into(), Vector3::new(spawn.x, spawn.y, spawn.z)).to_global();
             let position = Position::new(pos, Heading(0.0));
             commands.spawn((Spawner::new(&settings.spawner, character_data), position));

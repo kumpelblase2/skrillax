@@ -32,9 +32,7 @@ impl SkillBook {
             .required_skills
             .iter()
             .filter(|skill| skill.group != 0)
-            .all(|required_skill| {
-                self.skills.get(&required_skill.group).copied().unwrap_or(0) >= required_skill.level
-            })
+            .all(|required_skill| self.skills.get(&required_skill.group).copied().unwrap_or(0) >= required_skill.level)
     }
 }
 
