@@ -1,5 +1,5 @@
 use reqwest::Client;
-use silkroad_protocol::login::{Farm, Shard};
+use silkroad_gateway_protocol::{Farm, Shard};
 use silkroad_rpc::{ReserveRequest, ReserveResponse, ServerPopulation, ServerStatusReport};
 use sqlx::PgPool;
 use std::fmt::Display;

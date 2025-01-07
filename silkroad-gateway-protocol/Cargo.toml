@@ -1,0 +1,14 @@
+[package]
+name = "silkroad-gateway-protocol"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+skrillax-serde = { workspace = true, features = [
+    "derive",
+] }
+skrillax-packet = { workspace = true, features = [
+    "derive",
+] }
+silkroad-base-protocol = { path = "../silkroad-base-protocol" }
+chrono = "0.4.38"

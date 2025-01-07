@@ -5,11 +5,7 @@ use crate::protocol::GatewayClientProtocol;
 use crate::{AgentServerManager, NewsCacheAsync, Patcher};
 use chrono::{TimeZone, Utc};
 use color_eyre::Result;
-use silkroad_protocol::general::IdentityInformation;
-use silkroad_protocol::login::{
-    BlockReason, GatewayNotice, GatewayNoticeResponse, LoginResponse, PasscodeRequiredResponse, PasscodeResponse,
-    PatchError, PatchResponse, PingServer, PingServerResponse, SecurityCodeResponse, SecurityError, ShardListResponse,
-};
+use silkroad_gateway_protocol::*;
 use silkroad_rpc::ReserveResponse;
 use skrillax_server::Connection;
 use std::sync::Arc;
@@ -208,7 +204,7 @@ impl Client {
                     let port = server.port();
                     debug!("Got a spot at {ip}:{port}: {token}");
                     connection.send(LoginResponse {
-                        result: silkroad_protocol::login::LoginResult::Success {
+                        result: silkroad_gateway_protocol::LoginResult::Success {
                             session_id: token,
                             agent_ip: ip.to_string(),
                             agent_port: port,

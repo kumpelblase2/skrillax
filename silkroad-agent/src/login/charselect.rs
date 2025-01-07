@@ -25,7 +25,7 @@ use cgmath::Vector3;
 use chrono::{TimeZone, Utc};
 use silkroad_data::DataEntry;
 use silkroad_game_base::{Heading, ItemTypeData, LocalPosition};
-use silkroad_protocol::auth::{AuthResponse, AuthResult, AuthResultError};
+use silkroad_protocol::auth::{AuthResponse, AuthResult, AuthResultError, UnknownLargePacket};
 use silkroad_protocol::character::{
     CharacterJoinResponse, CharacterListAction, CharacterListContent, CharacterListError, CharacterListRequestAction,
     CharacterListResponse, CharacterListResult, MacroStatus, UnknownPacket, UnknownPacket2, MACRO_POTION,
@@ -33,7 +33,6 @@ use silkroad_protocol::character::{
 use silkroad_protocol::inventory::{
     BagContent, InventoryItemBindingData, InventoryItemContentData, InventoryItemData, RentInfo,
 };
-use silkroad_protocol::login::UnknownLargePacket;
 use silkroad_protocol::skill::{HotbarItem, MasteryData, SkillData};
 use silkroad_protocol::spawn::{CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, JobInformation};
 use silkroad_protocol::world::{ActionState, AliveState, BodyState, EntityState};

@@ -1,5 +1,4 @@
-use silkroad_protocol::general::*;
-use silkroad_protocol::login::*;
+use silkroad_gateway_protocol::*;
 use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
 
 define_inbound_protocol! { GatewayClientProtocol =>

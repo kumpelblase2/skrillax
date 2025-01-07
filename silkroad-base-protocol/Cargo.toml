@@ -1,0 +1,13 @@
+[package]
+name = "silkroad-base-protocol"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+skrillax-serde = { workspace = true, features = [
+    "derive",
+] }
+skrillax-packet = { workspace = true, features = [
+    "derive",
+] }
+skrillax-protocol.workspace = true

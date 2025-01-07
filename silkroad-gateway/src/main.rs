@@ -19,7 +19,7 @@ use crate::server::GatewayServer;
 use clap::Parser;
 use color_eyre::eyre::{eyre, Context};
 use color_eyre::Result;
-use silkroad_protocol::login::Farm;
+use silkroad_gateway_protocol::Farm;
 use sqlx::PgPool;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::time::Duration;

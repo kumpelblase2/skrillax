@@ -1,5 +1,5 @@
 use crate::config::PatchConfig;
-use silkroad_protocol::login::PatchFile;
+use silkroad_gateway_protocol::PatchFile;
 
 pub(crate) enum PatchInformation {
     UpToDate,

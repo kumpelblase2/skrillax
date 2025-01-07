@@ -4,10 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-byteorder = { workspace = true }
 chrono = { workspace = true }
-bytes = { workspace = true }
-thiserror = { workspace = true }
 silkroad-definitions = { path = "../silkroad-definitions", features = [
     "serde",
 ] }
@@ -18,3 +15,4 @@ skrillax-packet = { workspace = true, features = [
     "derive",
 ] }
 skrillax-protocol.workspace = true
+silkroad-base-protocol = { path = "../silkroad-base-protocol" }
