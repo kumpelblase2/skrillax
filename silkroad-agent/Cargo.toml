@@ -5,13 +5,13 @@ edition = "2021"
 
 [dependencies]
 tracing-subscriber.workspace = true
-silkroad-protocol = { path = "../silkroad-protocol" }
-silkroad-rpc = { path = "../silkroad-rpc" }
-silkroad-navmesh = { path = "../silkroad-navmesh", features = ["pk2"] }
-silkroad-data = { path = "../silkroad-data" }
-silkroad-game-base = { path = "../silkroad-game-base" }
-silkroad-definitions = { path = "../silkroad-definitions" }
-skrillax-server = { path = "../skrillax-server" }
+silkroad-protocol = { path = "../crates/silkroad-protocol" }
+silkroad-rpc = { path = "../crates/silkroad-rpc" }
+silkroad-navmesh = { path = "../crates/silkroad-navmesh", features = ["pk2"] }
+silkroad-data = { path = "../crates/silkroad-data" }
+silkroad-game-base = { path = "../crates/silkroad-game-base" }
+silkroad-definitions = { path = "../crates/silkroad-definitions" }
+skrillax-server = { path = "../crates/skrillax-server" }
 skrillax-protocol.workspace = true
 skrillax-stream.workspace = true
 tokio.workspace = true

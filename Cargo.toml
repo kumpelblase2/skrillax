@@ -1,16 +1,8 @@
 [workspace]
 members = [
-    "silkroad-protocol",
     "silkroad-gateway",
-    "silkroad-rpc",
     "silkroad-agent",
-    "silkroad-navmesh",
-    "silkroad-data",
-    "silkroad-game-base",
-    "silkroad-definitions",
-    "skrillax-server",
-    "silkroad-gateway-protocol",
-    "silkroad-base-protocol",
+    "crates/*",
 ]
 resolver = "2"
 

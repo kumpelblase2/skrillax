@@ -8,7 +8,8 @@ somewhat working program at the end of the day would help with motivation.
 
 This project is organized in a few subprojects, each having their own individual goal:
 
-- [silkroad-protocol](silkroad-protocol/README.md): Packet specification that is used for communicating with the client
+- [silkroad-protocol](crates/silkroad-protocol/README.md): Packet specification that is used for communicating with the
+  client
 - silkroad-rpc: Shared types for RPC between servers
 - silkroad-navmesh: Navigation Mesh implementation, loading from official data files
 - [silkroad-gateway](silkroad-gateway/README.md): Loginserver implementation
