@@ -1,6 +1,7 @@
 use crate::comp::monster::Monster;
 use crate::comp::pos::Position;
 use crate::comp::GameEntity;
+use crate::config::get_config;
 use crate::event::EntityDeath;
 use crate::game::drop::SpawnDrop;
 use crate::world::WorldData;
@@ -31,6 +32,7 @@ pub(crate) fn drop_gold(
 ) {
     let characters = WorldData::characters();
     let gold = WorldData::gold();
+    let config = get_config();
     for event in death_events.read() {
         if let Ok((game_entity, pos)) = query.get(event.died.0) {
             let Some(monster_data) = characters.find_id(game_entity.ref_id) else {
@@ -40,6 +42,7 @@ pub(crate) fn drop_gold(
             let monster_level = monster_data.level;
             let gold_range = gold.get_for_level(monster_level);
             let amount = thread_rng().gen_range(gold_range);
+            let amount = (config.game.drop.gold * amount as f32).floor() as u32;
             drop_events.send(SpawnDrop {
                 item: Item {
                     reference: get_gold_ref_id(amount),

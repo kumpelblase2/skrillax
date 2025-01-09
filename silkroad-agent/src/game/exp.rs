@@ -1,11 +1,13 @@
 use crate::comp::damage::DamageReceiver;
 use crate::comp::exp::{Experienced, Leveled, SP};
-use crate::comp::player::StatPoints;
+use crate::comp::player::{Player, StatPoints};
 use crate::comp::pos::Position;
 use crate::comp::{EntityReference, GameEntity, Health, Mana};
+use crate::config::get_config;
 use crate::event::EntityDeath;
 use crate::world::{EntityLookup, WorldData};
 use bevy_ecs::prelude::*;
+use silkroad_data::characterdata::RefCharacterData;
 use tracing::warn;
 
 const EXP_RECEIVE_RANGE_SQUARED: f32 = 1000.0 * 1000.0;
@@ -18,20 +20,33 @@ pub struct ReceiveExperienceEvent {
     pub sp: u64,
 }
 
+// The following two calculation functions are clearly wrong, but should do for now.
+fn calculate_exp(monster: &RefCharacterData, _player: &Player) -> u64 {
+    24u64 * monster.level as u64
+}
+
+fn calculate_sexp(monster: &RefCharacterData, _player: &Player) -> u64 {
+    105u64 * monster.level as u64
+}
+
 pub(crate) fn distribute_experience(
     mut death_events: EventReader<EntityDeath>,
     mut experience_writer: EventWriter<ReceiveExperienceEvent>,
     dead_query: Query<(&DamageReceiver, &Position)>,
     lookup: Res<EntityLookup>,
-    receiver_query: Query<(&GameEntity, &Position)>,
+    receiver_query: Query<(&GameEntity, &Position, &Player)>,
 ) {
+    let characters = WorldData::characters();
+    let config = get_config();
     for event in death_events.read() {
         let Ok((damage_distribution, death_location)) = dead_query.get(event.died.0) else {
             continue;
         };
 
+        let monster_data = characters.find_id(event.died.1.ref_id).unwrap();
+
         for attacker_id in damage_distribution.all_attackers() {
-            if let Some(((game_entity, position), target_entity)) = lookup
+            if let Some(((game_entity, position, player), target_entity)) = lookup
                 .get_entity_for_id(attacker_id)
                 .and_then(|entity| receiver_query.get(entity).ok().zip(Some(entity)))
             {
@@ -39,8 +54,8 @@ pub(crate) fn distribute_experience(
                     let event = ReceiveExperienceEvent {
                         source: Some(event.died),
                         target: EntityReference(target_entity, *game_entity),
-                        exp: 100,
-                        sp: 100,
+                        exp: (calculate_exp(monster_data, player) as f32 * config.game.drop.experience) as u64,
+                        sp: (calculate_sexp(monster_data, player) as f32 * config.game.drop.sp_experience) as u64,
                     };
                     experience_writer.send(event);
                 }

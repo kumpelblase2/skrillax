@@ -51,6 +51,7 @@ pub(crate) struct GameConfig {
     pub(crate) max_follow_distance: f32,
     pub(crate) masteries: MasteryConfig,
     pub(crate) persist_interval: u64,
+    pub(crate) drop: DropConfig,
 }
 
 #[derive(Deserialize, Default, Clone)]
@@ -80,6 +81,14 @@ pub(crate) struct UniqueSpawnOptions {
 pub(crate) struct MasteryConfig {
     pub(crate) european_per_level: u16,
     pub(crate) chinese_per_level: u16,
+}
+
+#[derive(Deserialize, Default, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) struct DropConfig {
+    pub(crate) gold: f32,
+    pub(crate) experience: f32,
+    pub(crate) sp_experience: f32,
 }
 
 #[derive(Deserialize)]
