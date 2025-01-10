@@ -24,6 +24,7 @@ use silkroad_protocol::world::{
 };
 use skrillax_stream::packet::{AsPacket, OutgoingPacket};
 use std::sync::{mpsc, Mutex};
+use system::{collect_movement_starts, collect_movement_transitions};
 
 mod reset;
 mod system;
@@ -159,7 +160,9 @@ impl Plugin for SynchronizationPlugin {
                     system_collect_exp_update,
                     system_collect_level_up,
                     collect_movement_update,
+                    collect_movement_transitions,
                     collect_movement_speed_change,
+                    collect_movement_starts,
                     collect_pickup_animation,
                     collect_deaths,
                     collect_alives,

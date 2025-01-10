@@ -1,5 +1,5 @@
-use crate::agent::states::{Dead, Idle, MovementGoal, Moving, Pickup};
-use crate::agent::MovementState;
+use crate::agent::component::MovementState;
+use crate::agent::state::{AgentState, Dead, Idle, MovementTarget, Moving, PickingUp, StateTransitionEvent};
 use crate::comp::damage::Invincible;
 use crate::comp::exp::{Experienced, Leveled, SP};
 use crate::comp::gold::GoldPouch;
@@ -182,47 +182,59 @@ pub(crate) fn system_collect_level_up(
     }
 }
 
+pub(crate) fn collect_movement_transitions(
+    mut state_events: EventReader<StateTransitionEvent>,
+    collector: Res<SynchronizationCollector>,
+    query: Query<(&GameEntity, &Position)>,
+) {
+    for event in state_events.read() {
+        let Ok((game_entity, pos)) = query.get(event.entity) else {
+            continue;
+        };
+
+        if matches!(event.from, AgentState::Moving(_)) && !matches!(event.to, AgentState::Moving(_)) {
+            let update = create_movement_packet(
+                game_entity,
+                MovementUpdate::StopMove(pos.position().to_local(), pos.rotation()),
+            );
+            collector.send_update(Update::update_all(event.entity, update));
+        }
+    }
+}
+
+pub(crate) fn collect_movement_starts(
+    collector: Res<SynchronizationCollector>,
+    mut query: Query<(Entity, &GameEntity, &Position, &Moving), Or<(Added<Moving>, Changed<Moving>)>>,
+) {
+    for (entity, game_entity, pos, moving) in query.iter_mut() {
+        let update = match moving.parameter {
+            MovementTarget::Location(dest) => MovementUpdate::StartMove(pos.position().to_local(), dest.to_local()),
+            MovementTarget::Direction(direction) => {
+                MovementUpdate::StartMoveTowards(pos.position().to_local(), direction)
+            },
+        };
+        let update = create_movement_packet(game_entity, update);
+        collector.send_update(Update::update_all(entity, update));
+    }
+}
+
 pub(crate) fn collect_movement_update(
     collector: Res<SynchronizationCollector>,
-    mut query: Query<
-        (Entity, &GameEntity, &Position, Option<Ref<Moving>>, Option<Ref<Idle>>),
-        Or<(Changed<Position>, Added<Moving>, Added<Idle>)>,
-    >,
+    mut query: Query<(Entity, &GameEntity, &Position), (Changed<Position>, With<Idle>)>,
 ) {
-    for (entity, game_entity, pos, is_moving, is_idle) in query.iter_mut() {
-        let update = match (is_moving, is_idle) {
-            (Some(moving), None) => {
-                if !moving.is_added() && !moving.is_changed() {
-                    continue;
-                }
-
-                match moving.0 {
-                    MovementGoal::Location(dest) | MovementGoal::Entity(_, dest, _) => {
-                        MovementUpdate::StartMove(pos.position().to_local(), dest.to_local())
-                    },
-                    MovementGoal::Direction(direction) => {
-                        MovementUpdate::StartMoveTowards(pos.position().to_local(), direction)
-                    },
-                }
-            },
-            (None, Some(idle)) if idle.is_added() => {
-                MovementUpdate::StopMove(pos.position().to_local(), pos.rotation())
-            },
-            _ => {
-                if pos.did_move() {
-                    // We probably teleported or something else messed up us.
-                    let packet = EntityMovementInterrupt {
-                        entity_id: game_entity.unique_id,
-                        position: pos.as_protocol(),
-                    };
-                    collector.send_update(Update::update_all(entity, packet));
-                    continue;
-                } else if pos.did_rotate() {
-                    MovementUpdate::Turn(pos.rotation())
-                } else {
-                    continue;
-                }
-            },
+    for (entity, game_entity, pos) in query.iter_mut() {
+        let update = if pos.did_move() {
+            // We probably teleported or something else messed up us.
+            let packet = EntityMovementInterrupt {
+                entity_id: game_entity.unique_id,
+                position: pos.as_protocol(),
+            };
+            collector.send_update(Update::update_all(entity, packet));
+            continue;
+        } else if pos.did_rotate() {
+            MovementUpdate::Turn(pos.rotation())
+        } else {
+            continue;
         };
 
         let packet = create_movement_packet(game_entity, update);
@@ -305,10 +317,10 @@ pub(crate) fn collect_movement_speed_change(
 
 pub(crate) fn collect_pickup_animation(
     collector: Res<SynchronizationCollector>,
-    query: Query<(Entity, &GameEntity, &Position, &Pickup), Or<(Added<Pickup>, Changed<Pickup>)>>,
+    query: Query<(Entity, &GameEntity, &Position, &PickingUp), Or<(Added<PickingUp>, Changed<PickingUp>)>>,
 ) {
     for (entity, game_entity, pos, pickup) in query.iter() {
-        if let Some(cooldown) = &pickup.1 {
+        if let Some(cooldown) = &pickup.cooldown {
             // Maybe we could do better instead of relying on this being zero?
             if cooldown.elapsed().is_zero() {
                 let update = PlayerPickupAnimation {

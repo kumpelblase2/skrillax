@@ -1,11 +1,11 @@
-use crate::agent::states::{Dead, StateTransitionQueue};
+use crate::agent::goal::AgentGoal;
+use crate::agent::state::{AgentState, AgentStateQueue, Dead, TransitionPriority};
 use crate::comp::damage::{DamageReceiver, Invincible};
 use crate::comp::monster::Monster;
 use crate::comp::net::Client;
 use crate::comp::player::Player;
-use crate::comp::{GameEntity, Health};
+use crate::comp::{Despawn, GameEntity, Health};
 use crate::event::{DamageReceiveEvent, EntityDeath};
-use crate::game::mind::Mind;
 use bevy_ecs::prelude::*;
 use silkroad_protocol::combat::{
     ActionType, DamageContent, DamageKind, DamageValue, PerEntityDamage, PerformActionError, PerformActionUpdate,
@@ -16,7 +16,7 @@ pub(crate) fn handle_damage(
     mut reader: EventReader<DamageReceiveEvent>,
     mut receiver_query: Query<(
         &mut Health,
-        &mut StateTransitionQueue,
+        &mut AgentStateQueue,
         &mut DamageReceiver,
         Option<&Player>,
         Option<&Client>,
@@ -92,22 +92,26 @@ pub(crate) fn handle_damage(
                 died: damage_event.target,
                 killer: Some(damage_event.source),
             });
-            let dead_state = if player.is_some() {
-                Dead::new_player()
-            } else {
-                Dead::new_monster()
-            };
-            controller.request_transition(dead_state);
+            controller.force_push(AgentState::Dead, TransitionPriority::Forced);
         }
     }
 }
 
-pub(crate) fn attack_player(mut query: Query<&mut Mind, With<Monster>>, mut events: EventReader<DamageReceiveEvent>) {
+pub(crate) fn attack_player(
+    mut query: Query<&mut AgentGoal, With<Monster>>,
+    mut events: EventReader<DamageReceiveEvent>,
+) {
     for event in events.read() {
-        if let Ok(mut mind) = query.get_mut(event.target.0) {
-            if !mind.has_goal() {
-                mind.attack(event.source)
+        if let Ok(mut goal) = query.get_mut(event.target.0) {
+            if goal.is_none() {
+                *goal = AgentGoal::attacking(event.source.0)
             }
         }
+    }
+}
+
+pub(crate) fn handle_monster_death(query: Query<Entity, (Added<Dead>, With<Monster>)>, mut cmd: Commands) {
+    for entity in query.iter() {
+        cmd.entity(entity).insert(Despawn::despawn_after_seconds(5));
     }
 }

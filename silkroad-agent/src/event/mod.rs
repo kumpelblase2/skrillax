@@ -22,7 +22,7 @@ pub(crate) struct UniqueKilledEvent {
     pub unique: GameEntity,
 }
 
-pub(crate) struct AttackDefinition {
+pub(crate) struct SkillDefinition {
     pub skill: &'static RefSkillData,
     pub instance: u32,
 }
@@ -31,7 +31,7 @@ pub(crate) struct AttackDefinition {
 pub(crate) struct DamageReceiveEvent {
     pub source: EntityReference,
     pub target: EntityReference,
-    pub attack: AttackDefinition,
+    pub attack: SkillDefinition,
     pub amount: u32,
 }
 

@@ -1,4 +1,4 @@
-use crate::agent::Agent;
+use crate::agent::component::Agent;
 use crate::comp::drop::Drop;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::monster::Monster;

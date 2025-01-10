@@ -1,19 +1,12 @@
-use crate::comp::drop::Drop;
+use crate::agent::goal::AgentGoal;
 use crate::comp::net::Client;
-use crate::comp::{EntityReference, GameEntity};
-use crate::game::mind::Mind;
 use crate::input::PlayerInput;
 use crate::world::{EntityLookup, WorldData};
 use bevy_ecs::prelude::*;
 use silkroad_protocol::combat::{ActionTarget, DoActionType, PerformAction, PerformActionError, PerformActionResponse};
 use tracing::warn;
 
-pub(crate) fn handle_action(
-    mut query: Query<(&Client, &PlayerInput, &mut Mind)>,
-    lookup: Res<EntityLookup>,
-    target_query: Query<&GameEntity>,
-    pickup_query: Query<&GameEntity, With<Drop>>,
-) {
+pub(crate) fn handle_action(mut query: Query<(&Client, &PlayerInput, &mut AgentGoal)>, lookup: Res<EntityLookup>) {
     for (client, input, mut mind) in query.iter_mut() {
         let Some(ref action) = input.action else {
             continue;
@@ -28,12 +21,8 @@ pub(crate) fn handle_action(
                             continue;
                         };
 
-                        let Ok(found_target) = target_query.get(target) else {
-                            client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
-                            continue;
-                        };
-
-                        mind.attack(EntityReference(target, *found_target))
+                        // TODO: this should send a success
+                        *mind = AgentGoal::attacking(target);
                     },
                     _ => continue,
                 },
@@ -44,12 +33,7 @@ pub(crate) fn handle_action(
                             continue;
                         };
 
-                        let Ok(game_entity) = pickup_query.get(target) else {
-                            client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
-                            continue;
-                        };
-
-                        mind.pickup(EntityReference(target, *game_entity));
+                        *mind = AgentGoal::picking_up(target);
                     },
                     _ => continue,
                 },
@@ -60,17 +44,13 @@ pub(crate) fn handle_action(
                             continue;
                         };
 
-                        let Ok(found_target) = target_query.get(target) else {
-                            client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
-                            continue;
-                        };
-
                         let Some(skill) = WorldData::skills().find_id(*ref_id) else {
                             client.send(PerformActionResponse::Stop(PerformActionError::NotLearned));
                             continue;
                         };
 
-                        mind.attack_with(EntityReference(target, *found_target), skill)
+                        // TODO: this should send a success
+                        *mind = AgentGoal::attacking_with(target, skill);
                     },
                     _ => {
                         warn!("Tried to use a skill on unsupported target.")
@@ -78,7 +58,9 @@ pub(crate) fn handle_action(
                 },
                 DoActionType::CancelBuff { .. } => {},
             },
-            PerformAction::Stop => mind.cancel(),
+            PerformAction::Stop => {
+                *mind = AgentGoal::None;
+            },
         }
     }
 }

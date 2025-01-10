@@ -1,5 +1,6 @@
-use crate::agent::states::{Dead, StateTransitionQueue};
-use crate::agent::{Agent, MovementState};
+use crate::agent::component::{Agent, MovementState};
+use crate::agent::goal::AgentGoal;
+use crate::agent::state::{AgentStateQueue, Dead};
 use crate::comp::damage::DamageReceiver;
 use crate::comp::monster::{Monster, MonsterAiBundle, MonsterBundle, RandomStroll, SpawnedBy};
 use crate::comp::npc::NpcBundle;
@@ -9,7 +10,6 @@ use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use crate::config::GameConfig;
 use crate::ext::{EntityIdPool, Navmesh, NpcPositionList};
-use crate::game::mind::Mind;
 use crate::game::player_activity::PlayerActivity;
 use crate::world::WorldData;
 use bevy_ecs::prelude::*;
@@ -212,14 +212,14 @@ fn spawn_monster(
         visibility: Visibility::with_radius(100.0),
         spawner: SpawnedBy::Spawner(spawner),
         navigation: Agent::default(),
-        state_queue: StateTransitionQueue::default(),
+        state_queue: AgentStateQueue::default(),
         movement_state: MovementState::default_monster(),
         damage_receiver: DamageReceiver::default(),
     };
 
     let ai_bundle = MonsterAiBundle {
         stroll: RandomStroll::new(spawn_center, 100.0, Duration::from_secs(2)),
-        mind: Mind::default(),
+        goal: AgentGoal::default(),
     };
 
     cmd.spawn((bundle, ai_bundle));

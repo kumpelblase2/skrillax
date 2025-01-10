@@ -1,5 +1,6 @@
-use crate::agent::states::StateTransitionQueue;
-use crate::agent::{Agent, MovementState};
+use crate::agent::component::{Agent, MovementState};
+use crate::agent::goal::AgentGoal;
+use crate::agent::state::AgentStateQueue;
 use crate::comp::damage::DamageReceiver;
 use crate::comp::monster::{Monster, MonsterAiBundle, MonsterBundle, RandomStroll, SpawnedBy};
 use crate::comp::pos::Position;
@@ -7,7 +8,6 @@ use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use crate::event::SpawnMonster;
 use crate::ext::{EntityIdPool, Navmesh};
-use crate::game::mind::Mind;
 use crate::world::WorldData;
 use bevy_ecs::change_detection::{Res, ResMut};
 use bevy_ecs::event::EventReader;
@@ -52,7 +52,7 @@ pub(crate) fn do_spawn_mobs(
             visibility: Visibility::with_radius(100.),
             spawner: event.spawner.unwrap_or(SpawnedBy::None),
             navigation: Agent::from_character_data(character_def),
-            state_queue: StateTransitionQueue::default(),
+            state_queue: AgentStateQueue::default(),
             movement_state: MovementState::default_monster(),
             damage_receiver: DamageReceiver::default(),
         });
@@ -60,7 +60,7 @@ pub(crate) fn do_spawn_mobs(
         if event.with_ai {
             spawning.insert(MonsterAiBundle {
                 stroll: RandomStroll::new(position.to_location(), 100., Duration::from_secs(1)),
-                mind: Mind::default(),
+                goal: AgentGoal::default(),
             });
         }
     }

@@ -1,4 +1,4 @@
-use crate::agent::Agent;
+use crate::agent::component::Agent;
 use crate::comp::pos::Position;
 use crate::comp::GameEntity;
 use bevy_ecs::prelude::*;

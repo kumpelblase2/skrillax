@@ -1,4 +1,4 @@
-use crate::agent::Agent;
+use crate::agent::component::Agent;
 use crate::comp::net::Client;
 use crate::comp::player::{Player, StatPoints};
 use crate::comp::pos::Position;
@@ -159,8 +159,6 @@ fn parse_commands(mut incoming: EventReader<IncomingCommand>, mut cmds: Commands
                 continue;
             },
         };
-
-        info!("Usage: {:?}", SilkroadCommand::usage());
 
         let help_requested = cmd.help_requested();
         let Some(inner) = cmd.inner else {

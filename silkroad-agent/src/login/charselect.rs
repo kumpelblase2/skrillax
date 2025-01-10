@@ -1,4 +1,4 @@
-use crate::agent::Agent;
+use crate::agent::component::Agent;
 use crate::comp::gold::GoldPouch;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::net::Client;

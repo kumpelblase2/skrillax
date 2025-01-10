@@ -1,10 +1,10 @@
-use crate::agent::states::StateTransitionQueue;
-use crate::agent::{Agent, MovementState};
+use crate::agent::component::{Agent, MovementState};
+use crate::agent::goal::AgentGoal;
+use crate::agent::state::AgentStateQueue;
 use crate::comp::damage::DamageReceiver;
 use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
-use crate::game::mind::Mind;
 use bevy_ecs::prelude::*;
 use bevy_time::{Timer, TimerMode};
 use silkroad_definitions::rarity::EntityRarity;
@@ -34,7 +34,7 @@ pub struct MonsterBundle {
     pub(crate) visibility: Visibility,
     pub(crate) spawner: SpawnedBy,
     pub(crate) navigation: Agent,
-    pub(crate) state_queue: StateTransitionQueue,
+    pub(crate) state_queue: AgentStateQueue,
     pub(crate) movement_state: MovementState,
     pub(crate) damage_receiver: DamageReceiver,
 }
@@ -42,7 +42,7 @@ pub struct MonsterBundle {
 #[derive(Bundle)]
 pub struct MonsterAiBundle {
     pub(crate) stroll: RandomStroll,
-    pub(crate) mind: Mind,
+    pub(crate) goal: AgentGoal,
 }
 
 #[derive(Component)]

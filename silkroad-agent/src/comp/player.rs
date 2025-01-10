@@ -1,5 +1,6 @@
-use crate::agent::states::StateTransitionQueue;
-use crate::agent::{Agent, MovementState};
+use crate::agent::component::{Agent, MovementState};
+use crate::agent::goal::AgentGoal;
+use crate::agent::state::AgentStateQueue;
 use crate::comp::damage::DamageReceiver;
 use crate::comp::exp::{Experienced, Leveled, SP};
 use crate::comp::gold::GoldPouch;
@@ -11,7 +12,6 @@ use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health, Mana};
 use crate::db::character::CharacterData;
 use crate::db::user::ServerUser;
-use crate::game::mind::Mind;
 use crate::input::PlayerInput;
 use crate::persistence::Persistable;
 use crate::sync::Reset;
@@ -82,7 +82,7 @@ pub(crate) struct PlayerBundle {
     buff: Buffed,
     visibility: Visibility,
     input: PlayerInput,
-    state_queue: StateTransitionQueue,
+    state_queue: AgentStateQueue,
     speed: MovementState,
     damage_receiver: DamageReceiver,
     health: Health,
@@ -90,7 +90,7 @@ pub(crate) struct PlayerBundle {
     level: Leveled,
     sp: SP,
     exp: Experienced,
-    mind: Mind,
+    goal: AgentGoal,
     persistence: Persistable,
     stat_points: StatPoints,
     masteries: MasteryKnowledge,
@@ -139,7 +139,7 @@ impl PlayerBundle {
             sp: SP::new(sp),
             level: Leveled::new(level, max_level),
             exp: Experienced::new(exp, sp_exp as u64),
-            mind: Mind::default(),
+            goal: AgentGoal::default(),
             persistence: Persistable,
             stat_points,
             masteries: master_knowledge,

@@ -8,7 +8,7 @@ use std::ops::{Add, Deref};
 #[derive(Copy, Clone)]
 pub struct LocalLocation(pub Region, pub Vector2<f32>);
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct GlobalLocation(pub Vector2<f32>);
 
 impl Add<Vector2<f32>> for GlobalLocation {
@@ -44,6 +44,10 @@ impl LocalLocation {
         let global_x = self.1.x + (self.0.x() as f32 * 1920.);
         let global_z = self.1.y + (self.0.y() as f32 * 1920.);
         GlobalLocation(Vector2::new(global_x, global_z))
+    }
+
+    pub fn with_y(&self, y: f32) -> LocalPosition {
+        LocalPosition(self.0, Vector3::new(self.1.x, y, self.1.y))
     }
 }
 
@@ -109,7 +113,7 @@ impl LocalPosition {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct GlobalPosition(pub Vector3<f32>);
 
 impl Deref for GlobalPosition {
@@ -173,8 +177,14 @@ impl From<LocalPosition> for GlobalPosition {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct Heading(pub f32);
+
+impl Heading {
+    pub fn difference(&self, other: &Heading) -> f32 {
+        (other.0 - self.0).abs()
+    }
+}
 
 impl From<u16> for Heading {
     fn from(heading: u16) -> Self {

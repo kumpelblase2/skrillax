@@ -12,7 +12,7 @@ use crate::event::{
 };
 use crate::ext::ActionIdCounter;
 use crate::game::action::handle_action;
-use crate::game::damage::{attack_player, handle_damage};
+use crate::game::damage::{attack_player, handle_damage, handle_monster_death};
 use crate::game::daylight::{advance_daylight, DaylightCycle};
 use crate::game::drop::{create_drops, tick_drop, SpawnDrop};
 use crate::game::exp::{
@@ -25,7 +25,6 @@ use crate::game::inventory::handle_inventory_input;
 use crate::game::join::load_finished;
 use crate::game::logout::{handle_logout, tick_logout};
 use crate::game::mastery::{handle_mastery_levelup, learn_skill};
-use crate::game::mind::MindPlugin;
 use crate::game::movement::movement_monster;
 use crate::game::player_activity::{update_player_activity, PlayerActivity};
 use crate::game::spawn::do_spawn_mobs;
@@ -50,7 +49,6 @@ pub(crate) mod inventory;
 mod join;
 pub(crate) mod logout;
 mod mastery;
-pub(crate) mod mind;
 mod movement;
 pub(crate) mod player_activity;
 mod spawn;
@@ -64,7 +62,6 @@ pub(crate) struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(ChatPlugin)
-            .add_plugins(MindPlugin)
             .insert_resource(PlayerActivity::default())
             .insert_resource(DaylightCycle::official())
             .insert_resource(ActionIdCounter::default())
@@ -91,16 +88,22 @@ impl Plugin for GamePlugin {
                     tick_logout,
                     player_update_target,
                     deselect_despawned,
-                    handle_damage,
                     attack_player,
+                    handle_mastery_levelup,
+                    learn_skill,
+                    do_spawn_mobs,
+                ),
+            )
+            .add_systems(
+                Update,
+                (
+                    handle_damage,
+                    handle_monster_death.after(handle_damage),
                     distribute_experience.after(handle_damage),
                     drop_gold.after(handle_damage),
                     receive_experience.after(distribute_experience),
                     reset_health_mana_on_level.after(receive_experience),
                     update_max_hp_mp_on_stat_change.after(increase_stats),
-                    handle_mastery_levelup,
-                    learn_skill,
-                    do_spawn_mobs,
                 ),
             )
             .add_systems(
