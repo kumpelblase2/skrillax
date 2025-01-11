@@ -177,14 +177,30 @@ impl StatPoints {
     }
 
     pub(crate) fn spend_str(&mut self) {
-        self.stats.increase_strength(1);
-        self.remaining_points -= 1;
+        self.spend_str_points(1);
+    }
+
+    pub(crate) fn spend_str_points(&mut self, points: u16) {
+        if self.remaining_points < points {
+            return;
+        }
+
+        self.stats.increase_strength(points);
+        self.remaining_points -= points;
         self.has_spent_points = true;
     }
 
     pub(crate) fn spend_int(&mut self) {
-        self.stats.increase_intelligence(1);
-        self.remaining_points -= 1;
+        self.spend_int_points(1);
+    }
+
+    pub(crate) fn spend_int_points(&mut self, points: u16) {
+        if self.remaining_points < points {
+            return;
+        }
+
+        self.stats.increase_intelligence(points);
+        self.remaining_points -= points;
         self.has_spent_points = true;
     }
 

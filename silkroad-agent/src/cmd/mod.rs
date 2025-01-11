@@ -246,8 +246,12 @@ fn output_results(mut results: EventReader<CommandResult>, sender_query: Query<&
     }
 }
 
-#[derive(Options, Debug, PartialEq)]
+#[derive(Options, Debug, PartialEq, Copy, Clone)]
 struct AddStatPoints {
+    #[options(short = "s")]
+    str: bool,
+    #[options(short = "i")]
+    int: bool,
     #[options(free)]
     amount: u16,
 }
@@ -267,7 +271,19 @@ fn handle_stat_points(
         };
 
         if let Ok(mut stats) = player_query.get_mut(player) {
-            stats.gain_points(add_stats.args.amount);
+            let args = add_stats.args;
+            if !args.str && !args.int {
+                stats.gain_points(args.amount);
+            } else {
+                if args.str {
+                    stats.gain_points(args.amount);
+                    stats.spend_str_points(args.amount);
+                }
+                if args.int {
+                    stats.gain_points(args.amount);
+                    stats.spend_int_points(args.amount);
+                }
+            }
         } else {
             results.send(CommandResult {
                 receiver: add_stats.sender,
