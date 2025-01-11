@@ -493,7 +493,7 @@ pub enum GameGuideResponse {
 }
 
 #[derive(Deserialize, Serialize, ByteSize, Copy, Clone, Packet, Debug)]
-#[packet(opcode = 0x7051)]
+#[packet(opcode = 0x7050)]
 pub struct IncreaseStr;
 
 #[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
