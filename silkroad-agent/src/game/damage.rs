@@ -112,6 +112,6 @@ pub(crate) fn attack_player(
 
 pub(crate) fn handle_monster_death(query: Query<Entity, (Added<Dead>, With<Monster>)>, mut cmd: Commands) {
     for entity in query.iter() {
-        cmd.entity(entity).insert(Despawn::despawn_after_seconds(5));
+        cmd.entity(entity).try_insert(Despawn::despawn_after_seconds(5));
     }
 }

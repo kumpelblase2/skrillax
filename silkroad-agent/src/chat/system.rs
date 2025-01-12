@@ -177,11 +177,11 @@ pub(crate) fn handle_gm_commands(
                     client.send(GmResponse::success_message(format!("Dropped 1 of {}", item.common.id)));
                 },
                 GmCommand::Invincible => {
-                    commands.entity(entity).insert(Invincible::from_command());
+                    commands.entity(entity).try_insert(Invincible::from_command());
                     client.send(GmResponse::success_message("Enabled invincibility".to_string()));
                 },
                 GmCommand::Invisible => {
-                    commands.entity(entity).insert(Invisible::from_command());
+                    commands.entity(entity).try_insert(Invisible::from_command());
                     client.send(GmResponse::success_message("Enabled invisibility".to_string()));
                 },
                 _ => {},

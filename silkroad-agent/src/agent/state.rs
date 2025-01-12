@@ -298,13 +298,13 @@ impl AgentState {
 
     fn apply_to<'a, 'b>(&self, commands: &'a mut EntityCommands<'b>) -> &'a mut EntityCommands<'b> {
         match self {
-            AgentState::Idle => commands.insert(Idle),
-            AgentState::PerformSkill(args) => commands.insert(PerformingSkill::new(*args)),
-            AgentState::Moving(args) => commands.insert(Moving::new(*args)),
-            AgentState::Sitting => commands.insert(Sitting),
-            AgentState::PerformingAction(args) => commands.insert(PerformingAction::new(*args)),
-            AgentState::PickingUp(args) => commands.insert(PickingUp::new(*args)),
-            AgentState::Dead => commands.insert(Dead),
+            AgentState::Idle => commands.try_insert(Idle),
+            AgentState::PerformSkill(args) => commands.try_insert(PerformingSkill::new(*args)),
+            AgentState::Moving(args) => commands.try_insert(Moving::new(*args)),
+            AgentState::Sitting => commands.try_insert(Sitting),
+            AgentState::PerformingAction(args) => commands.try_insert(PerformingAction::new(*args)),
+            AgentState::PickingUp(args) => commands.try_insert(PickingUp::new(*args)),
+            AgentState::Dead => commands.try_insert(Dead),
         }
     }
 
@@ -360,7 +360,7 @@ pub(crate) fn run_transitions(
                     (_, _, _, _, _, Some(action), _) => action.as_state(),
                     (_, _, _, _, _, _, Some(pickup)) => pickup.as_state(),
                     _ => {
-                        commands.entity(entity).insert(Idle);
+                        commands.entity(entity).try_insert(Idle);
                         AgentState::Idle
                     },
                 };

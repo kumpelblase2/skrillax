@@ -41,12 +41,13 @@ pub(crate) fn movement_input(
                     let target_height = navmesh.height_for(target_loc).unwrap_or(position.position().y);
                     let target_pos = target_loc.with_y(target_height);
                     debug!(identifier = ?client.id(), "Movement: {} -> {}", local_position, target_pos);
-                    cmd.entity(entity).insert(AgentGoal::moving_to(target_pos.to_global()));
+                    cmd.entity(entity)
+                        .try_insert(AgentGoal::moving_to(target_pos.to_global()));
                 },
                 MovementTarget::Direction { unknown, angle } => {
                     let direction = Heading::from(angle);
                     debug!(identifier = ?client.id(), "Movement: {} / {}({})", unknown, direction.0, angle);
-                    cmd.entity(entity).insert(AgentGoal::moving_in_direction(direction));
+                    cmd.entity(entity).try_insert(AgentGoal::moving_in_direction(direction));
                 },
             }
         }
@@ -64,7 +65,7 @@ pub(crate) fn pickup(
         if let Some(cooldown) = pickup.cooldown.as_mut() {
             if cooldown.tick(delta).just_finished() {
                 client.send(PerformActionResponse::Stop(PerformActionError::Completed));
-                cmd.entity(entity).remove::<PickingUp>().insert(Idle);
+                cmd.entity(entity).remove::<PickingUp>().try_insert(Idle);
             }
         } else {
             let drop = match target_query.get(pickup.parameter.target) {
@@ -185,7 +186,7 @@ pub(crate) fn movement(
         move_with_step(&navmesh, &mut pos, next_location, heading);
 
         if finished {
-            cmd.entity(entity).remove::<Moving>().insert(Idle);
+            cmd.entity(entity).remove::<Moving>().try_insert(Idle);
         }
     }
 }

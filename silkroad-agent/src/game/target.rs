@@ -69,7 +69,7 @@ pub(crate) fn player_update_target(
                                 break 'target;
                             },
                         }
-                        cmd.entity(entity).insert(Target(target_entity));
+                        cmd.entity(entity).try_insert(Target(target_entity));
                     } else {
                         client.send(TargetEntityResponse::new(TargetEntityResult::failure(
                             TargetEntityError::InvalidTarget,
