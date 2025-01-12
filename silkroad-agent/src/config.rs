@@ -5,6 +5,7 @@ use once_cell::sync::Lazy;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{ConnectOptions, PgPool};
+use std::ops::RangeInclusive;
 use tracing::debug;
 
 #[derive(Deserialize)]
@@ -74,6 +75,12 @@ pub(crate) struct UniqueOptions {
 pub(crate) struct UniqueSpawnOptions {
     pub(crate) min: usize,
     pub(crate) max: usize,
+}
+
+impl UniqueSpawnOptions {
+    pub(crate) fn spawn_range(&self) -> RangeInclusive<usize> {
+        self.min..=self.max
+    }
 }
 
 #[derive(Deserialize, Default, Clone)]

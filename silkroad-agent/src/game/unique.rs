@@ -1,7 +1,7 @@
 use crate::comp::monster::Monster;
 use crate::comp::net::Client;
 use crate::comp::GameEntity;
-use crate::config::{GameConfig, UniqueOptions};
+use crate::config::GameConfig;
 use crate::event::{SpawnMonster, UniqueKilledEvent};
 use crate::ext::NpcPositionList;
 use bevy_ecs::prelude::*;
@@ -13,7 +13,7 @@ use silkroad_game_base::NpcPosExt;
 use silkroad_protocol::world::GameNotification;
 use std::ops::RangeInclusive;
 use std::time::Duration;
-use tracing::warn;
+use tracing::{debug, warn};
 
 pub(crate) fn unique_spawned(query: Query<(&GameEntity, &Monster), Added<Monster>>, notify: Query<&Client>) {
     for (entity, _) in query
@@ -89,37 +89,33 @@ impl UniqueTimers {
 }
 
 pub(crate) fn setup_unique_timers(mut cmd: Commands, config: Res<GameConfig>) {
-    cmd.insert_resource(UniqueTimers {
-        timers: vec![
-            create_timer_for(
-                &config.spawner.unique,
-                |unique| unique.tiger_woman.min..=unique.tiger_woman.max,
-                1954,
-            ),
-            create_timer_for(
-                &config.spawner.unique,
-                |unique| unique.uruchi.min..=unique.uruchi.max,
-                1982,
-            ),
-            create_timer_for(
-                &config.spawner.unique,
-                |unique| unique.isyutaru.min..=unique.isyutaru.max,
-                2002,
-            ),
-            create_timer_for(
-                &config.spawner.unique,
-                |unique| unique.bonelord.min..=unique.bonelord.max,
-                3810,
-            ),
-        ],
-    });
+    let unique = &config.spawner.unique;
+    let timers = vec![
+        create_timer_for(unique.tiger_woman.spawn_range(), 1954),
+        create_timer_for(unique.uruchi.spawn_range(), 1982),
+        create_timer_for(unique.isyutaru.spawn_range(), 2002),
+        create_timer_for(unique.bonelord.spawn_range(), 3810),
+    ];
+    debug!(
+        "Settings spawn for tiger woman in {}min",
+        timers[0].timer.remaining().as_secs() / 60
+    );
+    debug!(
+        "Settings spawn for uruchi in {}min",
+        timers[1].timer.remaining().as_secs() / 60
+    );
+    debug!(
+        "Settings spawn for isyutaru in {}min",
+        timers[2].timer.remaining().as_secs() / 60
+    );
+    debug!(
+        "Settings spawn for bonelord in {}min",
+        timers[3].timer.remaining().as_secs() / 60
+    );
+    cmd.insert_resource(UniqueTimers { timers });
 }
 
-fn create_timer_for<F>(options: &UniqueOptions, range_resolver: F, ref_id: u32) -> UniqueTimer
-where
-    F: FnOnce(&UniqueOptions) -> RangeInclusive<usize>,
-{
-    let range = range_resolver(options);
+fn create_timer_for(range: RangeInclusive<usize>, ref_id: u32) -> UniqueTimer {
     let time = thread_rng().gen_range(RangeInclusive::clone(&range));
     let timer = Timer::from_seconds(time as f32 * 60.0, TimerMode::Once);
 
