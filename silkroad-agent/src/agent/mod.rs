@@ -1,4 +1,5 @@
-use crate::agent::goal::apply_goal;
+use crate::agent::component::AgentGoalReachedEvent;
+use crate::agent::goal::{apply_goal, handle_state_reached_notification};
 use crate::agent::state::{run_transitions, StateTransitionEvent};
 use crate::agent::system::{action, movement, movement_input, pickup, turning};
 use bevy_app::{App, Plugin, PostUpdate, PreUpdate, Update};
@@ -27,9 +28,12 @@ impl Plugin for AgentPlugin {
             .add_systems(PreUpdate, (movement_input, turning).in_set(AgentSet::Input))
             .add_systems(
                 Update,
-                (apply_goal, run_transitions).chain().in_set(AgentSet::Transition),
+                (apply_goal, run_transitions, handle_state_reached_notification)
+                    .chain()
+                    .in_set(AgentSet::Transition),
             )
             .add_systems(Update, (pickup, movement, action).in_set(AgentSet::Execute));
-        app.add_event::<StateTransitionEvent>();
+        app.add_event::<StateTransitionEvent>()
+            .add_event::<AgentGoalReachedEvent>();
     }
 }

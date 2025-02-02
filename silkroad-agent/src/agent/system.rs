@@ -1,53 +1,54 @@
 use crate::agent::component::{Agent, MovementState};
-use crate::agent::goal::AgentGoal;
+use crate::agent::goal::{AgentGoal, GoalTracker};
 use crate::agent::state::{
-    Idle, MovementTarget as AgentMovementTarget, Moving, PerformingSkill, PickingUp, SkillProgressState, SkillTarget,
+    Idle, MovementTarget as AgentMovementTarget, Moving, PerformingSkill, PickingUp, SkillParameter,
+    SkillProgressState, SkillTarget,
 };
 use crate::comp::gold::GoldPouch;
 use crate::comp::inventory::PlayerInventory;
 use crate::comp::net::Client;
 use crate::comp::pos::Position;
-use crate::comp::{drop, EntityReference, GameEntity};
-use crate::event::{DamageReceiveEvent, SkillDefinition};
+use crate::comp::{drop, EntityReference, GameEntity, Health, Mana};
+use crate::event::{ConsumeItemEvent, DamageReceiveEvent, SkillDefinition};
 use crate::ext::{ActionIdCounter, Navmesh};
 use crate::input::PlayerInput;
+use crate::world::WorldData;
 use bevy_ecs::prelude::*;
 use bevy_ecs::query::QueryEntityError;
 use bevy_time::{Time, Timer, TimerMode};
 use cgmath::{Array, Deg, InnerSpace, Quaternion, Rotation3, Vector2, Vector3, Zero};
 use silkroad_data::skilldata::SkillParam;
 use silkroad_data::DataEntry;
+use silkroad_definitions::type_id::{ObjectItem, ObjectType};
 use silkroad_game_base::{GlobalLocation, Heading, ItemTypeData, LocalLocation, Vector3Ext};
 use silkroad_protocol::combat::{DoActionResponseCode, PerformActionError, PerformActionResponse};
 use silkroad_protocol::inventory::{InventoryItemContentData, InventoryOperationError, InventoryOperationResult};
 use silkroad_protocol::movement::MovementTarget;
 use std::ops::Deref;
 use std::time::Duration;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 const EPSYLON: f32 = 1.0;
 
 pub(crate) fn movement_input(
-    mut query: Query<(Entity, &Client, &PlayerInput, &Position)>,
+    mut query: Query<(&Client, &PlayerInput, &Position, &mut GoalTracker)>,
     navmesh: Res<Navmesh>,
-    mut cmd: Commands,
 ) {
-    for (entity, client, input, position) in query.iter_mut() {
+    for (client, input, position, mut goal) in query.iter_mut() {
         if let Some(kind) = input.movement {
             match kind {
-                MovementTarget::TargetLocation { region, x, y, z } => {
+                MovementTarget::TargetLocation { region, x, y: _, z } => {
                     let local_position = position.position().to_local();
                     let target_loc = LocalLocation(region.into(), Vector2::new(x.into(), z.into()));
                     let target_height = navmesh.height_for(target_loc).unwrap_or(position.position().y);
                     let target_pos = target_loc.with_y(target_height);
                     debug!(identifier = ?client.id(), "Movement: {} -> {}", local_position, target_pos);
-                    cmd.entity(entity)
-                        .try_insert(AgentGoal::moving_to(target_pos.to_global()));
+                    goal.switch_goal_notified(AgentGoal::moving_to(target_pos.to_global()));
                 },
                 MovementTarget::Direction { unknown, angle } => {
                     let direction = Heading::from(angle);
                     debug!(identifier = ?client.id(), "Movement: {} / {}({})", unknown, direction.0, angle);
-                    cmd.entity(entity).try_insert(AgentGoal::moving_in_direction(direction));
+                    goal.switch_goal_notified(AgentGoal::moving_in_direction(direction));
                 },
             }
         }
@@ -112,50 +113,137 @@ pub(crate) fn pickup(
 }
 
 pub(crate) fn action(
-    mut query: Query<(Entity, &GameEntity, &mut PerformingSkill)>,
+    mut query: Query<(
+        Entity,
+        &GameEntity,
+        &mut PerformingSkill,
+        Option<&mut Mana>,
+        &mut Health,
+        Option<&PlayerInventory>,
+    )>,
     target_query: Query<&GameEntity>,
     time: Res<Time>,
     attack_instance_counter: Res<ActionIdCounter>,
     mut cmd: Commands,
-    mut damage_event: EventWriter<DamageReceiveEvent>,
 ) {
     let delta = time.delta();
-    for (entity, game_entity, mut action) in query.iter_mut() {
+    for (entity, game_entity, mut action, mana, mut health, inventory) in query.iter_mut() {
         if action.timer.tick(delta).just_finished() {
-            if let Some(next) = action.progress.next() {
-                let time = next.get_time_for(action.parameter.skill).unwrap_or(0);
-                action.progress = next;
-                action.timer = Timer::new(Duration::from_millis(time as u64), TimerMode::Once);
+            let Some(next) = action.progress.next() else {
+                if let Some(next_skill) = action.parameter.skill.next_in_chain {
+                    *action = PerformingSkill::new(SkillParameter {
+                        target: action.parameter.target,
+                        skill: WorldData::skills()
+                            .find_id(next_skill.into())
+                            .expect("Next skill in chain should exist."),
+                    });
+                } else {
+                    cmd.entity(entity).remove::<PerformingSkill>();
+                }
 
-                if next == SkillProgressState::Execution {
-                    let attack = action
-                        .parameter
-                        .skill
-                        .params
-                        .iter()
-                        .find(|param| matches!(param, SkillParam::Attack { .. }))
-                        .unwrap();
-                    match attack {
-                        SkillParam::Attack { .. } => {
-                            let SkillTarget::Entity(target) = action.parameter.target else {
-                                panic!();
+                continue;
+            };
+
+            if next == SkillProgressState::Casting {
+                if action.parameter.skill.consumed_mp > 0 {
+                    let Some(mut mana) = mana else {
+                        cmd.entity(entity).remove::<PerformingSkill>();
+                        warn!("Tried to execute action consuming mana without having mana.");
+                        continue;
+                    };
+
+                    if mana.current_mana < action.parameter.skill.consumed_mp {
+                        cmd.entity(entity).remove::<PerformingSkill>();
+                        debug!("Cancelling attack due to insufficient mana.");
+                        // TODO: send info to client.
+                        continue;
+                    }
+                    mana.spend(action.parameter.skill.consumed_mp);
+                }
+
+                if action.parameter.skill.consumed_hp > 0 {
+                    if health.current_health < action.parameter.skill.consumed_hp {
+                        cmd.entity(entity).remove::<PerformingSkill>();
+                        debug!("Cancelling attack due to insufficient health.");
+                        // TODO: send info to client.
+                        continue;
+                    }
+
+                    health.reduce(action.parameter.skill.consumed_hp);
+                }
+
+                for param in &action.parameter.skill.params {
+                    match param {
+                        SkillParam::RequiredItem(item) => {
+                            let type_id = ObjectType::Item(ObjectItem::Equippable(*item)).type_id();
+                            let Some(inventory) = inventory else {
+                                cmd.entity(entity).remove::<PerformingSkill>();
+                                warn!("Tried to use skill with item, but doesn't have inventory.");
+                                continue;
                             };
-                            let target_ = target_query.get(target).unwrap();
-                            damage_event.send(DamageReceiveEvent {
-                                source: EntityReference(entity, *game_entity),
-                                target: EntityReference(target, *target_),
-                                attack: SkillDefinition {
-                                    skill: action.parameter.skill,
-                                    instance: attack_instance_counter.next(),
-                                },
-                                amount: 10,
-                            });
+                            if !inventory
+                                .equipment_items()
+                                .any(|(_, equip_item)| type_id == equip_item.reference.common.type_id)
+                            {
+                                warn!("Missing requirement equipment");
+                            }
+                        },
+                        SkillParam::ConsumeItem { kind, amount } => {
+                            // TODO: handle non-ammo type
+                            let amount = *amount as u16;
+                            let type_id = ObjectType::Item(ObjectItem::Consumable(*kind)).type_id();
+                            let Some(inventory) = inventory else {
+                                cmd.entity(entity).remove::<PerformingSkill>();
+                                warn!("Tried to use skill with item, but doesn't have inventory.");
+                                continue;
+                            };
+                            if !inventory.equipment_items().any(|(_, equip_item)| {
+                                equip_item.reference.common.type_id == type_id && equip_item.stack_size() >= amount
+                            }) {
+                                warn!("Can't consume item, because it's not equipped");
+                            } else {
+                                cmd.send_event(ConsumeItemEvent {
+                                    player: entity,
+                                    item: type_id,
+                                    amount,
+                                });
+                            }
                         },
                         _ => {},
-                    }
+                    };
                 }
-            } else {
-                cmd.entity(entity).remove::<PerformingSkill>();
+            }
+
+            let time = next.get_time_for(action.parameter.skill).unwrap_or(0);
+            action.progress = next;
+            action.timer = Timer::new(Duration::from_millis(time as u64), TimerMode::Once);
+
+            if next == SkillProgressState::Execution {
+                let attack = action
+                    .parameter
+                    .skill
+                    .params
+                    .iter()
+                    .find(|param| matches!(param, SkillParam::Attack { .. }))
+                    .unwrap();
+                match attack {
+                    SkillParam::Attack { .. } => {
+                        let SkillTarget::Entity(target) = action.parameter.target else {
+                            panic!();
+                        };
+                        let target_ = target_query.get(target).unwrap();
+                        cmd.send_event(DamageReceiveEvent {
+                            source: EntityReference(entity, *game_entity),
+                            target: EntityReference(target, *target_),
+                            attack: SkillDefinition {
+                                skill: action.parameter.skill,
+                                instance: attack_instance_counter.next(),
+                            },
+                            amount: 10,
+                        });
+                    },
+                    _ => {},
+                }
             }
         }
     }

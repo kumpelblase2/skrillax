@@ -1,4 +1,4 @@
-use crate::agent::goal::AgentGoal;
+use crate::agent::goal::{AgentGoal, GoalTracker};
 use crate::comp::net::Client;
 use crate::input::PlayerInput;
 use crate::world::{EntityLookup, WorldData};
@@ -6,7 +6,7 @@ use bevy_ecs::prelude::*;
 use silkroad_protocol::combat::{ActionTarget, DoActionType, PerformAction, PerformActionError, PerformActionResponse};
 use tracing::warn;
 
-pub(crate) fn handle_action(mut query: Query<(&Client, &PlayerInput, &mut AgentGoal)>, lookup: Res<EntityLookup>) {
+pub(crate) fn handle_action(mut query: Query<(&Client, &PlayerInput, &mut GoalTracker)>, lookup: Res<EntityLookup>) {
     for (client, input, mut mind) in query.iter_mut() {
         let Some(ref action) = input.action else {
             continue;
@@ -21,8 +21,7 @@ pub(crate) fn handle_action(mut query: Query<(&Client, &PlayerInput, &mut AgentG
                             continue;
                         };
 
-                        // TODO: this should send a success
-                        *mind = AgentGoal::attacking(target);
+                        mind.switch_goal_notified(AgentGoal::attacking(target));
                     },
                     _ => continue,
                 },
@@ -33,7 +32,7 @@ pub(crate) fn handle_action(mut query: Query<(&Client, &PlayerInput, &mut AgentG
                             continue;
                         };
 
-                        *mind = AgentGoal::picking_up(target);
+                        mind.switch_goal_notified(AgentGoal::picking_up(target));
                     },
                     _ => continue,
                 },
@@ -49,8 +48,7 @@ pub(crate) fn handle_action(mut query: Query<(&Client, &PlayerInput, &mut AgentG
                             continue;
                         };
 
-                        // TODO: this should send a success
-                        *mind = AgentGoal::attacking_with(target, skill);
+                        mind.switch_goal_notified(AgentGoal::attacking_with(target, skill));
                     },
                     _ => {
                         warn!("Tried to use a skill on unsupported target.")
@@ -59,7 +57,7 @@ pub(crate) fn handle_action(mut query: Query<(&Client, &PlayerInput, &mut AgentG
                 DoActionType::CancelBuff { .. } => {},
             },
             PerformAction::Stop => {
-                *mind = AgentGoal::None;
+                mind.reset();
             },
         }
     }

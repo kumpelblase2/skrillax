@@ -1,3 +1,4 @@
+use crate::agent::state::AgentState;
 use bevy_ecs::prelude::*;
 use derive_more::{Deref, DerefMut};
 use silkroad_data::characterdata::RefCharacterData;
@@ -66,4 +67,10 @@ impl Agent {
             _ => {},
         }
     }
+}
+
+#[derive(Event, Copy, Clone)]
+pub struct AgentGoalReachedEvent {
+    pub entity: Entity,
+    pub state: AgentState,
 }

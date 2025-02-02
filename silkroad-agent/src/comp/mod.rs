@@ -126,6 +126,11 @@ impl Mana {
         self.add_change(diff as i32)
     }
 
+    pub fn spend(&mut self, amount: u32) {
+        self.current_mana = self.max_mana.saturating_sub(amount);
+        self.add_change(-(amount as i32));
+    }
+
     pub fn increase_max(&mut self, new_max: u32) {
         self.current_mana = new_max;
     }

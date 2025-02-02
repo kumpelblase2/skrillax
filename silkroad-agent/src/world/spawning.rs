@@ -1,5 +1,5 @@
 use crate::agent::component::{Agent, MovementState};
-use crate::agent::goal::AgentGoal;
+use crate::agent::goal::GoalTracker;
 use crate::agent::state::{AgentStateQueue, Dead};
 use crate::comp::damage::DamageReceiver;
 use crate::comp::monster::{Monster, MonsterAiBundle, MonsterBundle, RandomStroll, SpawnedBy};
@@ -27,7 +27,6 @@ use silkroad_navmesh::region::GridRegion;
 use silkroad_navmesh::GlobalNavmesh;
 use std::cmp::min;
 use std::collections::HashSet;
-use std::time::Duration;
 use tracing::trace;
 
 pub(crate) fn spawn_npcs(
@@ -209,7 +208,7 @@ fn spawn_monster(
             ref_id: reference.ref_id(),
             unique_id,
         },
-        visibility: Visibility::with_radius(100.0),
+        visibility: Visibility::with_radius(500.0),
         spawner: SpawnedBy::Spawner(spawner),
         navigation: Agent::default(),
         state_queue: AgentStateQueue::default(),
@@ -218,8 +217,8 @@ fn spawn_monster(
     };
 
     let ai_bundle = MonsterAiBundle {
-        stroll: RandomStroll::new(spawn_center, 100.0, Duration::from_secs(2)),
-        goal: AgentGoal::default(),
+        stroll: RandomStroll::new(spawn_center, 300.0, 10..60),
+        goal: GoalTracker::default(),
     };
 
     cmd.spawn((bundle, ai_bundle));

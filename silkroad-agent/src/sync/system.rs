@@ -10,6 +10,7 @@ use crate::comp::pos::Position;
 use crate::comp::visibility::{Invisible, Visibility};
 use crate::comp::{GameEntity, Health, Mana};
 use crate::event::LoadingFinishedEvent;
+use crate::game::exp::LevelUpEvent;
 use crate::sync::{SynchronizationCollector, Update};
 use bevy_ecs::prelude::*;
 use silkroad_game_base::{Heading, LocalPosition, MovementSpeed};
@@ -24,16 +25,19 @@ use silkroad_protocol::world::{
     EntityUpdateState, LevelUpEffect, PlayerPickupAnimation, UpdatedState,
 };
 use std::ops::Deref;
+use tracing::debug;
 
 pub(crate) fn synchronize_updates(
     mut update_collector: ResMut<SynchronizationCollector>,
-    source_query: Query<(&Client, &Visibility)>,
+    source_query: Query<(Option<&Client>, &Visibility)>,
     others: Query<&Client>,
 ) {
     for update in update_collector.collect_updates() {
         if let Ok((client, visibility)) = source_query.get(update.source) {
-            if let Some(self_packet) = update.change_self {
-                client.send(self_packet);
+            if let Some(client) = client {
+                if let Some(self_packet) = update.change_self {
+                    client.send(self_packet);
+                }
             }
 
             if let Some(other_packet) = update.change_others {
@@ -150,34 +154,37 @@ pub(crate) fn system_collect_exp_update(
 
 pub(crate) fn system_collect_level_up(
     collector: Res<SynchronizationCollector>,
-    mut query: Query<(Entity, &GameEntity, Option<&Player>, &Leveled), Changed<Leveled>>,
+    mut level_up_events: EventReader<LevelUpEvent>,
+    mut query: Query<(Entity, &GameEntity, Option<&Player>)>,
 ) {
-    for (entity, game_entity, maybe_player, level) in query.iter_mut() {
-        if level.did_level() {
-            let animation = LevelUpEffect {
-                entity: game_entity.unique_id,
+    for event in level_up_events.read() {
+        let Ok((entity, game_entity, maybe_player)) = query.get_mut(event.target.0) else {
+            continue;
+        };
+
+        let animation = LevelUpEffect {
+            entity: game_entity.unique_id,
+        };
+
+        collector.send_update(Update::update_all(entity, animation));
+
+        if let Some(player) = maybe_player {
+            let update = CharacterStatsMessage {
+                phys_attack_min: 100,
+                phys_attack_max: 100,
+                mag_attack_min: 100,
+                mag_attack_max: 100,
+                phys_defense: 100,
+                mag_defense: 100,
+                hit_rate: 100,
+                parry_rate: 100,
+                max_hp: player.character.stats.max_health(event.level),
+                max_mp: player.character.stats.max_mana(event.level),
+                strength: player.character.stats.strength(),
+                intelligence: player.character.stats.intelligence(),
             };
 
-            collector.send_update(Update::update_all(entity, animation));
-
-            if let Some(player) = maybe_player {
-                let update = CharacterStatsMessage {
-                    phys_attack_min: 100,
-                    phys_attack_max: 100,
-                    mag_attack_min: 100,
-                    mag_attack_max: 100,
-                    phys_defense: 100,
-                    mag_defense: 100,
-                    hit_rate: 100,
-                    parry_rate: 100,
-                    max_hp: player.character.stats.max_health(level.current_level()),
-                    max_mp: player.character.stats.max_mana(level.current_level()),
-                    strength: player.character.stats.strength(),
-                    intelligence: player.character.stats.intelligence(),
-                };
-
-                collector.send_update(Update::self_update(entity, update));
-            }
+            collector.send_update(Update::self_update(entity, update));
         }
     }
 }
@@ -197,6 +204,7 @@ pub(crate) fn collect_movement_transitions(
                 game_entity,
                 MovementUpdate::StopMove(pos.position().to_local(), pos.rotation()),
             );
+            debug!("Sending movement start. {}", game_entity.unique_id);
             collector.send_update(Update::update_all(event.entity, update));
         }
     }
@@ -213,6 +221,7 @@ pub(crate) fn collect_movement_starts(
                 MovementUpdate::StartMoveTowards(pos.position().to_local(), direction)
             },
         };
+        debug!("Sending movement start. {}", game_entity.unique_id);
         let update = create_movement_packet(game_entity, update);
         collector.send_update(Update::update_all(entity, update));
     }
@@ -229,6 +238,7 @@ pub(crate) fn collect_movement_update(
                 entity_id: game_entity.unique_id,
                 position: pos.as_protocol(),
             };
+            debug!("Sending movement interrupt. {}", game_entity.unique_id);
             collector.send_update(Update::update_all(entity, packet));
             continue;
         } else if pos.did_rotate() {

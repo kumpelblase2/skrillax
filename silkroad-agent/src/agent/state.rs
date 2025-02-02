@@ -1,3 +1,4 @@
+use crate::agent::component::AgentGoalReachedEvent;
 use crate::agent::goal::{MovingGoal, PickingUpGoal};
 use bevy_ecs::prelude::*;
 use bevy_time::prelude::*;
@@ -12,6 +13,24 @@ pub enum SkillTarget {
     None,
     Own,
     Location(GlobalLocation),
+}
+
+impl SkillTarget {
+    pub fn is_entity(&self, entity: Entity) -> bool {
+        if let SkillTarget::Entity(target) = self {
+            *target == entity
+        } else {
+            false
+        }
+    }
+
+    pub fn entity(self) -> Option<Entity> {
+        if let SkillTarget::Entity(entity) = self {
+            Some(entity)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -41,7 +60,7 @@ pub enum MovementTarget {
 impl MovementTarget {
     fn is_similar(&self, other: &MovementTarget) -> bool {
         match (self, other) {
-            (MovementTarget::Location(loc), MovementTarget::Location(loc2)) => loc.distance2(loc2.0) < 2.0,
+            (MovementTarget::Location(loc), MovementTarget::Location(loc2)) => loc.distance2(loc2.0) < 5.0,
             (MovementTarget::Direction(loc), MovementTarget::Direction(loc2)) => loc.difference(loc2) <= 1.0,
             _ => false,
         }
@@ -110,6 +129,43 @@ pub enum AgentState {
     PerformingAction(ActionParameter),
     PickingUp(PickupParameter),
     Dead,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum AgentStateType {
+    Idle,
+    Moving,
+    PerformSkill,
+    Sitting,
+    PerformingAction,
+    PickingUp,
+    Dead,
+}
+
+impl From<AgentState> for AgentStateType {
+    fn from(value: AgentState) -> Self {
+        match value {
+            AgentState::Idle => AgentStateType::Idle,
+            AgentState::Moving(_) => AgentStateType::Moving,
+            AgentState::PerformSkill(_) => AgentStateType::PerformSkill,
+            AgentState::Sitting => AgentStateType::Sitting,
+            AgentState::PerformingAction(_) => AgentStateType::PerformingAction,
+            AgentState::PickingUp(_) => AgentStateType::PickingUp,
+            AgentState::Dead => AgentStateType::Dead,
+        }
+    }
+}
+
+impl TryFrom<AgentStateType> for AgentState {
+    type Error = ();
+    fn try_from(value: AgentStateType) -> Result<Self, Self::Error> {
+        match value {
+            AgentStateType::Idle => Ok(AgentState::Idle),
+            AgentStateType::Sitting => Ok(AgentState::Sitting),
+            AgentStateType::Dead => Ok(AgentState::Dead),
+            _ => Err(()),
+        }
+    }
 }
 
 #[derive(Component)]
@@ -249,9 +305,44 @@ impl AsState for Dead {
 }
 
 #[derive(PartialEq)]
-struct Transition {
+pub struct Transition {
     priority: TransitionPriority,
     target: AgentState,
+    notify_success: bool,
+}
+
+impl Transition {
+    pub fn new(target: AgentState) -> Self {
+        Transition {
+            priority: TransitionPriority::Default,
+            target,
+            notify_success: false,
+        }
+    }
+
+    pub fn important(target: AgentState) -> Self {
+        Transition {
+            priority: TransitionPriority::Important,
+            target,
+            notify_success: false,
+        }
+    }
+
+    pub fn force(target: AgentState) -> Self {
+        Transition {
+            priority: TransitionPriority::Forced,
+            target,
+            notify_success: false,
+        }
+    }
+
+    pub fn create(target: AgentState, priority: TransitionPriority, notify_success: bool) -> Self {
+        Transition {
+            priority,
+            target,
+            notify_success,
+        }
+    }
 }
 
 #[derive(Component, Default)]
@@ -271,19 +362,16 @@ impl AgentStateQueue {
         Self::default()
     }
 
-    pub fn push(&mut self, state: AgentState) {
-        self.force_push(state, TransitionPriority::Default);
-    }
-
-    pub fn force_push(&mut self, state: AgentState, priority: TransitionPriority) {
-        self.next_states.push(Transition {
-            priority,
-            target: state,
-        });
+    pub fn push(&mut self, transition: Transition) {
+        self.next_states.push(transition);
     }
 }
 
 impl AgentState {
+    fn max_importance() -> u8 {
+        4
+    }
+
     fn importance(&self) -> u8 {
         match self {
             AgentState::Idle => 0,
@@ -292,7 +380,7 @@ impl AgentState {
             AgentState::Sitting => 3,
             AgentState::PerformingAction(_) => 3,
             AgentState::PickingUp(_) => 3,
-            AgentState::Dead => 4,
+            AgentState::Dead => Self::max_importance(),
         }
     }
 
@@ -392,6 +480,13 @@ pub(crate) fn run_transitions(
                                 .remove::<Idle>();
 
                             next_state.target.apply_to(&mut entity_commands);
+
+                            if next_state.notify_success {
+                                commands.send_event(AgentGoalReachedEvent {
+                                    entity,
+                                    state: next_state.target,
+                                });
+                            }
 
                             commands.send_event(StateTransitionEvent {
                                 entity,

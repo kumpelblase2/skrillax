@@ -2,6 +2,7 @@ use crate::comp::monster::SpawnedBy;
 use crate::comp::{EntityReference, GameEntity};
 use bevy_ecs::prelude::*;
 use silkroad_data::skilldata::RefSkillData;
+use silkroad_definitions::TypeId;
 use silkroad_game_base::GlobalLocation;
 
 #[derive(Event)]
@@ -47,4 +48,11 @@ pub(crate) struct SpawnMonster {
     pub location: GlobalLocation,
     pub spawner: Option<SpawnedBy>,
     pub with_ai: bool,
+}
+
+#[derive(Event)]
+pub(crate) struct ConsumeItemEvent {
+    pub player: Entity,
+    pub item: TypeId,
+    pub amount: u16,
 }

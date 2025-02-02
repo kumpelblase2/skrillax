@@ -1,5 +1,5 @@
-use crate::agent::goal::AgentGoal;
-use crate::agent::state::{AgentState, AgentStateQueue, Dead, TransitionPriority};
+use crate::agent::goal::{AgentGoal, GoalTracker};
+use crate::agent::state::{AgentState, AgentStateQueue, Dead, Transition};
 use crate::comp::damage::{DamageReceiver, Invincible};
 use crate::comp::monster::Monster;
 use crate::comp::net::Client;
@@ -92,19 +92,19 @@ pub(crate) fn handle_damage(
                 died: damage_event.target,
                 killer: Some(damage_event.source),
             });
-            controller.force_push(AgentState::Dead, TransitionPriority::Forced);
+            controller.push(Transition::force(AgentState::Dead));
         }
     }
 }
 
 pub(crate) fn attack_player(
-    mut query: Query<&mut AgentGoal, With<Monster>>,
+    mut query: Query<&mut GoalTracker, With<Monster>>,
     mut events: EventReader<DamageReceiveEvent>,
 ) {
     for event in events.read() {
         if let Ok(mut goal) = query.get_mut(event.target.0) {
-            if goal.is_none() {
-                *goal = AgentGoal::attacking(event.source.0)
+            if !goal.has_goal() {
+                goal.switch_goal_notified(AgentGoal::attacking(event.source.0));
             }
         }
     }

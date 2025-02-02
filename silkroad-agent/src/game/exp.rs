@@ -64,8 +64,15 @@ pub(crate) fn distribute_experience(
     }
 }
 
+#[derive(Event)]
+pub(crate) struct LevelUpEvent {
+    pub target: EntityReference,
+    pub level: u8,
+}
+
 pub(crate) fn receive_experience(
     mut experience_events: EventReader<ReceiveExperienceEvent>,
+    mut level_up_events: EventWriter<LevelUpEvent>,
     mut query: Query<(&mut Leveled, &mut Experienced, &mut SP)>,
 ) {
     let level_map = WorldData::levels();
@@ -89,6 +96,10 @@ pub(crate) fn receive_experience(
         while let Some(exp) = level_map.get_exp_for_level(level.current_level()) {
             if experienced.try_level_up(exp) {
                 level.level_up();
+                level_up_events.send(LevelUpEvent {
+                    target: event.target,
+                    level: level.current_level(),
+                });
             } else {
                 break;
             }
@@ -97,13 +108,15 @@ pub(crate) fn receive_experience(
 }
 
 pub(crate) fn reset_health_mana_on_level(
-    mut query: Query<(&StatPoints, &Leveled, &mut Health, &mut Mana), Changed<Leveled>>,
+    mut level_up_events: EventReader<LevelUpEvent>,
+    mut query: Query<(&StatPoints, &mut Health, &mut Mana)>,
 ) {
-    for (stats, leveled, mut health, mut mana) in query.iter_mut() {
-        if leveled.did_level() {
-            health.upgrade(stats.stats().max_health(leveled.current_level()));
-            mana.upgrade(stats.stats().max_mana(leveled.current_level()));
-        }
+    for event in level_up_events.read() {
+        let Ok((stats, mut health, mut mana)) = query.get_mut(event.target.0) else {
+            continue;
+        };
+        health.upgrade(stats.stats().max_health(event.level));
+        mana.upgrade(stats.stats().max_mana(event.level));
     }
 }
 

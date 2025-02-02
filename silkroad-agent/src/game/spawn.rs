@@ -1,5 +1,5 @@
 use crate::agent::component::{Agent, MovementState};
-use crate::agent::goal::AgentGoal;
+use crate::agent::goal::GoalTracker;
 use crate::agent::state::AgentStateQueue;
 use crate::comp::damage::DamageReceiver;
 use crate::comp::monster::{Monster, MonsterAiBundle, MonsterBundle, RandomStroll, SpawnedBy};
@@ -15,7 +15,6 @@ use bevy_ecs::prelude::Commands;
 use rand::{thread_rng, Rng};
 use silkroad_definitions::rarity::EntityRarityType;
 use silkroad_game_base::Heading;
-use std::time::Duration;
 use tracing::debug;
 
 pub(crate) fn do_spawn_mobs(
@@ -49,7 +48,7 @@ pub(crate) fn do_spawn_mobs(
                 unique_id,
                 ref_id: event.ref_id,
             },
-            visibility: Visibility::with_radius(100.),
+            visibility: Visibility::with_radius(500.),
             spawner: event.spawner.unwrap_or(SpawnedBy::None),
             navigation: Agent::from_character_data(character_def),
             state_queue: AgentStateQueue::default(),
@@ -57,11 +56,9 @@ pub(crate) fn do_spawn_mobs(
             damage_receiver: DamageReceiver::default(),
         });
 
-        if event.with_ai {
-            spawning.insert(MonsterAiBundle {
-                stroll: RandomStroll::new(position.to_location(), 100., Duration::from_secs(1)),
-                goal: AgentGoal::default(),
-            });
-        }
+        spawning.insert(MonsterAiBundle {
+            stroll: RandomStroll::new(position.to_location(), 300., 10..60),
+            goal: GoalTracker::default(),
+        });
     }
 }

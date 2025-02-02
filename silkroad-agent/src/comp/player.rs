@@ -1,5 +1,5 @@
 use crate::agent::component::{Agent, MovementState};
-use crate::agent::goal::AgentGoal;
+use crate::agent::goal::GoalTracker;
 use crate::agent::state::AgentStateQueue;
 use crate::comp::damage::DamageReceiver;
 use crate::comp::exp::{Experienced, Leveled, SP};
@@ -90,7 +90,7 @@ pub(crate) struct PlayerBundle {
     level: Leveled,
     sp: SP,
     exp: Experienced,
-    goal: AgentGoal,
+    goal: GoalTracker,
     persistence: Persistable,
     stat_points: StatPoints,
     masteries: MasteryKnowledge,
@@ -139,7 +139,7 @@ impl PlayerBundle {
             sp: SP::new(sp),
             level: Leveled::new(level, max_level),
             exp: Experienced::new(exp, sp_exp as u64),
-            goal: AgentGoal::default(),
+            goal: GoalTracker::default(),
             persistence: Persistable,
             stat_points,
             masteries: master_knowledge,

@@ -75,12 +75,12 @@ impl GlobalLocation {
         let range_squared = range.pow(2);
         let distance_squared = self_vec.distance2(other_vec);
         if distance_squared <= range_squared {
-            return other;
+            return *self;
         }
 
-        let direction = (other_vec - self_vec).normalize();
+        let direction = (self_vec - other_vec).normalize();
         let offset = direction * range;
-        GlobalLocation(self.0 + offset)
+        GlobalLocation(*other + offset)
     }
 
     pub fn region(&self) -> Region {
@@ -251,13 +251,17 @@ mod test {
     pub fn test_point_with_range() {
         let origin = GlobalLocation(Vector2::zero());
         let five_five = GlobalLocation(Vector2::new(5.0, 5.0));
-        let target = origin.point_in_line_with_range(five_five, (2.0f32).sqrt());
-        assert_eq!(target.x, 1.0f32);
-        assert_eq!(target.y, 1.0f32);
+        let target = origin.point_in_line_with_range(five_five, 2.0f32.sqrt());
+        assert_eq!(target.x, 4.0f32);
+        assert_eq!(target.y, 4.0f32);
 
         let one_one = GlobalLocation(Vector2::new(1.0, 1.0));
-        let target = origin.point_in_line_with_range(one_one, (2.0f32).sqrt());
-        assert!((target.x - one_one.x).abs() < 0.0001);
-        assert!((target.y - one_one.y).abs() < 0.0001);
+        let target = origin.point_in_line_with_range(one_one, 2.0f32.sqrt());
+        assert!((origin.x - target.x).abs() < 0.0001);
+        assert!((origin.y - target.y).abs() < 0.0001);
+
+        let far_target = GlobalLocation(Vector2::new(1000.0, 500.0));
+        let target = origin.point_in_line_with_range(far_target, 16.0);
+        assert!((far_target.distance2(target.0) - 16.0f32.pow(2i32)).abs() < 0.1);
     }
 }

@@ -36,6 +36,7 @@ use crate::persistence::AppPersistanceExt;
 use crate::sync::SynchronizationStage;
 use bevy_app::{App, Last, Plugin, PostUpdate, PreUpdate, Startup, Update};
 use bevy_ecs::prelude::*;
+use exp::LevelUpEvent;
 
 mod action;
 pub(crate) mod attack;
@@ -73,6 +74,7 @@ impl Plugin for GamePlugin {
             .add_event::<EntityDeath>()
             .add_event::<ReceiveExperienceEvent>()
             .add_event::<SpawnMonster>()
+            .add_event::<LevelUpEvent>()
             .add_systems(Startup, setup_unique_timers)
             .add_systems(PreUpdate, (update_player_activity, update_timers))
             .add_systems(
