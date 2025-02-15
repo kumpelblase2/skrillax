@@ -5,7 +5,7 @@ use crate::comp::GameEntity;
 use crate::config::GameConfig;
 use crate::event::LoadingFinishedEvent;
 use crate::game::daylight::DaylightCycle;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use silkroad_game_base::SpawningState;
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::chat::{ChatSource, ChatUpdate, TextCharacterInitialization};

@@ -1,6 +1,6 @@
 use crate::comp::skill::Hotbar;
 use crate::input::PlayerInput;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 
 pub(crate) fn update_hotbar(mut query: Query<(&PlayerInput, &mut Hotbar)>) {
     for (input, mut hotbar) in query.iter_mut() {

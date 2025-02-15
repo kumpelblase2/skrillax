@@ -6,7 +6,7 @@ use crate::comp::net::Client;
 use crate::comp::player::Player;
 use crate::comp::{Despawn, GameEntity, Health};
 use crate::event::{DamageReceiveEvent, EntityDeath};
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use silkroad_protocol::combat::{
     ActionType, DamageContent, DamageKind, DamageValue, PerEntityDamage, PerformActionError, PerformActionUpdate,
     SkillPartDamage,

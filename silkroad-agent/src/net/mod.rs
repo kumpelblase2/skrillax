@@ -1,7 +1,7 @@
 use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent};
 use crate::ext::ServerResource;
 use crate::net::net::{accept, connected, disconnected};
-use bevy_app::{App, First, Plugin};
+use bevy::prelude::*;
 use skrillax_server::Server;
 use std::net::SocketAddr;
 use std::sync::Arc;

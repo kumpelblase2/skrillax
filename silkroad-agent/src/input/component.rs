@@ -1,4 +1,4 @@
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use silkroad_game_base::StatType;
 use silkroad_protocol::auth::{AuthRequest, LogoutRequest};
 use silkroad_protocol::character::{CharacterJoinRequest, CharacterListRequestAction};

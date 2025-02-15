@@ -6,7 +6,7 @@ use crate::comp::pos::Position;
 use crate::comp::Health;
 use crate::input::PlayerInput;
 use crate::world::EntityLookup;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use cgmath::MetricSpace;
 use derive_more::Deref;
 use silkroad_protocol::world::{TargetEntityError, TargetEntityResponse, TargetEntityResult, UnTargetEntityResponse};

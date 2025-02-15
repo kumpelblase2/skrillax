@@ -1,6 +1,6 @@
 use crate::persistence::ApplyToDatabase;
 use axum::async_trait;
-use bevy_ecs_macros::Component;
+use bevy::prelude::*;
 use silkroad_data::skilldata::RefSkillData;
 use silkroad_game_base::{Change, ChangeTracked, MergeResult};
 use silkroad_protocol::skill::HotbarItem;

@@ -1,7 +1,6 @@
 use crate::agent::component::AgentGoalReachedEvent;
 use crate::agent::goal::{MovingGoal, PickingUpGoal};
-use bevy_ecs::prelude::*;
-use bevy_time::prelude::*;
+use bevy::prelude::*;
 use cgmath::MetricSpace;
 use silkroad_data::skilldata::RefSkillData;
 use silkroad_game_base::{GlobalLocation, GlobalPosition, Heading};

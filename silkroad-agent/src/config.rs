@@ -1,4 +1,4 @@
-use bevy_ecs_macros::Resource;
+use bevy::prelude::*;
 use config::{ConfigError, FileFormat};
 use log::LevelFilter;
 use once_cell::sync::Lazy;

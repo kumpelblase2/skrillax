@@ -1,7 +1,7 @@
 mod system;
 
 use crate::chat::system::{handle_chat, handle_gm_commands};
-use bevy_app::{App, Plugin, Update};
+use bevy::prelude::*;
 
 pub(crate) struct ChatPlugin;
 

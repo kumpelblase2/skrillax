@@ -2,7 +2,7 @@ use crate::agent::goal::{AgentGoal, GoalTracker};
 use crate::comp::net::Client;
 use crate::input::PlayerInput;
 use crate::world::{EntityLookup, WorldData};
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use silkroad_protocol::combat::{ActionTarget, DoActionType, PerformAction, PerformActionError, PerformActionResponse};
 use tracing::warn;
 

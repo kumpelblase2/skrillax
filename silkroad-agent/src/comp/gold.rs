@@ -1,4 +1,4 @@
-use bevy_ecs_macros::Component;
+use bevy::prelude::*;
 use derive_more::Constructor;
 use silkroad_game_base::ChangeProvided;
 

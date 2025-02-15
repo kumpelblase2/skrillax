@@ -12,7 +12,7 @@ use crate::comp::{GameEntity, Health, Mana};
 use crate::event::LoadingFinishedEvent;
 use crate::game::exp::LevelUpEvent;
 use crate::sync::{SynchronizationCollector, Update};
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use silkroad_game_base::{Heading, LocalPosition, MovementSpeed};
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::combat::ReceiveExperience;

@@ -2,7 +2,7 @@ mod component;
 mod system;
 
 use crate::input::system::{receive_game_inputs, receive_login_inputs, reset};
-use bevy_app::{App, First, Last, Plugin};
+use bevy::prelude::*;
 pub(crate) use component::*;
 
 pub(crate) struct ReceivePlugin;

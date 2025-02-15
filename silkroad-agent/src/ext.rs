@@ -1,5 +1,5 @@
 use crate::protocol::AgentClientProtocol;
-use bevy_ecs_macros::Resource;
+use bevy::prelude::*;
 use derive_more::{Deref, DerefMut, From};
 use id_pool::IdPool;
 use silkroad_data::npc_pos::NpcPosition;

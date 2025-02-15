@@ -1,5 +1,5 @@
 use crate::comp::EntityReference;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use std::collections::HashSet;
 
 #[derive(Component)]

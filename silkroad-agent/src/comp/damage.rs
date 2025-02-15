@@ -1,4 +1,4 @@
-use bevy_ecs_macros::Component;
+use bevy::prelude::*;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 

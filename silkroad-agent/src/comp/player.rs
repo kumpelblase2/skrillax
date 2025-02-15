@@ -15,7 +15,7 @@ use crate::db::user::ServerUser;
 use crate::input::PlayerInput;
 use crate::persistence::Persistable;
 use crate::sync::Reset;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use derive_more::{Deref, From};
 use silkroad_game_base::{Character, Race, SpawningState, Stats};
 

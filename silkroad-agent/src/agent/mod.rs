@@ -2,8 +2,7 @@ use crate::agent::component::AgentGoalReachedEvent;
 use crate::agent::goal::{apply_goal, handle_state_reached_notification};
 use crate::agent::state::{run_transitions, StateTransitionEvent};
 use crate::agent::system::{action, movement, movement_input, pickup, turning};
-use bevy_app::{App, Plugin, PostUpdate, PreUpdate, Update};
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 
 pub mod component;
 pub mod goal;

@@ -1,6 +1,6 @@
 use crate::comp::monster::SpawnedBy;
 use crate::comp::{EntityReference, GameEntity};
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use silkroad_data::skilldata::RefSkillData;
 use silkroad_definitions::TypeId;
 use silkroad_game_base::GlobalLocation;

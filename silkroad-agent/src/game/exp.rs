@@ -6,7 +6,7 @@ use crate::comp::{EntityReference, GameEntity, Health, Mana};
 use crate::config::get_config;
 use crate::event::EntityDeath;
 use crate::world::{EntityLookup, WorldData};
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use silkroad_data::characterdata::RefCharacterData;
 use tracing::warn;
 

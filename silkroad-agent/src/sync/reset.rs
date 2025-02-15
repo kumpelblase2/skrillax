@@ -1,6 +1,4 @@
-use bevy_app::{App, Last};
-use bevy_ecs::change_detection::DetectChangesMut;
-use bevy_ecs::prelude::{Component, Query};
+use bevy::prelude::*;
 
 pub(crate) trait Reset {
     fn reset(&mut self);

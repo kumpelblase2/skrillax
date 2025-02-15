@@ -1,6 +1,6 @@
 use crate::config::GameConfig;
-use bevy_app::{App, Plugin, ScheduleRunnerPlugin};
-use bevy_ecs_macros::Resource;
+use bevy::app::ScheduleRunnerPlugin;
+use bevy::prelude::*;
 use std::ops::Div;
 use std::time::Duration;
 

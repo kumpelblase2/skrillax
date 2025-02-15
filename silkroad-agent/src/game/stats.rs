@@ -1,7 +1,7 @@
 use crate::comp::net::Client;
 use crate::comp::player::StatPoints;
 use crate::input::PlayerInput;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use silkroad_game_base::StatType;
 use silkroad_protocol::world::{IncreaseIntResponse, IncreaseStrResponse};
 use std::mem::take;

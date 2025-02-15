@@ -2,7 +2,7 @@ use crate::db::character::CharacterItem;
 use crate::persistence::ApplyToDatabase;
 use crate::world::WorldData;
 use axum::async_trait;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use silkroad_data::itemdata::RefItemData;
 use silkroad_definitions::type_id::{ObjectItem, ObjectType};
 use silkroad_game_base::{ChangeTracked, Inventory, InventoryChange, Item, ItemTypeData};

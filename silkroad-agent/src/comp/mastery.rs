@@ -1,7 +1,7 @@
 use crate::persistence::ApplyToDatabase;
 use crate::sync::Reset;
 use axum::async_trait;
-use bevy_ecs_macros::Component;
+use bevy::prelude::*;
 use silkroad_game_base::ChangeProvided;
 use sqlx::{PgPool, QueryBuilder};
 use std::collections::hash_map::Entry;

@@ -1,8 +1,7 @@
 use crate::mall::event::MallOpenRequestEvent;
 use crate::mall::system::{clean_tokens, open_mall};
-use bevy_app::{App, Plugin, PostUpdate, Update};
-use bevy_ecs::prelude::IntoSystemConfigs;
-use bevy_time::common_conditions::on_timer;
+use bevy::prelude::*;
+use bevy::time::common_conditions::on_timer;
 use std::time::Duration;
 
 mod db;

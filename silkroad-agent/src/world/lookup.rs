@@ -1,8 +1,8 @@
 use crate::comp::player::Player;
 use crate::comp::GameEntity;
 use crate::ext::EntityIdPool;
-use bevy_ecs::entity::Entities;
-use bevy_ecs::prelude::*;
+use bevy::ecs::entity::Entities;
+use bevy::prelude::*;
 use std::collections::HashMap;
 use tracing::debug;
 

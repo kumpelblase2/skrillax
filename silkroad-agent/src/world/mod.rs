@@ -1,7 +1,7 @@
 use crate::config::GameConfig;
 use crate::ext::{EntityIdPool, Navmesh, NpcPositionList};
 use crate::world::lookup::{collect_entities, maintain_entities};
-use bevy_app::{App, First, Last, Plugin, Startup, Update};
+use bevy::prelude::*;
 pub use data::*;
 pub use lookup::*;
 use pk2::Pk2;

@@ -1,7 +1,7 @@
 use crate::agent::component::Agent;
 use crate::comp::pos::Position;
 use crate::comp::GameEntity;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use silkroad_game_base::{Heading, LocalPosition};
 
 #[allow(clippy::upper_case_acronyms)]

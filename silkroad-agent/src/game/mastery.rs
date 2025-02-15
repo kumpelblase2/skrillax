@@ -6,7 +6,7 @@ use crate::comp::skill::SkillBook;
 use crate::config::GameConfig;
 use crate::input::PlayerInput;
 use crate::world::WorldData;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use silkroad_game_base::Race;
 use silkroad_protocol::skill::{LearnSkillResponse, LevelUpMasteryError, LevelUpMasteryResponse};
 

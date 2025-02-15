@@ -34,8 +34,7 @@ use crate::game::unique::{setup_unique_timers, unique_killed, unique_spawned, up
 use crate::game::visibility::{clear_visibility, player_visibility_update, visibility_update};
 use crate::persistence::AppPersistanceExt;
 use crate::sync::SynchronizationStage;
-use bevy_app::{App, Last, Plugin, PostUpdate, PreUpdate, Startup, Update};
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use exp::LevelUpEvent;
 
 mod action;

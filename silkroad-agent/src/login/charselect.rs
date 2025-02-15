@@ -20,7 +20,7 @@ use crate::population::{LoginQueue, ReservationError};
 use crate::server_plugin::ServerId;
 use crate::tasks::TaskCreator;
 use crate::world::WorldData;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use cgmath::Vector3;
 use chrono::{TimeZone, Utc};
 use silkroad_data::DataEntry;

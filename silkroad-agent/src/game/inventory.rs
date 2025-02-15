@@ -7,7 +7,7 @@ use crate::comp::pos::Position;
 use crate::game::drop::SpawnDrop;
 use crate::game::gold::get_gold_ref_id;
 use crate::input::PlayerInput;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use silkroad_definitions::type_id::{
     ObjectClothingPart, ObjectClothingType, ObjectConsumable, ObjectConsumableAmmo, ObjectEquippable, ObjectItem,
     ObjectJewelryType, ObjectRace, ObjectType, ObjectWeaponType,

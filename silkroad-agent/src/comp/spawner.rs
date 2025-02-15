@@ -1,6 +1,5 @@
 use crate::config::SpawnOptions;
-use bevy_ecs_macros::Component;
-use bevy_time::{Timer, TimerMode};
+use bevy::prelude::*;
 use rand::random;
 use silkroad_data::characterdata::RefCharacterData;
 use std::time::Duration;

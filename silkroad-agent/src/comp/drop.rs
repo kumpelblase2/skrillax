@@ -1,6 +1,6 @@
 use crate::comp::pos::Position;
 use crate::comp::{Despawn, EntityReference, GameEntity};
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use silkroad_game_base::Item;
 
 #[derive(Component)]

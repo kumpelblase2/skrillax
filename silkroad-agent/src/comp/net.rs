@@ -1,5 +1,5 @@
 use crate::protocol::AgentClientProtocol;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use derive_more::Deref;
 use skrillax_protocol::__internal::AsPacket;
 use skrillax_server::Connection;

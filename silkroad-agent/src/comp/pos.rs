@@ -1,5 +1,5 @@
 use crate::sync::Reset;
-use bevy_ecs_macros::Component;
+use bevy::prelude::*;
 use cgmath::{MetricSpace, Vector2};
 use silkroad_game_base::{GlobalLocation, GlobalPosition, Heading};
 use silkroad_protocol::movement::{EntityMovementState, MovementType};

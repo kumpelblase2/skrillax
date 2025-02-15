@@ -5,7 +5,7 @@ use crate::config::get_config;
 use crate::event::EntityDeath;
 use crate::game::drop::SpawnDrop;
 use crate::world::WorldData;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use rand::{thread_rng, Rng};
 use silkroad_data::itemdata::RefItemData;
 use silkroad_game_base::{Item, ItemTypeData};

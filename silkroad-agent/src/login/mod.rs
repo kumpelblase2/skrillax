@@ -5,7 +5,7 @@ use crate::login::jobs::{
     handle_character_restore,
 };
 use crate::LoginQueue;
-use bevy_app::{App, Plugin, PostUpdate, Update};
+use bevy::prelude::*;
 
 pub mod character_loader;
 mod charselect;

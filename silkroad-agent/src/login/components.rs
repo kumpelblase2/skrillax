@@ -1,5 +1,5 @@
 use crate::login::character_loader::DbCharacter;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use derive_more::{Deref, DerefMut};
 use tokio::sync::oneshot::Receiver;
 

@@ -1,6 +1,6 @@
 use crate::comp::EntityReference;
 use crate::sync::Reset;
-use bevy_ecs_macros::Component;
+use bevy::prelude::*;
 use derive_more::Constructor;
 use std::cmp::max;
 

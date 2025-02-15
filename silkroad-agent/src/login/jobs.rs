@@ -5,7 +5,7 @@ use crate::login::character_loader::DbCharacter;
 use crate::login::{
     CharacterCheckName, CharacterCreate, CharacterDelete, CharacterRestore, CharacterSelect, CharactersLoading,
 };
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use chrono::Utc;
 use silkroad_protocol::character::{
     CharacterListAction, CharacterListContent, CharacterListEntry, CharacterListEquippedItem, CharacterListError,

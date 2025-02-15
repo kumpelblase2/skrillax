@@ -1,6 +1,4 @@
-use bevy_ecs::system::{Res, ResMut};
-use bevy_ecs_macros::Resource;
-use bevy_time::Time;
+use bevy::prelude::*;
 use rand::random;
 use std::time::Duration;
 

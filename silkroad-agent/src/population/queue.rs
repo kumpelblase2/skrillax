@@ -1,6 +1,6 @@
 use crate::db::user::ServerUser;
 use crate::population::capacity::{CapacityController, PlayingToken, QueueToken};
-use bevy_ecs_macros::Resource;
+use bevy::prelude::*;
 use rand::{thread_rng, Rng};
 use std::ops::Add;
 use std::sync::{Arc, Mutex};

@@ -11,7 +11,7 @@ use crate::config::GameConfig;
 use crate::ext::Navmesh;
 use crate::game::attack::Attack;
 use crate::world::WorldData;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use cgmath::num_traits::Pow;
 use cgmath::{InnerSpace, MetricSpace};
 use silkroad_data::skilldata::RefSkillData;

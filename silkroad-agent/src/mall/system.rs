@@ -5,7 +5,7 @@ use crate::mall::db::{delete_expired_mall_keys, insert_user_mall_key};
 use crate::mall::event::MallOpenRequestEvent;
 use crate::server_plugin::ServerId;
 use crate::tasks::TaskCreator;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use silkroad_protocol::inventory::{OpenItemMallResponse, OpenItemMallResult};

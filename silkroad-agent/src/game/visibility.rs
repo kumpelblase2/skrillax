@@ -9,7 +9,7 @@ use crate::comp::pos::Position;
 use crate::comp::visibility::{Invisible, Visibility};
 use crate::comp::{EntityReference, GameEntity};
 use crate::game::player_activity::PlayerActivity;
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use cgmath::num_traits::Pow;
 use silkroad_data::DataEntry;
 use silkroad_definitions::Region;

@@ -1,4 +1,4 @@
-use bevy_ecs_macros::Resource;
+use bevy::prelude::*;
 use std::future::Future;
 use std::ops::Deref;
 use std::sync::Arc;
