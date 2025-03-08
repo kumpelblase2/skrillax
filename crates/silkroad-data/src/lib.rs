@@ -11,6 +11,7 @@ pub mod level;
 pub mod masterydata;
 pub mod npc_pos;
 pub mod skilldata;
+pub mod teleport;
 
 pub use datamap::*;
 use encoding_rs::WINDOWS_1252;
