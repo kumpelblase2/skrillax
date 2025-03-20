@@ -1,7 +1,7 @@
 use crate::db::user::ServerUser;
 use crate::population::capacity::{CapacityController, PlayingToken, QueueToken};
 use bevy::prelude::*;
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 use std::ops::Add;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -63,8 +63,8 @@ impl LoginQueue {
 
         let current_time = Instant::now();
         let timeout = current_time.add(Duration::from_secs(self.reservation_valid_time));
-        let mut rng = thread_rng();
-        let mut id = rng.gen_range(u32::MIN..u32::MAX);
+        let mut rng = rng();
+        let mut id = rng.random_range(u32::MIN..u32::MAX);
         let mut tries = 0u8;
         while reservations.iter().any(|reservation| reservation.token == id) {
             if tries >= MAX_TOKEN_TRIES {
@@ -72,7 +72,7 @@ impl LoginQueue {
                 return Err(ReservationError::AllTokensTaken);
             }
 
-            id = rng.gen_range(u32::MIN..u32::MAX);
+            id = rng.random_range(u32::MIN..u32::MAX);
             tries += 1;
         }
 

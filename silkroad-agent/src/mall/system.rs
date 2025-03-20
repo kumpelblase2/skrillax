@@ -6,8 +6,8 @@ use crate::mall::event::MallOpenRequestEvent;
 use crate::server_plugin::ServerId;
 use crate::tasks::TaskCreator;
 use bevy::prelude::*;
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
+use rand::distr::Alphanumeric;
+use rand::{rng, Rng};
 use silkroad_protocol::inventory::{OpenItemMallResponse, OpenItemMallResult};
 use sqlx::PgPool;
 use tracing::debug;
@@ -29,7 +29,7 @@ pub(crate) fn open_mall(
         if let Ok((client, player)) = query.get(event.0) {
             debug!("Requesting Mall from {}", player.user.username);
 
-            let token = thread_rng()
+            let token = rng()
                 .sample_iter(&Alphanumeric)
                 .take(MALL_TOKEN_SIZE)
                 .map(char::from)

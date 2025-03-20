@@ -6,7 +6,7 @@ use crate::event::EntityDeath;
 use crate::game::drop::SpawnDrop;
 use crate::world::WorldData;
 use bevy::prelude::*;
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 use silkroad_data::itemdata::RefItemData;
 use silkroad_game_base::{Item, ItemTypeData};
 
@@ -41,7 +41,7 @@ pub(crate) fn drop_gold(
 
             let monster_level = monster_data.level;
             let gold_range = gold.get_for_level(monster_level);
-            let amount = thread_rng().gen_range(gold_range);
+            let amount = rng().random_range(gold_range);
             let amount = (config.game.drop.gold * amount as f32).floor() as u32;
             drop_events.send(SpawnDrop {
                 item: Item {

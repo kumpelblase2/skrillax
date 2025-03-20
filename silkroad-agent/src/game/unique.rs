@@ -6,7 +6,7 @@ use crate::event::{SpawnMonster, UniqueKilledEvent};
 use crate::ext::NpcPositionList;
 use bevy::prelude::*;
 use rand::prelude::IteratorRandom;
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 use silkroad_definitions::rarity::EntityRarityType;
 use silkroad_game_base::NpcPosExt;
 use silkroad_protocol::world::GameNotification;
@@ -41,7 +41,7 @@ pub(crate) fn update_timers(
 ) {
     let delta = time.delta();
     let spawns = timers.update(delta);
-    let mut rng = thread_rng();
+    let mut rng = rng();
     for ref_id in spawns {
         let Some(position) = npc_pos.positions_of(ref_id).choose(&mut rng) else {
             warn!("Could not find a position to spawn unique with ref id {}", ref_id);
@@ -71,12 +71,12 @@ pub(crate) struct UniqueTimers {
 
 impl UniqueTimers {
     pub(crate) fn update(&mut self, delta: Duration) -> Vec<u32> {
-        let mut rng = thread_rng();
+        let mut rng = rng();
         let mut to_spawn = Vec::new();
         for timer in self.timers.iter_mut() {
             if timer.timer.tick(delta).just_finished() {
                 timer.timer = Timer::from_seconds(
-                    rng.gen_range(RangeInclusive::clone(&timer.range)) as f32 * 60.0,
+                    rng.random_range(RangeInclusive::clone(&timer.range)) as f32 * 60.0,
                     TimerMode::Once,
                 );
                 to_spawn.push(timer.unique_ref);
@@ -115,7 +115,7 @@ pub(crate) fn setup_unique_timers(mut cmd: Commands, config: Res<GameConfig>) {
 }
 
 fn create_timer_for(range: RangeInclusive<usize>, ref_id: u32) -> UniqueTimer {
-    let time = thread_rng().gen_range(RangeInclusive::clone(&range));
+    let time = rng().random_range(RangeInclusive::clone(&range));
     let timer = Timer::from_seconds(time as f32 * 60.0, TimerMode::Once);
 
     UniqueTimer {

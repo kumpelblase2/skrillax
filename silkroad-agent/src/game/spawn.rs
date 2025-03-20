@@ -10,7 +10,7 @@ use crate::event::SpawnMonster;
 use crate::ext::{EntityIdPool, Navmesh};
 use crate::world::WorldData;
 use bevy::prelude::*;
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 use silkroad_definitions::rarity::EntityRarityType;
 use silkroad_game_base::Heading;
 use tracing::debug;
@@ -21,7 +21,7 @@ pub(crate) fn do_spawn_mobs(
     mesh: Res<Navmesh>,
     mut id_pool: ResMut<EntityIdPool>,
 ) {
-    let mut rng = thread_rng();
+    let mut rng = rng();
     let characters = WorldData::characters();
     for event in reader.read() {
         let character_def = characters
@@ -41,7 +41,7 @@ pub(crate) fn do_spawn_mobs(
                 rarity: character_def.rarity,
             },
             health: Health::new(character_def.hp),
-            position: Position::new(position, Heading(rng.gen())),
+            position: Position::new(position, Heading(rng.random())),
             entity: GameEntity {
                 unique_id,
                 ref_id: event.ref_id,

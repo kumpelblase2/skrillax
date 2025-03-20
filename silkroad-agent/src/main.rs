@@ -40,8 +40,8 @@ use crate::world::WorldPlugin;
 use bevy::prelude::*;
 use bevy::time::TimePlugin;
 use login::web::WebServer;
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
+use rand::distr::Alphanumeric;
+use rand::{rng, Rng};
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -73,11 +73,7 @@ fn main() {
         .block_on(configuration.database.create_pool())
         .expect("Should be able to create db pool");
 
-    let token: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(30)
-        .map(char::from)
-        .collect();
+    let token: String = rng().sample_iter(&Alphanumeric).take(30).map(char::from).collect();
 
     runtime
         .block_on(ServerRegistration::setup(
