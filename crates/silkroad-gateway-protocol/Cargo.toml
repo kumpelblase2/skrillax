@@ -11,4 +11,4 @@ skrillax-packet = { workspace = true, features = [
     "derive",
 ] }
 silkroad-base-protocol = { path = "../silkroad-base-protocol" }
-chrono = "0.4.38"
+chrono = "0.4.40"
