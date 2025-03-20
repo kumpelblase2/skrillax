@@ -6,7 +6,7 @@ use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use bevy::prelude::*;
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 use silkroad_definitions::rarity::EntityRarity;
 use silkroad_game_base::GlobalLocation;
 use std::ops::Range;
@@ -60,10 +60,7 @@ impl RandomStroll {
             origin,
             radius,
             movement_timer_range: timer_range.clone(),
-            check_timer: Timer::new(
-                Duration::from_secs(thread_rng().gen_range(timer_range)),
-                TimerMode::Once,
-            ),
+            check_timer: Timer::new(Duration::from_secs(rng().random_range(timer_range)), TimerMode::Once),
         }
     }
 }

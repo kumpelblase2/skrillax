@@ -91,7 +91,7 @@ pub(crate) fn spawn_monsters(
             } else if spawner.should_spawn(delta) {
                 let empty_spots = spawner.available_spots();
                 let max_spawn = min(empty_spots, 3); // Spawn at most 3 at once
-                let to_spawn = rand::thread_rng().gen_range(1..=max_spawn);
+                let to_spawn = rand::rng().random_range(1..=max_spawn);
 
                 let spawned_amount = spawn_n_monsters(
                     entity,
@@ -184,7 +184,7 @@ fn to_position(location: GlobalLocation, navmesh: &GlobalNavmesh) -> Option<Posi
         .height_at_position(local.1.x, local.1.y)
         .expect("Location should be inside region.");
     let pos = location.with_y(height);
-    let heading = Heading(rand::thread_rng().gen_range(0..360) as f32);
+    let heading = Heading(rand::rng().random_range(0..360) as f32);
     Some(Position::new(pos, heading))
 }
 

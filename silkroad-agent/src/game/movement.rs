@@ -4,7 +4,7 @@ use crate::comp::monster::RandomStroll;
 use crate::comp::pos::Position;
 use crate::ext::Navmesh;
 use bevy::prelude::*;
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 use silkroad_game_base::{GlobalLocation, Vector2Ext};
 use std::time::Duration;
 
@@ -23,7 +23,7 @@ pub(crate) fn movement_monster(
             let new_location = GlobalLocation(stroll.origin.0.random_in_radius(stroll.radius));
             let new_y = navmesh.height_for(new_location).unwrap_or(pos.position().0.y);
             goal.switch_goal(AgentGoal::moving_to(new_location.with_y(new_y)));
-            let next_move_duration = Duration::from_secs(thread_rng().gen_range(stroll.movement_timer_range.clone()));
+            let next_move_duration = Duration::from_secs(rng().random_range(stroll.movement_timer_range.clone()));
             stroll.check_timer = Timer::new(next_move_duration, TimerMode::Once);
         }
     }

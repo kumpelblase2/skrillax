@@ -33,7 +33,7 @@ pub(crate) fn create_drops(
     for spawn in reader.read() {
         let pos = random_position_around(&navmesh, spawn.relative_position, 2.0);
         let drop_id = id_gen.request_id().expect("Should be able to generate an id");
-        let rotation = rand::thread_rng().gen_range(0..360) as f32;
+        let rotation = rand::rng().random_range(0..360) as f32;
 
         cmd.spawn(DropBundle {
             drop: Drop {

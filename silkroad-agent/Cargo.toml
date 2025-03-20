@@ -2,6 +2,7 @@
 name = "silkroad-agent"
 version = "0.1.0"
 edition = "2021"
+resolver = "2"
 
 [dependencies]
 tracing-subscriber.workspace = true
@@ -32,10 +33,10 @@ serde.workspace = true
 thiserror.workspace = true
 chrono.workspace = true
 itertools = "*"
-bevy = { version = "0.15.2", default-features = false }
+bevy = { version = "0.15.2", default-features = false, features = ["trace_chrome"] }
 cgmath = "0.18"
 pk2.workspace = true
 id-pool = { version = "0.2", features = ["u32"], default-features = false }
-derive_more = "0.99.17"
+derive_more = { version = "2", features = ["deref", "deref_mut", "from", "constructor"] }
 futures = "0.3"
 gumdrop = "0.8.1"
