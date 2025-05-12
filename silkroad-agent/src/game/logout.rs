@@ -1,9 +1,9 @@
 use crate::comp::net::Client;
 use crate::config::GameConfig;
 use crate::event::ClientDisconnectedEvent;
-use crate::input::PlayerInput;
+use crate::input::PlayerInputEvent;
 use bevy::prelude::*;
-use silkroad_protocol::auth::{LogoutFinished, LogoutResponse, LogoutResult};
+use silkroad_protocol::auth::{LogoutFinished, LogoutRequest, LogoutResponse, LogoutResult};
 use std::time::Duration;
 
 #[derive(Component)]
@@ -21,19 +21,22 @@ impl Logout {
 }
 
 pub(crate) fn handle_logout(
-    query: Query<(Entity, &Client, &PlayerInput)>,
+    query: Query<(Entity, &Client)>,
     settings: Res<GameConfig>,
     mut cmd: Commands,
+    mut reader: MessageReader<PlayerInputEvent<LogoutRequest>>,
 ) {
-    for (entity, client, input) in query.iter() {
-        if let Some(ref logout) = input.logout {
-            client.send(LogoutResponse::new(LogoutResult::success(
-                settings.logout_duration as u32,
-                logout.mode,
-            )));
-            cmd.entity(entity)
-                .try_insert(Logout::from_seconds(settings.logout_duration as u64));
-        }
+    for event in reader.read() {
+        let Ok((entity, client)) = query.get(event.player) else {
+            continue;
+        };
+        let logout = &event.input;
+        client.send(LogoutResponse::new(LogoutResult::success(
+            settings.logout_duration as u32,
+            logout.mode,
+        )));
+        cmd.entity(entity)
+            .try_insert(Logout::from_seconds(settings.logout_duration as u64));
     }
 }
 

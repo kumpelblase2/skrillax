@@ -1,8 +1,11 @@
 use crate::movement::Location;
+use bytes::BytesMut;
 use skrillax_packet::Packet;
-use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
+use skrillax_serde::__internal::byteorder::{LittleEndian, ReadBytesExt};
 use skrillax_serde::*;
+use skrillax_stream::registry::PacketRegistryBuilder;
 use std::fmt::{Display, Formatter};
+use std::io::Read;
 
 #[derive(Deserialize, Serialize, ByteSize, Copy, Clone, Debug)]
 pub enum ActionTarget {
@@ -68,18 +71,75 @@ pub enum PerformActionResponse {
     Stop(PerformActionError),
 }
 
-#[derive(Serialize, ByteSize, Deserialize, Clone, Debug)]
+#[derive(Serialize, ByteSize, Clone, Debug)]
 pub struct DamageContent {
     pub damage_instances: u8,
     #[silkroad(list_type = "length")]
     pub entities: Vec<PerEntityDamage>,
 }
 
-#[derive(Serialize, ByteSize, Clone, Deserialize, Debug)]
+#[derive(Copy, Clone)]
+struct DamageInstances(u8);
+
+impl Deserialize for DamageContent {
+    fn read_from<T: Read + ReadBytesExt>(reader: &mut T, ctx: &SerdeContext) -> Result<Self, SerializationError>
+    where
+        Self: Sized,
+    {
+        let damage_instances = reader.read_u8()?;
+        ctx.set(DamageInstances(damage_instances));
+        let length = reader.read_u8()?;
+        let mut entities = Vec::with_capacity(length.into());
+        for _i in 0..length {
+            let per_entity = PerEntityDamage::read_from(reader, ctx)?;
+            entities.push(per_entity);
+        }
+        ctx.unset::<DamageInstances>();
+
+        Ok(DamageContent {
+            damage_instances,
+            entities,
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct PerEntityDamage {
     pub target: u32,
-    #[silkroad(list_type = "none")]
     pub damage: Vec<SkillPartDamage>,
+}
+
+impl ByteSize for PerEntityDamage {
+    fn byte_size(&self) -> usize {
+        4 + self.damage.iter().map(|d| d.byte_size()).sum::<usize>()
+    }
+}
+
+impl Serialize for PerEntityDamage {
+    fn write_to(&self, writer: &mut BytesMut, ctx: &SerdeContext) -> Result<(), SerializationError> {
+        self.target.write_to(writer, ctx)?;
+        for damage in &self.damage {
+            damage.write_to(writer, ctx)?;
+        }
+        Ok(())
+    }
+}
+
+impl Deserialize for PerEntityDamage {
+    fn read_from<T: Read + ReadBytesExt>(reader: &mut T, ctx: &SerdeContext) -> Result<Self, SerializationError>
+    where
+        Self: Sized,
+    {
+        let target = reader.read_u32::<LittleEndian>()?;
+        let size = ctx.get::<DamageInstances>().map(|instances| instances.0).unwrap_or(0);
+        let mut damage = Vec::with_capacity(size.into());
+        for _i in 0..size {
+            let per_entity = SkillPartDamage::read_from(reader, ctx)?;
+            damage.push(per_entity);
+        }
+
+        Ok(PerEntityDamage { target, damage })
+    }
 }
 
 #[derive(Serialize, ByteSize, Copy, Clone, Deserialize, Debug)]
@@ -194,7 +254,10 @@ impl PerformActionUpdate {
     }
 }
 
-#[derive(Serialize, ByteSize, Copy, Clone, Packet, Debug)]
+#[derive(Copy, Clone, Debug)]
+pub struct DidLevelUp;
+
+#[derive(Deserialize, Serialize, ByteSize, Copy, Clone, Packet, Debug)]
 #[packet(opcode = 0x3056)]
 pub struct ReceiveExperience {
     /// Unique ID of the entity that provided the experience
@@ -206,16 +269,19 @@ pub struct ReceiveExperience {
     // Some kind of flag for reading additional data (either 4 or 8 bytes)
     pub unknown: u8,
     /// If the player reached a new level thanks to this experience and what the new level is
-    #[silkroad(size = 0)]
+    #[silkroad(when = "ctx.get::<DidLevelUp>().is_some()")]
     pub new_level: Option<u16>,
 }
 
-define_inbound_protocol! { CombatClientProtocol =>
-    PerformAction
+pub trait CombatPacketRegistryExt {
+    fn register_combat_packets(self) -> Self;
 }
 
-define_outbound_protocol! { CombatServerProtocol =>
-    PerformActionResponse,
-    PerformActionUpdate,
-    ReceiveExperience
+impl CombatPacketRegistryExt for PacketRegistryBuilder {
+    fn register_combat_packets(self) -> Self {
+        self.register_incoming::<PerformAction>()
+            .register_outgoing::<PerformActionResponse>()
+            .register_outgoing::<PerformActionUpdate>()
+            .register_outgoing::<ReceiveExperience>()
+    }
 }

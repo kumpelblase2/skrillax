@@ -108,10 +108,6 @@ pub struct GoalTracker {
 }
 
 impl GoalTracker {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn switch_goal(&mut self, goal: AgentGoal) {
         self.goal = goal;
         self.notify_reached = false;
@@ -184,10 +180,8 @@ pub(crate) fn apply_goal(
                 let range_to_target = position.distance_to(target_pos);
 
                 if range_to_target <= range_squared {
-                    let target_state = AgentState::PerformSkill(SkillParameter {
-                        target: SkillTarget::Entity(args.target),
-                        skill,
-                    });
+                    let target_state =
+                        AgentState::PerformSkill(SkillParameter::new(SkillTarget::Entity(args.target), skill));
                     state.push(Transition::create(target_state, TransitionPriority::Default, true));
                 } else {
                     let new_target_position = position

@@ -1,8 +1,11 @@
+#[cfg(feature = "serde")]
 use byteorder::ReadBytesExt;
+#[cfg(feature = "serde")]
 use bytes::{BufMut, BytesMut};
 use num_enum_derive::{IntoPrimitive, TryFromPrimitive};
 #[cfg(feature = "serde")]
 use skrillax_serde::{ByteSize, Deserialize, SerializationError, Serialize};
+#[cfg(feature = "serde")]
 use std::io::Read;
 
 #[derive(IntoPrimitive, TryFromPrimitive, Copy, Clone, Eq, PartialEq, Debug)]
@@ -80,18 +83,22 @@ impl ByteSize for EntityRarity {
 
 #[cfg(feature = "serde")]
 impl Serialize for EntityRarity {
-    fn write_to(&self, writer: &mut BytesMut) {
-        writer.put_u8((*self).into())
+    fn write_to(&self, writer: &mut BytesMut, _ctx: &skrillax_serde::SerdeContext) -> Result<(), SerializationError> {
+        writer.put_u8((*self).into());
+        Ok(())
     }
 }
 
 #[cfg(feature = "serde")]
 impl Deserialize for EntityRarity {
-    fn read_from<T: Read + ReadBytesExt>(reader: &mut T) -> Result<Self, SerializationError>
+    fn read_from<T: Read + ReadBytesExt>(
+        reader: &mut T,
+        _ctx: &skrillax_serde::SerdeContext,
+    ) -> Result<Self, SerializationError>
     where
         Self: Sized,
     {
         let data = reader.read_u8()?;
-        EntityRarity::try_from(data).map_err(|_| SerializationError::UnknownVariation(data as usize, "EntityRarity"))
+        EntityRarity::try_from(data).map_err(|_| SerializationError::UnknownVariation(data.into(), "EntityRarity"))
     }
 }

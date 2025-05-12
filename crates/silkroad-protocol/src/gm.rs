@@ -1,7 +1,7 @@
 use silkroad_definitions::rarity::EntityRarity;
 use skrillax_packet::Packet;
-use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
 use skrillax_serde::*;
+use skrillax_stream::registry::PacketRegistryBuilder;
 
 #[derive(Deserialize, ByteSize, Serialize, Packet, Debug, Clone)]
 #[packet(opcode = 0x7010)]
@@ -76,10 +76,12 @@ impl GmResponse {
     }
 }
 
-define_inbound_protocol! { GmClientProtocol =>
-    GmCommand
+pub trait GmPacketRegistryExt {
+    fn register_gm_packets(self) -> Self;
 }
 
-define_outbound_protocol! { GmServerProtocol =>
-    GmResponse
+impl GmPacketRegistryExt for PacketRegistryBuilder {
+    fn register_gm_packets(self) -> Self {
+        self.register_incoming::<GmCommand>().register_outgoing::<GmResponse>()
+    }
 }

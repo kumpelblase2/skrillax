@@ -1,6 +1,6 @@
 use skrillax_packet::Packet;
-use skrillax_protocol::define_protocol;
 use skrillax_serde::*;
+use skrillax_stream::registry::PacketRegistryBuilder;
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum LogoutMode {
@@ -118,62 +118,189 @@ pub struct Disconnect {
     pub unknown: u8,
 }
 
+impl Default for Disconnect {
+    fn default() -> Self {
+        Disconnect::new()
+    }
+}
+
 impl Disconnect {
     pub fn new() -> Self {
         Disconnect { unknown: 0xFF }
     }
 }
 
-#[derive(Packet, Serialize, Deserialize, ByteSize, Clone, Debug, Copy)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
+struct UnknownPacketEntry2 {
+    kind: u32,
+    data: u64,
+}
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
+struct UnknownPacketEntry {
+    entry_id: u32,
+    unknown_flag: u8,
+    elements: Vec<UnknownPacketEntry2>,
+}
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug, Packet)]
 #[packet(opcode = 0x3612)]
 pub struct UnknownLargePacket {
-    data: [u8; 494],
+    unknown: u8,
+    entries: Vec<UnknownPacketEntry>,
 }
 
 impl UnknownLargePacket {
     pub fn new() -> Self {
         UnknownLargePacket {
-            data: [
-                0x00, 0x16, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x01, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x01, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x01, 0x01, 0x0c, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01, 0x01, 0x0d, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x01, 0x01, 0x0e, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x01, 0x0f, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x01, 0x01, 0x10,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x01, 0x01,
-                0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x01,
-                0x01, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x17, 0x00, 0x00, 0x00,
-                0x01, 0x01, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00,
-                0x00, 0x01, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x19, 0x00,
-                0x00, 0x00, 0x01, 0x01, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1a,
-                0x00, 0x00, 0x00, 0x01, 0x01, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x1b, 0x00, 0x00, 0x00, 0x01, 0x01, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x1c, 0x00, 0x00, 0x00, 0x01, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x1d, 0x00, 0x00, 0x00, 0x01, 0x01, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x1e, 0x00, 0x00, 0x00, 0x01, 0x01, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x1f, 0x00, 0x00, 0x00, 0x01, 0x01, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x5b, 0x00, 0x00, 0x00, 0x01, 0x05, 0x77, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x79, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7a, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x5c, 0x00, 0x00, 0x00, 0x01, 0x05, 0x7c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x7d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7e,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00,
+            unknown: 0,
+            entries: vec![],
+        }
+    }
+
+    pub fn known() -> Self {
+        UnknownLargePacket {
+            unknown: 0,
+            entries: vec![
+                UnknownPacketEntry {
+                    entry_id: 1,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 18, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 2,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 19, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 3,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 1, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 4,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 2, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 5,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 12, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 6,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 13, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 7,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 14, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 8,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 15, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 9,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 16, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 10,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 17, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 11,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 24, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 23,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 3, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 24,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 4, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 25,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 5, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 26,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 6, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 27,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 7, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 28,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 8, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 29,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 9, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 30,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 10, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 31,
+                    unknown_flag: 1,
+                    elements: vec![UnknownPacketEntry2 { kind: 11, data: 0 }],
+                },
+                UnknownPacketEntry {
+                    entry_id: 91,
+                    unknown_flag: 1,
+                    elements: vec![
+                        UnknownPacketEntry2 { kind: 119, data: 0 },
+                        UnknownPacketEntry2 { kind: 120, data: 0 },
+                        UnknownPacketEntry2 { kind: 121, data: 0 },
+                        UnknownPacketEntry2 { kind: 122, data: 0 },
+                        UnknownPacketEntry2 { kind: 123, data: 0 },
+                    ],
+                },
+                UnknownPacketEntry {
+                    entry_id: 92,
+                    unknown_flag: 1,
+                    elements: vec![
+                        UnknownPacketEntry2 { kind: 124, data: 0 },
+                        UnknownPacketEntry2 { kind: 125, data: 0 },
+                        UnknownPacketEntry2 { kind: 126, data: 0 },
+                        UnknownPacketEntry2 { kind: 127, data: 0 },
+                        UnknownPacketEntry2 { kind: 128, data: 0 },
+                    ],
+                },
             ],
         }
     }
 }
 
-define_protocol! { AuthProtocol =>
-    LogoutRequest,
-    LogoutResponse,
-    LogoutFinished,
-    AuthRequest,
-    AuthResponse,
-    Disconnect
+pub trait AuthPacketRegistryExt {
+    fn register_auth_packets(self) -> Self;
+}
+
+impl AuthPacketRegistryExt for PacketRegistryBuilder {
+    fn register_auth_packets(self) -> Self {
+        self.register_incoming::<AuthRequest>()
+            .register_outgoing::<AuthResponse>()
+            .register_incoming::<LogoutRequest>()
+            .register_outgoing::<LogoutResponse>()
+            .register_outgoing::<LogoutFinished>()
+            .register_outgoing::<Disconnect>()
+            .register::<UnknownLargePacket>()
+    }
 }

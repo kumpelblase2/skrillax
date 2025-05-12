@@ -1,6 +1,6 @@
 use skrillax_packet::Packet;
-use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
 use skrillax_serde::*;
+use skrillax_stream::registry::PacketRegistryBuilder;
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize, Debug)]
@@ -179,13 +179,16 @@ pub struct ChangeSpeed {
     pub running_speed: f32,
 }
 
-define_inbound_protocol! { MovementClientProtocol =>
-    PlayerMovementRequest,
-    Rotation
+pub trait MovementPacketRegistryExt {
+    fn register_movement_packets(self) -> Self;
 }
 
-define_outbound_protocol! { MovementServerProtocol =>
-    PlayerMovementResponse,
-    EntityMovementInterrupt,
-    ChangeSpeed
+impl MovementPacketRegistryExt for PacketRegistryBuilder {
+    fn register_movement_packets(self) -> Self {
+        self.register_incoming::<PlayerMovementRequest>()
+            .register_incoming::<Rotation>()
+            .register_outgoing::<PlayerMovementResponse>()
+            .register_outgoing::<EntityMovementInterrupt>()
+            .register_outgoing::<ChangeSpeed>()
+    }
 }

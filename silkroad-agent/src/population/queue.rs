@@ -25,7 +25,9 @@ struct Reservation<T: PartialEq> {
     token: u32,
     content: T,
     timeout: Instant,
-    spot_token: QueueToken,
+    // We simply keep this such that it will only be dropped when the reservation is over.
+    // We don't _really_ need it otherwise.
+    _spot_token: QueueToken,
 }
 
 #[derive(Clone, Resource)]
@@ -80,7 +82,7 @@ impl LoginQueue {
             token: id,
             timeout,
             content,
-            spot_token: queue_token,
+            _spot_token: queue_token,
         };
         reservations.push(reservation);
         Ok((id, Duration::from_secs(self.reservation_valid_time - 1)))

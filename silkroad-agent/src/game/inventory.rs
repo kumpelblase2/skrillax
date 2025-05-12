@@ -6,7 +6,7 @@ use crate::comp::player::CharacterRace;
 use crate::comp::pos::Position;
 use crate::game::drop::SpawnDrop;
 use crate::game::gold::get_gold_ref_id;
-use crate::input::PlayerInput;
+use crate::input::PlayerInputEvent;
 use bevy::prelude::*;
 use silkroad_definitions::type_id::{
     ObjectClothingPart, ObjectClothingType, ObjectConsumable, ObjectConsumableAmmo, ObjectEquippable, ObjectItem,
@@ -14,14 +14,14 @@ use silkroad_definitions::type_id::{
 };
 use silkroad_game_base::{Inventory, Item, ItemTypeData, MoveError, Race};
 use silkroad_protocol::inventory::{
-    InventoryOperationError, InventoryOperationRequest, InventoryOperationResponseData, InventoryOperationResult,
+    InventoryOperation, InventoryOperationError, InventoryOperationRequest, InventoryOperationResponseData,
+    InventoryOperationResult,
 };
 use std::cmp::max;
 
 pub(crate) fn handle_inventory_input(
     mut query: Query<(
         &Client,
-        &PlayerInput,
         &Leveled,
         &CharacterRace,
         &mut PlayerInventory,
@@ -29,79 +29,82 @@ pub(crate) fn handle_inventory_input(
         &Position,
     )>,
     mut item_spawn: MessageWriter<SpawnDrop>,
+    mut reader: MessageReader<PlayerInputEvent<InventoryOperation>>,
 ) {
-    for (client, input, level, race, mut inventory, mut gold, position) in query.iter_mut() {
-        if let Some(ref action) = input.inventory {
-            match action.data {
-                InventoryOperationRequest::DropGold { amount } => {
-                    if amount > gold.amount() {
-                        client.send(InventoryOperationResult::Failure(
-                            InventoryOperationError::NotEnoughGold,
-                        ));
-                        continue;
+    for event in reader.read() {
+        let Ok((client, level, race, mut inventory, mut gold, position)) = query.get_mut(event.player) else {
+            continue;
+        };
+
+        match event.input.data {
+            InventoryOperationRequest::DropGold { amount } => {
+                if amount > gold.amount() {
+                    client.send(InventoryOperationResult::Failure(
+                        InventoryOperationError::NotEnoughGold,
+                    ));
+                    continue;
+                }
+
+                if amount == 0 {
+                    continue;
+                }
+
+                gold.spend(amount);
+
+                let item_ref = get_gold_ref_id(amount as u32);
+                item_spawn.write(SpawnDrop::new(
+                    Item {
+                        reference: item_ref,
+                        variance: None,
+                        type_data: ItemTypeData::Gold { amount: amount as u32 },
+                    },
+                    position.location(),
+                    None,
+                ));
+
+                client.send(InventoryOperationResult::Success(
+                    InventoryOperationResponseData::DropGold { amount },
+                ));
+            },
+            InventoryOperationRequest::PickupItem { unique_id } => {},
+            InventoryOperationRequest::Move { source, target, amount } => {
+                if let Some(source_item) = inventory.get_item_at(source) {
+                    if Inventory::is_equipment_slot(target) {
+                        let type_id = source_item.reference.common.type_id;
+                        let object_type =
+                            ObjectType::from_type_id(&type_id).expect("Item to equip should have valid object type.");
+                        let fits = does_object_type_match_slot(target, object_type)
+                            && source_item
+                                .reference
+                                .required_level
+                                .map(|val| val.get() <= level.current_level())
+                                .unwrap_or(true)
+                            && does_object_type_match_race(race.inner(), object_type);
+                        // TODO: check if equipment requirement sex matches
+                        //  check if required masteries matches
+                        if !fits {
+                            // TODO: Use more appropriate error code
+                            client.send(InventoryOperationResult::Failure(InventoryOperationError::Indisposable));
+                            continue;
+                        }
                     }
-
-                    if amount == 0 {
-                        continue;
-                    }
-
-                    gold.spend(amount);
-
-                    let item_ref = get_gold_ref_id(amount as u32);
-                    item_spawn.write(SpawnDrop::new(
-                        Item {
-                            reference: item_ref,
-                            variance: None,
-                            type_data: ItemTypeData::Gold { amount: amount as u32 },
+                    match inventory.move_item(source, target, max(1, amount)) {
+                        Err(MoveError::Impossible) => {},
+                        Err(MoveError::ItemDoesNotExist) => {},
+                        Err(MoveError::NotStackable) => {},
+                        Ok(amount_moved) => {
+                            client.send(InventoryOperationResult::Success(
+                                InventoryOperationResponseData::move_item(source, target, amount_moved),
+                            ));
                         },
-                        position.location(),
-                        None,
-                    ));
-
-                    client.send(InventoryOperationResult::Success(
-                        InventoryOperationResponseData::DropGold { amount },
-                    ));
-                },
-                InventoryOperationRequest::PickupItem { unique_id } => {},
-                InventoryOperationRequest::Move { source, target, amount } => {
-                    if let Some(source_item) = inventory.get_item_at(source) {
-                        if Inventory::is_equipment_slot(target) {
-                            let type_id = source_item.reference.common.type_id;
-                            let object_type = ObjectType::from_type_id(&type_id)
-                                .expect("Item to equip should have valid object type.");
-                            let fits = does_object_type_match_slot(target, object_type)
-                                && source_item
-                                    .reference
-                                    .required_level
-                                    .map(|val| val.get() <= level.current_level())
-                                    .unwrap_or(true)
-                                && does_object_type_match_race(race.inner(), object_type);
-                            // TODO: check if equipment requirement sex matches
-                            //  check if required masteries matches
-                            if !fits {
-                                // TODO: Use more appropriate error code
-                                client.send(InventoryOperationResult::Failure(InventoryOperationError::Indisposable));
-                                continue;
-                            }
-                        }
-                        match inventory.move_item(source, target, max(1, amount)) {
-                            Err(MoveError::Impossible) => {},
-                            Err(MoveError::ItemDoesNotExist) => {},
-                            Err(MoveError::NotStackable) => {},
-                            Ok(amount_moved) => {
-                                client.send(InventoryOperationResult::Success(
-                                    InventoryOperationResponseData::move_item(source, target, amount_moved),
-                                ));
-                            },
-                        }
-                    } else {
-                        client.send(InventoryOperationResult::Failure(
-                            InventoryOperationError::InvalidTarget,
-                        ));
                     }
-                },
-                InventoryOperationRequest::DropItem { .. } => {},
-            }
+                } else {
+                    client.send(InventoryOperationResult::Failure(
+                        InventoryOperationError::InvalidTarget,
+                    ));
+                }
+            },
+            InventoryOperationRequest::DropItem { .. } => {},
         }
     }
 }

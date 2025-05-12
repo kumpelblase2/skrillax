@@ -1,6 +1,6 @@
 use skrillax_packet::Packet;
-use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
 use skrillax_serde::*;
+use skrillax_stream::registry::PacketRegistryBuilder;
 
 #[derive(Clone, Copy, Deserialize, ByteSize, Serialize, Debug)]
 pub enum InventoryOperationRequest {
@@ -67,31 +67,50 @@ impl RentInfo {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Debug)]
-#[silkroad(size = 0)]
-pub enum ItemPickupData {
-    Gold {
-        amount: u32,
-    },
-    Item {
-        rent: RentInfo,
-        ref_id: u32,
-        content: InventoryItemContentData,
-    },
-    General,
+#[derive(Clone, Serialize, Deserialize, ByteSize, Debug)]
+pub struct ItemInfo {
+    pub rent: RentInfo,
+    pub content: ItemContentData,
+}
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
+pub struct ItemPickupData {
+    slot: u8,
+    #[silkroad(when = "slot == 0xFE")]
+    gold: Option<u32>,
+    #[silkroad(when = "slot < 0xFE")]
+    item: Option<ItemInfo>,
 }
 
 impl ItemPickupData {
     pub fn gold(amount: u32) -> Self {
-        ItemPickupData::Gold { amount }
+        ItemPickupData {
+            slot: 0xFE,
+            gold: Some(amount),
+            item: None,
+        }
     }
 
-    pub fn item(rent: RentInfo, ref_id: u32, content: InventoryItemContentData) -> Self {
-        ItemPickupData::Item { rent, ref_id, content }
+    pub fn item(slot: u8, rent: RentInfo, content: ItemContentData) -> Self {
+        ItemPickupData {
+            slot,
+            gold: None,
+            item: Some(ItemInfo { rent, content }),
+        }
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Debug)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
+pub struct ItemAddData {
+    slot: u8,
+    unknown: u8,
+    #[silkroad(when = "slot == 0xFE")]
+    gold: Option<u32>,
+    #[silkroad(when = "slot < 0xFE")]
+    item: Option<ItemInfo>,
+}
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub enum InventoryOperationResponseData {
     #[silkroad(value = 0x00)]
     UpdateSlots {
@@ -103,13 +122,9 @@ pub enum InventoryOperationResponseData {
     #[silkroad(value = 0x0A)]
     DropGold { amount: u64 },
     #[silkroad(value = 0x06)]
-    PickupItem { slot: u8, item: ItemPickupData },
+    PickupItem(ItemPickupData),
     #[silkroad(value = 0x0e)]
-    AddedByServer {
-        slot: u8,
-        unknown: u8,
-        data: ItemPickupData,
-    },
+    AddedByServer(ItemAddData),
 }
 
 impl InventoryOperationResponseData {
@@ -117,8 +132,8 @@ impl InventoryOperationResponseData {
         InventoryOperationResponseData::DropGold { amount }
     }
 
-    pub fn pickupitem(slot: u8, item: ItemPickupData) -> Self {
-        InventoryOperationResponseData::PickupItem { slot, item }
+    pub fn pickupitem(item: ItemPickupData) -> Self {
+        InventoryOperationResponseData::PickupItem(item)
     }
 
     pub fn move_item(source: u8, dest: u8, amount: u16) -> Self {
@@ -156,26 +171,47 @@ impl ConsignmentResult {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Debug)]
-#[silkroad(size = 0)]
-pub enum InventoryItemContentData {
-    Equipment {
-        plus_level: u8,
-        variance: u64,
-        durability: u32,
-        magic: Vec<InventoryItemMagicData>,
-        bindings_1: InventoryItemBindingData,
-        bindings_2: InventoryItemBindingData,
-        bindings_3: InventoryItemBindingData,
-        bindings_4: InventoryItemBindingData,
-    },
-    Expendable {
-        stack_size: u16,
-    },
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
+pub struct ItemContentData {
+    pub res_id: u32,
+    #[silkroad(when = "crate::runtime::is_equipment_id(res_id)")]
+    pub equipment_data: Option<EquipmentItemContentData>,
+    #[silkroad(when = "!crate::runtime::is_equipment_id(res_id)")]
+    pub expendable_data: Option<ExpendableItemContentData>,
 }
 
-impl InventoryItemContentData {
-    pub fn equipment(
+impl ItemContentData {
+    pub fn new_equipment(res_id: u32, equipment: EquipmentItemContentData) -> Self {
+        ItemContentData {
+            res_id,
+            equipment_data: Some(equipment),
+            expendable_data: None,
+        }
+    }
+
+    pub fn new_expendable(res_id: u32, expendable: ExpendableItemContentData) -> Self {
+        ItemContentData {
+            res_id,
+            equipment_data: None,
+            expendable_data: Some(expendable),
+        }
+    }
+}
+
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
+pub struct EquipmentItemContentData {
+    pub plus_level: u8,
+    pub variance: u64,
+    pub durability: u32,
+    pub magic: Vec<InventoryItemMagicData>,
+    pub bindings_1: InventoryItemBindingData,
+    pub bindings_2: InventoryItemBindingData,
+    pub bindings_3: InventoryItemBindingData,
+    pub bindings_4: InventoryItemBindingData,
+}
+
+impl EquipmentItemContentData {
+    pub fn new(
         plus_level: u8,
         variance: u64,
         durability: u32,
@@ -185,7 +221,7 @@ impl InventoryItemContentData {
         bindings_3: InventoryItemBindingData,
         bindings_4: InventoryItemBindingData,
     ) -> Self {
-        InventoryItemContentData::Equipment {
+        Self {
             plus_level,
             variance,
             durability,
@@ -196,9 +232,16 @@ impl InventoryItemContentData {
             bindings_4,
         }
     }
+}
 
-    pub fn expendable(stack_size: u16) -> Self {
-        InventoryItemContentData::Expendable { stack_size }
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
+pub struct ExpendableItemContentData {
+    pub stack_size: u16,
+}
+
+impl ExpendableItemContentData {
+    pub fn new(stack_size: u16) -> Self {
+        ExpendableItemContentData { stack_size }
     }
 }
 
@@ -251,7 +294,7 @@ pub enum InventoryOperationError {
     RequiresSpecialtyBag,
 }
 
-#[derive(Clone, Serialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
 #[packet(opcode = 0xB034)]
 pub enum InventoryOperationResult {
     #[silkroad(value = 2)]
@@ -261,28 +304,20 @@ pub enum InventoryOperationResult {
 }
 
 impl InventoryOperationResult {
-    const GOLD_SLOT: u8 = 0xFE;
-
     pub fn success_gain_gold(amount: u32) -> Self {
-        InventoryOperationResult::Success(InventoryOperationResponseData::PickupItem {
-            slot: Self::GOLD_SLOT,
-            item: ItemPickupData::Gold { amount },
-        })
+        InventoryOperationResult::Success(InventoryOperationResponseData::PickupItem(ItemPickupData::gold(amount)))
     }
 
-    pub fn success_gain_item(slot: u8, ref_id: u32, content: InventoryItemContentData) -> Self {
-        InventoryOperationResult::Success(InventoryOperationResponseData::PickupItem {
+    pub fn success_gain_item(slot: u8, content: ItemContentData) -> Self {
+        InventoryOperationResult::Success(InventoryOperationResponseData::PickupItem(ItemPickupData::item(
             slot,
-            item: ItemPickupData::Item {
-                rent: RentInfo::Empty,
-                ref_id,
-                content,
-            },
-        })
+            RentInfo::Empty,
+            content,
+        )))
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct BagContent {
     pub size: u8,
     #[silkroad(when = "size > 0")]
@@ -302,25 +337,23 @@ impl BagContent {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct BagItems {
     pub inner: Vec<InventoryItemData>,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct InventoryItemData {
     pub slot: u8,
     pub rent_data: RentInfo,
-    pub item_id: u32,
-    pub content_data: InventoryItemContentData,
+    pub content_data: ItemContentData,
 }
 
 impl InventoryItemData {
-    pub fn new(slot: u8, rent_data: RentInfo, item_id: u32, content_data: InventoryItemContentData) -> Self {
+    pub fn new(slot: u8, rent_data: RentInfo, content_data: ItemContentData) -> Self {
         InventoryItemData {
             slot,
             rent_data,
-            item_id,
             content_data,
         }
     }
@@ -341,7 +374,7 @@ impl InventoryItemBindingData {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct CharacterSpawnItemData {
     pub item_id: u32,
     pub upgrade_level: u8,
@@ -433,14 +466,17 @@ pub enum OpenItemMallResult {
     Success { jid: u32, token: String },
 }
 
-define_inbound_protocol! { InventoryClientProtocol =>
-    OpenItemMall,
-    InventoryOperation,
-    ConsignmentList
+pub trait InventoryPacketRegistryExt {
+    fn register_inventory_packets(self) -> Self;
 }
 
-define_outbound_protocol! { InventoryServerProtocol =>
-    OpenItemMallResponse,
-    ConsignmentResponse,
-    InventoryOperationResult
+impl InventoryPacketRegistryExt for PacketRegistryBuilder {
+    fn register_inventory_packets(self) -> Self {
+        self.register_incoming::<OpenItemMall>()
+            .register_incoming::<InventoryOperation>()
+            .register_incoming::<ConsignmentList>()
+            .register_outgoing::<OpenItemMallResponse>()
+            .register_outgoing::<ConsignmentResponse>()
+            .register_outgoing::<InventoryOperationResult>()
+    }
 }

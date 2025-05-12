@@ -28,7 +28,7 @@ use crate::game::mastery::{handle_mastery_levelup, learn_skill};
 use crate::game::movement::movement_monster;
 use crate::game::player_activity::{update_player_activity, PlayerActivity};
 use crate::game::spawn::do_spawn_mobs;
-use crate::game::stats::increase_stats;
+use crate::game::stats::{increase_stats_int, increase_stats_str};
 use crate::game::target::{deselect_despawned, player_update_target};
 use crate::game::unique::{setup_unique_timers, unique_killed, unique_spawned, update_timers};
 use crate::game::visibility::{clear_visibility, player_visibility_update, visibility_update};
@@ -80,7 +80,8 @@ impl Plugin for GamePlugin {
                 Update,
                 (
                     handle_inventory_input,
-                    increase_stats,
+                    increase_stats_int,
+                    increase_stats_str,
                     visibility_update,
                     movement_monster,
                     tick_drop,
@@ -104,7 +105,9 @@ impl Plugin for GamePlugin {
                     drop_gold.after(handle_damage),
                     receive_experience.after(distribute_experience),
                     reset_health_mana_on_level.after(receive_experience),
-                    update_max_hp_mp_on_stat_change.after(increase_stats),
+                    update_max_hp_mp_on_stat_change
+                        .after(increase_stats_str)
+                        .after(increase_stats_int),
                 ),
             )
             .add_systems(

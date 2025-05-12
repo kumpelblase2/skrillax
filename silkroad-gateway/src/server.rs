@@ -2,8 +2,12 @@ use crate::client::Client;
 use crate::login::LoginProvider;
 use crate::news::NewsCacheAsync;
 use crate::patch::Patcher;
+use crate::protocol::GatewayPacketRegistryExt;
 use crate::AgentServerManager;
+use silkroad_gateway_protocol::BasePacketRegistryExt;
 use skrillax_server::Server;
+use skrillax_stream::handshake::HandshakePacketRegistryExt;
+use skrillax_stream::registry::PacketRegistry;
 use std::io;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -40,7 +44,15 @@ impl GatewayServer {
     }
 
     pub async fn run(self) -> Result<(), io::Error> {
-        let server = Server::new(self.socket)?;
+        let server = Server::new(
+            self.socket,
+            PacketRegistry::builder()
+                .register_gateway_packets()
+                .register_active_handshake()
+                .register_base_packets()
+                .build()
+                .expect("Should be able to build registry."),
+        )?;
         info!("Server up and accepting clients.");
         while let Some(connection) = tokio::select! {
             connected = server.await_client() => Some(connected),

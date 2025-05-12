@@ -10,4 +10,4 @@ skrillax-serde = { workspace = true, features = [
 skrillax-packet = { workspace = true, features = [
     "derive",
 ] }
-skrillax-protocol.workspace = true
+skrillax-stream.workspace = true

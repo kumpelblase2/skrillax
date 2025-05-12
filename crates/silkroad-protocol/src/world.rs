@@ -1,7 +1,7 @@
 use crate::movement::MovementType;
 use skrillax_packet::Packet;
-use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
 use skrillax_serde::*;
+use skrillax_stream::registry::PacketRegistryBuilder;
 
 #[derive(Clone, Eq, PartialEq, Copy, Serialize, Deserialize, ByteSize, Debug)]
 pub enum PvpCape {
@@ -66,12 +66,12 @@ pub enum InteractOptions {
     #[silkroad(value = 0)]
     None,
     #[silkroad(value = 2)]
-    Talk(u64),
+    Talk { options: Vec<u8> },
 }
 
 impl InteractOptions {
-    pub fn talk(options: u64) -> Self {
-        InteractOptions::Talk(options)
+    pub fn talk(options: Vec<u8>) -> Self {
+        InteractOptions::Talk { options }
     }
 }
 
@@ -125,23 +125,33 @@ pub enum TargetEntityError {
     InvalidTarget,
 }
 
-#[derive(Clone, Serialize, ByteSize, Debug)]
-#[silkroad(size = 0)]
-pub enum TargetEntityData {
-    Monster { unknown: u32, interact_data: Option<u8> },
-    NPC { talk_options: Option<InteractOptions> },
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
+pub struct TargetMonsterData {
+    unknown: u32,
+    interact_data: Option<u8>,
 }
 
-#[derive(Clone, Serialize, ByteSize, Debug)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
+pub struct TargetNPCData {
+    talk_options: Option<InteractOptions>,
+}
+
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
+pub struct TargetSuccessData {
+    unique_id: u32,
+    health: Option<u32>,
+    #[silkroad(when = "unique_id == 0x00000000")]
+    monster_data: Option<TargetMonsterData>,
+    #[silkroad(when = "unique_id == 0x00000001")]
+    npc_data: Option<TargetNPCData>,
+}
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub enum TargetEntityResult {
     #[silkroad(value = 2)]
     Failure { error: TargetEntityError },
     #[silkroad(value = 1)]
-    Success {
-        unique_id: u32,
-        health: Option<u32>,
-        entity_data: TargetEntityData,
-    },
+    Success(TargetSuccessData),
 }
 
 impl TargetEntityResult {
@@ -150,24 +160,26 @@ impl TargetEntityResult {
     }
 
     pub fn success_monster(unique_id: u32, health: u32) -> Self {
-        TargetEntityResult::Success {
+        TargetEntityResult::Success(TargetSuccessData {
             unique_id,
             health: Some(health),
-            entity_data: TargetEntityData::Monster {
+            monster_data: Some(TargetMonsterData {
                 unknown: 0,
                 interact_data: Some(5),
-            },
-        }
+            }),
+            npc_data: None,
+        })
     }
 
     pub fn success_npc(unique_id: u32) -> Self {
-        TargetEntityResult::Success {
+        TargetEntityResult::Success(TargetSuccessData {
             unique_id,
             health: None,
-            entity_data: TargetEntityData::NPC {
+            monster_data: None,
+            npc_data: Some(TargetNPCData {
                 talk_options: Some(InteractOptions::None),
-            },
-        }
+            }),
+        })
     }
 }
 
@@ -362,7 +374,7 @@ pub struct TargetEntity {
     pub unique_id: u32,
 }
 
-#[derive(Clone, Serialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
 #[packet(opcode = 0xB045)]
 pub struct TargetEntityResponse {
     pub result: TargetEntityResult,
@@ -417,9 +429,11 @@ pub enum EntityBarUpdates {
     #[silkroad(value = 4)]
     Status {
         effects: u32,
-        #[silkroad(list_type = "none")]
+        #[silkroad(list_type = "calculated", calculate = "effects.count_ones()")]
         levels: Vec<u8>,
     },
+    #[silkroad(value = 5)]
+    Unknown { unknown: u64 },
 }
 
 #[derive(Serialize, ByteSize, Deserialize, Clone, Packet, Debug)]
@@ -485,7 +499,7 @@ pub struct LevelUpEffect {
 #[packet(opcode = 0x70EA)]
 pub struct UpdateGameGuide(pub u64);
 
-#[derive(Serialize, ByteSize, Copy, Clone, Packet, Debug)]
+#[derive(Deserialize, Serialize, ByteSize, Copy, Clone, Packet, Debug)]
 #[packet(opcode = 0xB0EA)]
 pub enum GameGuideResponse {
     #[silkroad(value = 1)]
@@ -518,27 +532,35 @@ pub enum IncreaseIntResponse {
     Failure(u16),
 }
 
-define_inbound_protocol! { StatClientProtocol =>
-    IncreaseStr,
-    IncreaseInt
+pub trait StatPacketRegistryExt {
+    fn register_stat_packets(self) -> Self;
 }
 
-define_outbound_protocol! { StatServerProtocol =>
-    IncreaseStrResponse,
-    IncreaseIntResponse
+impl StatPacketRegistryExt for PacketRegistryBuilder {
+    fn register_stat_packets(self) -> Self {
+        self.register_incoming::<IncreaseStr>()
+            .register_incoming::<IncreaseInt>()
+            .register_outgoing::<IncreaseStrResponse>()
+            .register_outgoing::<IncreaseIntResponse>()
+    }
 }
 
-define_inbound_protocol! { WorldClientProtocol =>
-    TargetEntity,
-    UnTargetEntity,
-    UpdateGameGuide
+pub trait WorldPacketRegistryExt {
+    fn register_world_packets(self) -> Self;
 }
 
-define_outbound_protocol! { WorldServerProtocol =>
-    TargetEntityResponse,
-    UnTargetEntityResponse,
-    EntityBarsUpdate,
-    LevelUpEffect,
-    PlayerPickupAnimation,
-    GameGuideResponse
+impl WorldPacketRegistryExt for PacketRegistryBuilder {
+    fn register_world_packets(self) -> Self {
+        self.register_incoming::<TargetEntity>()
+            .register_incoming::<UnTargetEntity>()
+            .register_incoming::<UpdateGameGuide>()
+            .register_outgoing::<TargetEntityResponse>()
+            .register_outgoing::<UnTargetEntityResponse>()
+            .register_outgoing::<EntityBarsUpdate>()
+            .register_outgoing::<LevelUpEffect>()
+            .register_outgoing::<PlayerPickupAnimation>()
+            .register_outgoing::<GameGuideResponse>()
+            .register_outgoing::<EntityUpdateState>()
+            .register_outgoing::<CharacterPointsUpdate>()
+    }
 }

@@ -14,5 +14,11 @@ skrillax-serde = { workspace = true, features = [
 skrillax-packet = { workspace = true, features = [
     "derive",
 ] }
-skrillax-protocol.workspace = true
+skrillax-stream.workspace = true
 silkroad-base-protocol = { path = "../silkroad-base-protocol" }
+bytes = "1.10.1"
+log = "0.4.26"
+
+[features]
+v657 = []
+v594 = []

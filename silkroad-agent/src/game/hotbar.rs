@@ -1,11 +1,13 @@
 use crate::comp::skill::Hotbar;
-use crate::input::PlayerInput;
+use crate::input::PlayerInputEvent;
 use bevy::prelude::*;
+use silkroad_protocol::skill::HotbarUpdate;
 
-pub(crate) fn update_hotbar(mut query: Query<(&PlayerInput, &mut Hotbar)>) {
-    for (input, mut hotbar) in query.iter_mut() {
-        if let Some(hotbar_update) = input.hotbar.as_deref() {
-            hotbar.update_entries(hotbar_update);
-        }
+pub(crate) fn update_hotbar(mut query: Query<&mut Hotbar>, mut reader: MessageReader<PlayerInputEvent<HotbarUpdate>>) {
+    for event in reader.read() {
+        let Ok(mut hotbar) = query.get_mut(event.player) else {
+            continue;
+        };
+        hotbar.update_entries(&event.input.content);
     }
 }

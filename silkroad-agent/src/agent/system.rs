@@ -11,7 +11,7 @@ use crate::comp::pos::Position;
 use crate::comp::{drop, EntityReference, GameEntity, Health, Mana};
 use crate::event::{ConsumeItemEvent, DamageReceiveEvent, SkillDefinition};
 use crate::ext::{ActionIdCounter, Navmesh};
-use crate::input::PlayerInput;
+use crate::input::PlayerInputEvent;
 use crate::world::WorldData;
 use bevy::ecs::query::QueryEntityError;
 use bevy::prelude::*;
@@ -21,8 +21,10 @@ use silkroad_data::DataEntry;
 use silkroad_definitions::type_id::{ObjectItem, ObjectType};
 use silkroad_game_base::{GlobalLocation, Heading, ItemTypeData, LocalLocation, Vector3Ext};
 use silkroad_protocol::combat::{DoActionResponseCode, PerformActionError, PerformActionResponse};
-use silkroad_protocol::inventory::{InventoryItemContentData, InventoryOperationError, InventoryOperationResult};
-use silkroad_protocol::movement::MovementTarget;
+use silkroad_protocol::inventory::{
+    ExpendableItemContentData, InventoryOperationError, InventoryOperationResult, ItemContentData,
+};
+use silkroad_protocol::movement::{MovementTarget, PlayerMovementRequest, Rotation};
 use std::ops::Deref;
 use std::time::Duration;
 use tracing::{debug, error, warn};
@@ -30,26 +32,28 @@ use tracing::{debug, error, warn};
 const EPSYLON: f32 = 1.0;
 
 pub(crate) fn movement_input(
-    mut query: Query<(&Client, &PlayerInput, &Position, &mut GoalTracker)>,
+    mut query: Query<(&Client, &Position, &mut GoalTracker)>,
     navmesh: Res<Navmesh>,
+    mut reader: MessageReader<PlayerInputEvent<PlayerMovementRequest>>,
 ) {
-    for (client, input, position, mut goal) in query.iter_mut() {
-        if let Some(kind) = input.movement {
-            match kind {
-                MovementTarget::TargetLocation { region, x, y: _, z } => {
-                    let local_position = position.position().to_local();
-                    let target_loc = LocalLocation(region.into(), Vector2::new(x.into(), z.into()));
-                    let target_height = navmesh.height_for(target_loc).unwrap_or(position.position().y);
-                    let target_pos = target_loc.with_y(target_height);
-                    debug!(identifier = ?client.id(), "Movement: {} -> {}", local_position, target_pos);
-                    goal.switch_goal_notified(AgentGoal::moving_to(target_pos.to_global()));
-                },
-                MovementTarget::Direction { unknown, angle } => {
-                    let direction = Heading::from(angle);
-                    debug!(identifier = ?client.id(), "Movement: {} / {}({})", unknown, direction.0, angle);
-                    goal.switch_goal_notified(AgentGoal::moving_in_direction(direction));
-                },
-            }
+    for event in reader.read() {
+        let Ok((client, position, mut goal)) = query.get_mut(event.player) else {
+            continue;
+        };
+        match event.input.kind {
+            MovementTarget::TargetLocation { region, x, y: _, z } => {
+                let local_position = position.position().to_local();
+                let target_loc = LocalLocation(region.into(), Vector2::new(x.into(), z.into()));
+                let target_height = navmesh.height_for(target_loc).unwrap_or(position.position().y);
+                let target_pos = target_loc.with_y(target_height);
+                debug!(identifier = ?client.id(), "Movement: {} -> {}", local_position, target_pos);
+                goal.switch_goal_notified(AgentGoal::moving_to(target_pos.to_global()));
+            },
+            MovementTarget::Direction { unknown, angle } => {
+                let direction = Heading::from(angle);
+                debug!(identifier = ?client.id(), "Movement: {} / {}({})", unknown, direction.0, angle);
+                goal.switch_goal_notified(AgentGoal::moving_in_direction(direction));
+            },
         }
     }
 }
@@ -94,10 +98,10 @@ pub(crate) fn pickup(
                     if let Some(slot) = inventory.add_item(drop.item) {
                         client.send(InventoryOperationResult::success_gain_item(
                             slot,
-                            drop.item.reference.ref_id(),
-                            InventoryItemContentData::Expendable {
-                                stack_size: drop.item.stack_size(),
-                            },
+                            ItemContentData::new_expendable(
+                                drop.item.reference.ref_id(),
+                                ExpendableItemContentData::new(drop.item.stack_size()),
+                            ),
                         ));
                     } else {
                         client.send(InventoryOperationResult::Failure(
@@ -130,12 +134,12 @@ pub(crate) fn action(
         if action.timer.tick(delta).just_finished() {
             let Some(next) = action.progress.next() else {
                 if let Some(next_skill) = action.parameter.skill.next_in_chain {
-                    *action = PerformingSkill::new(SkillParameter {
-                        target: action.parameter.target,
-                        skill: WorldData::skills()
+                    *action = PerformingSkill::new(SkillParameter::new(
+                        action.parameter.target,
+                        WorldData::skills()
                             .find_id(next_skill.into())
                             .expect("Next skill in chain should exist."),
-                    });
+                    ));
                 } else {
                     cmd.entity(entity).remove::<PerformingSkill>();
                 }
@@ -307,10 +311,14 @@ fn move_with_step(navmesh: &Navmesh, pos: &mut Position, target: GlobalLocation,
     pos.update(position, heading);
 }
 
-pub(crate) fn turning(mut query: Query<(&mut Position, &PlayerInput), With<Idle>>) {
-    for (mut pos, input) in query.iter_mut() {
-        if let Some(ref rotate) = input.rotation {
-            pos.rotate(Heading::from(rotate.heading));
-        }
+pub(crate) fn turning(
+    mut query: Query<(&mut Position), With<Idle>>,
+    mut reader: MessageReader<PlayerInputEvent<Rotation>>,
+) {
+    for event in reader.read() {
+        let Ok(mut pos) = query.get_mut(event.player) else {
+            continue;
+        };
+        pos.rotate(Heading::from(event.input.heading));
     }
 }

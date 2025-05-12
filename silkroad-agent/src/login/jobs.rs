@@ -11,7 +11,7 @@ use silkroad_protocol::character::{
     CharacterListAction, CharacterListContent, CharacterListEntry, CharacterListEquippedItem, CharacterListError,
     CharacterListResponse, CharacterListResult, TimeInformation,
 };
-use silkroad_protocol::SilkroadTime;
+use silkroad_protocol::PackedSilkroadTime;
 use tokio::sync::oneshot::error::TryRecvError;
 use tracing::warn;
 
@@ -45,7 +45,10 @@ fn send_character_list(client: &Client, character_list: &[DbCharacter]) {
 
 fn from_character(character: &DbCharacter) -> CharacterListEntry {
     let data = &character.character_data;
-    let last_logout = data.last_logout.map(SilkroadTime::from).unwrap_or_default();
+    let last_logout = data
+        .last_logout
+        .and_then(|time| time.try_into().ok())
+        .unwrap_or(PackedSilkroadTime::zero());
     let target_deletion_date = data.deletion_end;
     let playtime_information = target_deletion_date
         .map(|end| end - Utc::now())

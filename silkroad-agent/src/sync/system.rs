@@ -25,7 +25,6 @@ use silkroad_protocol::world::{
     EntityUpdateState, LevelUpEffect, PlayerPickupAnimation, UpdatedState,
 };
 use std::ops::Deref;
-use tracing::debug;
 
 pub(crate) fn synchronize_updates(
     mut update_collector: ResMut<SynchronizationCollector>,
@@ -204,7 +203,7 @@ pub(crate) fn collect_movement_transitions(
                 game_entity,
                 MovementUpdate::StopMove(pos.position().to_local(), pos.rotation()),
             );
-            debug!("Sending movement start. {}", game_entity.unique_id);
+            // debug!("Sending movement start. {}", game_entity.unique_id);
             collector.send_update(Update::update_all(event.entity, update));
         }
     }
@@ -221,7 +220,7 @@ pub(crate) fn collect_movement_starts(
                 MovementUpdate::StartMoveTowards(pos.position().to_local(), direction)
             },
         };
-        debug!("Sending movement start. {}", game_entity.unique_id);
+        // debug!("Sending movement start. {}", game_entity.unique_id);
         let update = create_movement_packet(game_entity, update);
         collector.send_update(Update::update_all(entity, update));
     }
@@ -238,7 +237,7 @@ pub(crate) fn collect_movement_update(
                 entity_id: game_entity.unique_id,
                 position: pos.as_protocol(),
             };
-            debug!("Sending movement interrupt. {}", game_entity.unique_id);
+            // debug!("Sending movement interrupt. {}", game_entity.unique_id);
             collector.send_update(Update::update_all(entity, packet));
             continue;
         } else if pos.did_rotate() {

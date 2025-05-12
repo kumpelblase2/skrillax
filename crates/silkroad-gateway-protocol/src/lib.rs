@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 pub use silkroad_base_protocol::*;
 use skrillax_packet::Packet;
 use skrillax_serde::*;
@@ -90,18 +89,16 @@ pub enum PasscodeAccountStatus {
     EmailUnverified,
 }
 
-type NormalDateTime = DateTime<Utc>;
-
 #[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub enum BlockReason {
     #[silkroad(value = 2)]
     AccountInspection,
     #[silkroad(value = 1)]
-    Punishment { reason: String, end: NormalDateTime },
+    Punishment { reason: String, end: ExpandedSilkroadTime },
 }
 
 impl BlockReason {
-    pub fn punishment(reason: String, end: NormalDateTime) -> Self {
+    pub fn punishment(reason: String, end: ExpandedSilkroadTime) -> Self {
         BlockReason::Punishment { reason, end }
     }
 }
@@ -221,17 +218,15 @@ impl PatchFile {
 
 #[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub struct GatewayNotice {
-    // #[cfg_attr(feature = "v657", silkroad(size = 2))]
-    #[silkroad(size = 2)]
+    #[cfg_attr(feature = "v657", silkroad(size = 2))]
     pub subject: String,
-    // #[cfg_attr(feature = "v657", silkroad(size = 2))]
-    #[silkroad(size = 2)]
+    #[cfg_attr(feature = "v657", silkroad(size = 2))]
     pub article: String,
-    pub published: NormalDateTime,
+    pub published: ExpandedSilkroadTime,
 }
 
 impl GatewayNotice {
-    pub fn new(subject: String, article: String, published: DateTime<Utc>) -> Self {
+    pub fn new(subject: String, article: String, published: ExpandedSilkroadTime) -> Self {
         GatewayNotice {
             subject,
             article,
@@ -242,8 +237,11 @@ impl GatewayNotice {
 
 #[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub struct PingServer {
+    #[cfg(feature = "v594")]
+    pub index: u8,
     pub domain: String,
     pub unknown: u16,
+    #[cfg(feature = "v657")]
     pub index: u8,
 }
 
@@ -260,7 +258,7 @@ impl PingServer {
 #[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub struct Shard {
     pub id: u16,
-    #[silkroad(size = 2)]
+    #[cfg_attr(feature = "v657", silkroad(size = 2))]
     pub name: String,
     pub status: u8,
     pub is_online: bool,
@@ -474,26 +472,6 @@ impl PasscodeRequiredResponse {
     }
 }
 
-// This should be some kind of enum, because on error the last two bytes are (Error=0x2, WrongAttempts)
-// but on success it's (Ok=0x1, Unknown=0x3)
-#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
-#[packet(opcode = 0xA117)]
-pub struct PasscodeResponse {
-    pub unknown_1: u8,
-    pub status: u8,
-    pub invalid_attempts: u8,
-}
-
-impl PasscodeResponse {
-    pub fn new(status: u8, invalid_attempts: u8) -> Self {
-        PasscodeResponse {
-            unknown_1: 4,
-            status,
-            invalid_attempts,
-        }
-    }
-}
-
 #[derive(Clone, Serialize, ByteSize, Packet)]
 #[packet(opcode = 0x210E)]
 pub struct QueueUpdate {
@@ -511,6 +489,12 @@ impl QueueUpdate {
 #[packet(opcode = 0x3013)]
 pub struct TempCharacterData {
     data: [u8; 1523],
+}
+
+impl Default for TempCharacterData {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TempCharacterData {

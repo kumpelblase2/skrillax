@@ -1,7 +1,6 @@
 use crate::login::{LoginProvider, LoginResult};
 use crate::passcode::PasscodeDecoder;
 use crate::patch::PatchInformation;
-use crate::protocol::GatewayClientProtocol;
 use crate::{AgentServerManager, NewsCacheAsync, Patcher};
 use chrono::{TimeZone, Utc};
 use color_eyre::Result;
@@ -25,7 +24,7 @@ pub(crate) struct Client;
 
 impl Client {
     pub(crate) async fn handle_client(
-        connection: Connection<GatewayClientProtocol>,
+        connection: Connection,
         cancel: CancellationToken,
         news: Arc<Mutex<NewsCacheAsync>>,
         patcher: Arc<Patcher>,
@@ -39,10 +38,11 @@ impl Client {
                     let Ok(packet) = res else {
                         break;
                     };
+                    let packet = packet?;
 
-                    match packet?.as_ref() {
-                        GatewayClientProtocol::KeepAlive(_) => {},
-                        GatewayClientProtocol::PatchRequest(patch) => match patcher.get_patch_information(patch.version) {
+                    if packet.as_packet::<KeepAlive>().is_some() {
+                    } else if let Some(patch) = packet.as_packet::<PatchRequest>() {
+                        match patcher.get_patch_information(patch.version) {
                             PatchInformation::UpToDate => {
                                 connection.send(PatchResponse::up_to_date())?;
                             },
@@ -63,107 +63,101 @@ impl Client {
                             PatchInformation::Outdated => {
                                 connection.send(PatchResponse::error(PatchError::InvalidVersion))?;
                             },
-                        },
-                        GatewayClientProtocol::IdentityInformation(identity) => {
-                            debug!(module = ?identity.module_name, local = identity.locality, "Client application identity");
+                        }
+                    } else if let Some(identity) = packet.as_packet::<IdentityInformation>() {
+                        debug!(module = ?identity.module_name, local = identity.locality, "Client application identity");
                             connection.send(IdentityInformation {
                                 module_name: "GatewayServer".to_string(),
                                 locality: 0,
                             })?;
-                        },
-                        GatewayClientProtocol::GatewayNoticeRequest(_) => {
-                            let mut news = news.lock().await;
+                    } else if packet.as_packet::<GatewayNoticeRequest>().is_some() {
+                        let mut news = news.lock().await;
                             let news = news.get_news().await;
                             let news = news
                                 .iter()
                                 .map(|news| GatewayNotice {
                                     subject: news.title.clone(),
                                     article: news.body.clone(),
-                                    published: news.date,
+                                    published: news.date.try_into().expect("Should be able to express date time properly"),
                                 })
                                 .collect();
                             connection.send(GatewayNoticeResponse::new(news))?;
-                        },
-                        GatewayClientProtocol::LoginRequest(login) => {
-                            last_credentials = Some(LastCredentials {
-                                username: login.username.clone(),
-                                password: login.password.clone(),
-                                shard: login.shard_id,
-                            });
+                    } else if let Some(login) = packet.as_packet::<LoginRequest>() {
+                        last_credentials = Some(LastCredentials {
+                            username: login.username.clone(),
+                            password: login.password.clone(),
+                            shard: login.shard_id,
+                        });
 
-                            match login_provider.try_login(&login.username, &login.password).await {
+                        match login_provider.try_login(&login.username, &login.password).await {
+                            LoginResult::Success(id) => {
+                                let creds = last_credentials
+                                    .as_ref()
+                                    .expect("We just set the credentials so have to be present");
+                                Self::try_reserve_spot(&connection, &agent_servers, id as u32, creds).await?
+                            },
+                            LoginResult::MissingPasscode => {
+                                connection.send(PasscodeRequiredResponse::passcode_required())?;
+                            },
+                            LoginResult::InvalidCredentials => {
+                                connection.send(LoginResponse::error(SecurityError::InvalidCredentials {
+                                    max_attempts: 5,
+                                    current_attempts: 1,
+                                }))?;
+                            },
+                            LoginResult::Blocked => {
+                                let response = LoginResponse::error(SecurityError::Blocked {
+                                    reason: BlockReason::Punishment {
+                                        reason: "You have been blocked.".to_string(),
+                                        end: Utc.with_ymd_and_hms(2099, 12, 31, 23, 59, 59).unwrap().try_into().unwrap(),
+                                    },
+                                });
+                                connection.send(response)?;
+                            },
+                        }
+                    } else if let Some(input) = packet.as_packet::<SecurityCodeInput>() {
+                        let previous = last_credentials.as_ref();
+                        if let Some(previous) = previous {
+                            let decoded_passcode =
+                                match PasscodeDecoder::get().decode_passcode(input.inner_size, &input.data) {
+                                    Ok(passcode) => passcode,
+                                    Err(_) => {
+                                        // Maybe this should return a more fitting response code?
+                                        // Or should the client just be ditched?
+                                        connection.send(SecurityCodeResponse::new(PasscodeAccountStatus::Ok, 2, 1))?;
+                                        continue;
+                                    },
+                                };
+
+                            let result = login_provider
+                                .try_login_passcode(&previous.username, &previous.password, &decoded_passcode)
+                                .await;
+
+                            match result {
                                 LoginResult::Success(id) => {
-                                    let creds = last_credentials
-                                        .as_ref()
-                                        .expect("We just set the credentials so have to be present");
-                                    Self::try_reserve_spot(&connection, &agent_servers, id as u32, creds).await?
+                                    connection.send(SecurityCodeResponse::success())?;
+                                    Self::try_reserve_spot(&connection, &agent_servers, id as u32, previous).await?
                                 },
                                 LoginResult::MissingPasscode => {
-                                    connection.send(PasscodeRequiredResponse::passcode_required())?;
+                                    error!("Player entered passcode but we somehow didn't use it.");
                                 },
                                 LoginResult::InvalidCredentials => {
-                                    connection.send(LoginResponse::error(SecurityError::InvalidCredentials {
-                                        max_attempts: 5,
-                                        current_attempts: 1,
-                                    }))?;
+                                    connection.send(PasscodeRequiredResponse::passcode_invalid())?;
                                 },
                                 LoginResult::Blocked => {
-                                    let response = LoginResponse::error(SecurityError::Blocked {
-                                        reason: BlockReason::Punishment {
-                                            reason: "You have been blocked.".to_string(),
-                                            end: Utc.with_ymd_and_hms(2099, 12, 31, 23, 59, 59).unwrap(),
-                                        },
-                                    });
-                                    connection.send(response)?;
+                                    connection.send(PasscodeRequiredResponse::passcode_blocked())?;
                                 },
                             }
-                        },
-                        GatewayClientProtocol::SecurityCodeInput(input) => {
-                            let previous = last_credentials.as_ref();
-                            if let Some(previous) = previous {
-                                let decoded_passcode =
-                                    match PasscodeDecoder::get().decode_passcode(input.inner_size, &input.data) {
-                                        Ok(passcode) => passcode,
-                                        Err(_) => {
-                                            // Maybe this should return a more fitting response code?
-                                            // Or should the client just be ditched?
-                                            connection.send(PasscodeResponse::new(2, 1))?;
-                                            continue;
-                                        },
-                                    };
+                        }
+                    } else if packet.as_packet::<ShardListRequest>().is_some() {
+                        let servers = agent_servers.servers().await;
+                        let shards = servers.into_iter().map(|server| server.into()).collect();
+                        let farms = agent_servers.farms().clone();
 
-                                let result = login_provider
-                                    .try_login_passcode(&previous.username, &previous.password, &decoded_passcode)
-                                    .await;
-
-                                match result {
-                                    LoginResult::Success(id) => {
-                                        connection.send(SecurityCodeResponse::success())?;
-                                        Self::try_reserve_spot(&connection, &agent_servers, id as u32, previous).await?
-                                    },
-                                    LoginResult::MissingPasscode => {
-                                        error!("Player entered passcode but we somehow didn't use it.");
-                                    },
-                                    LoginResult::InvalidCredentials => {
-                                        connection.send(PasscodeRequiredResponse::passcode_invalid())?;
-                                    },
-                                    LoginResult::Blocked => {
-                                        connection.send(PasscodeRequiredResponse::passcode_blocked())?;
-                                    },
-                                }
-                            }
-                        },
-                        GatewayClientProtocol::ShardListRequest(_) => {
-                            let servers = agent_servers.servers().await;
-                            let shards = servers.into_iter().map(|server| server.into()).collect();
-                            let farms = agent_servers.farms().clone();
-
-                            connection.send(ShardListResponse { farms, shards })?;
-                        },
-                        GatewayClientProtocol::PingServerRequest(_) => {
-                            let ping_response = PingServerResponse::new(vec![PingServer::new(1, "localhost".to_string())]);
-                            connection.send(ping_response)?;
-                        },
+                        connection.send(ShardListResponse { farms, shards })?;
+                    } else if packet.as_packet::<PingServerRequest>().is_some() {
+                        let ping_response = PingServerResponse::new(vec![PingServer::new(1, "localhost".to_string())]);
+                        connection.send(ping_response)?;
                     }
                 }
                 _ = cancel.cancelled() => {
@@ -176,7 +170,7 @@ impl Client {
     }
 
     async fn try_reserve_spot(
-        connection: &Connection<GatewayClientProtocol>,
+        connection: &Connection,
         agent_servers: &AgentServerManager,
         user_id: u32,
         last_credentials: &LastCredentials,

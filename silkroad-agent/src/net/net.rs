@@ -3,7 +3,6 @@ use crate::comp::player::Player;
 use crate::db::character::CharacterData;
 use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent};
 use crate::ext::{DbPool, ServerResource};
-use crate::input::LoginInput;
 use crate::tasks::TaskCreator;
 use bevy::prelude::*;
 use std::time::Instant;
@@ -22,7 +21,6 @@ pub(crate) fn accept(
             .spawn((
                 Client(client),
                 LastAction(time.last_update().unwrap_or_else(Instant::now)),
-                LoginInput::default(),
             ))
             .id();
 

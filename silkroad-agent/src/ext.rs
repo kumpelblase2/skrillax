@@ -1,4 +1,3 @@
-use crate::protocol::AgentClientProtocol;
 use bevy::prelude::*;
 use derive_more::{Deref, DerefMut, From};
 use id_pool::IdPool;
@@ -38,7 +37,7 @@ impl Navmesh {
 }
 
 #[derive(Resource, Deref, DerefMut, From)]
-pub struct ServerResource(Server<AgentClientProtocol>);
+pub struct ServerResource(Server);
 
 #[derive(Resource, Deref, DerefMut, From)]
 pub struct NpcPositionList(Vec<NpcPosition>);

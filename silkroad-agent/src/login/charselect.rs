@@ -10,7 +10,7 @@ use crate::comp::{GameEntity, Playing};
 use crate::config::GameConfig;
 use crate::db::character::{CharacterData, CharacterItem, DbRace};
 use crate::ext::{DbPool, EntityIdPool};
-use crate::input::LoginInput;
+use crate::input::PlayerInputEvent;
 use crate::login::character_loader::DbCharacter;
 use crate::login::job_distribution::JobDistribution;
 use crate::login::{
@@ -22,260 +22,260 @@ use crate::tasks::TaskCreator;
 use crate::world::WorldData;
 use bevy::prelude::*;
 use cgmath::Vector3;
-use chrono::{TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use silkroad_data::DataEntry;
 use silkroad_game_base::{Heading, ItemTypeData, LocalPosition};
-use silkroad_protocol::auth::{AuthResponse, AuthResult, AuthResultError, UnknownLargePacket};
+use silkroad_protocol::auth::{AuthRequest, AuthResponse, AuthResult, AuthResultError, UnknownLargePacket};
 use silkroad_protocol::character::{
-    CharacterJoinResponse, CharacterListAction, CharacterListContent, CharacterListError, CharacterListRequestAction,
-    CharacterListResponse, CharacterListResult, MacroStatus, UnknownPacket, UnknownPacket2, MACRO_POTION,
+    CharacterJoinRequest, CharacterJoinResponse, CharacterListAction, CharacterListContent, CharacterListError,
+    CharacterListRequest, CharacterListRequestAction, CharacterListResponse, CharacterListResult, MacroStatus,
+    UnknownPacket, UnknownPacket2, MACRO_POTION,
 };
 use silkroad_protocol::inventory::{
-    BagContent, InventoryItemBindingData, InventoryItemContentData, InventoryItemData, RentInfo,
+    BagContent, EquipmentItemContentData, ExpendableItemContentData, InventoryItemBindingData, InventoryItemData,
+    ItemContentData, RentInfo,
 };
 use silkroad_protocol::skill::{HotbarItem, MasteryData, SkillData};
 use silkroad_protocol::spawn::{CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, JobInformation};
 use silkroad_protocol::world::{ActionState, AliveState, BodyState, EntityState};
-use silkroad_protocol::SilkroadTime;
+use silkroad_protocol::PackedSilkroadTime;
 use tracing::debug;
 
 pub(crate) fn handle_list_request(
-    mut query: Query<(Entity, &Client, &Playing, &LoginInput, &mut CharacterSelect)>,
+    mut query: Query<(Entity, &Client, &Playing, &mut CharacterSelect)>,
     task_creator: Res<TaskCreator>,
     pool: Res<DbPool>,
     mut cmd: Commands,
     job_distribution: Res<JobDistribution>,
     server_id: Res<ServerId>,
     settings: Res<GameConfig>,
+    mut reader: MessageReader<PlayerInputEvent<CharacterListRequest>>,
 ) {
-    for (entity, client, playing, input, mut character_list) in query.iter_mut() {
-        for action in input.list.iter() {
-            match action {
-                CharacterListRequestAction::Create {
-                    character_name,
-                    ref_id,
-                    scale,
-                    chest,
-                    pants,
-                    boots,
-                    weapon,
-                } => {
-                    if !can_create_character_with_name(&character_list, character_name) {
-                        debug!(id = ?client.0.id(), "Tried to create character without checking name first.");
-                        client.send(CharacterListResponse::new(
-                            CharacterListAction::Create,
-                            CharacterListResult::error(CharacterListError::InvalidCharacterData),
-                        ));
-                    }
+    for event in reader.read() {
+        let (entity, client, playing, mut character_list) = query.get_mut(event.player).unwrap();
+        match &event.input.action {
+            CharacterListRequestAction::Create {
+                character_name,
+                ref_id,
+                scale,
+                chest,
+                pants,
+                boots,
+                weapon,
+            } => {
+                if !can_create_character_with_name(&character_list, &character_name) {
+                    debug!(id = ?client.0.id(), "Tried to create character without checking name first.");
+                    client.send(CharacterListResponse::new(
+                        CharacterListAction::Create,
+                        CharacterListResult::error(CharacterListError::InvalidCharacterData),
+                    ));
+                }
 
-                    let character = create_character_from(
-                        playing.0.id,
-                        server_id.0,
-                        character_name.clone(),
-                        *ref_id,
-                        *scale,
-                        *chest,
-                        *pants,
-                        *boots,
-                        *weapon,
-                    );
-                    let task = task_creator.create_task(DbCharacter::create_character(character, pool.clone()));
-                    cmd.entity(entity).insert(CharacterCreate(task));
-                },
-                CharacterListRequestAction::List => {
-                    let receiver = task_creator.create_task(DbCharacter::load_characters_sparse(
-                        playing.0.id,
-                        server_id.0,
-                        pool.clone(),
+                let character = create_character_from(
+                    playing.0.id,
+                    server_id.0,
+                    character_name.clone(),
+                    *ref_id,
+                    *scale,
+                    *chest,
+                    *pants,
+                    *boots,
+                    *weapon,
+                );
+                let task = task_creator.create_task(DbCharacter::create_character(character, pool.clone()));
+                cmd.entity(entity).insert(CharacterCreate(task));
+            },
+            CharacterListRequestAction::List => {
+                let receiver = task_creator.create_task(DbCharacter::load_characters_sparse(
+                    playing.0.id,
+                    server_id.0,
+                    pool.clone(),
+                ));
+                cmd.entity(entity).insert(CharactersLoading(receiver));
+            },
+            CharacterListRequestAction::Delete { character_name } => {
+                if !has_user_character_with_name(&character_list, character_name) {
+                    client.send(CharacterListResponse::new(
+                        CharacterListAction::Delete,
+                        CharacterListResult::error(CharacterListError::InvalidName),
                     ));
-                    cmd.entity(entity).insert(CharactersLoading(receiver));
-                },
-                CharacterListRequestAction::Delete { character_name } => {
-                    if !has_user_character_with_name(&character_list, character_name) {
-                        client.send(CharacterListResponse::new(
-                            CharacterListAction::Delete,
-                            CharacterListResult::error(CharacterListError::InvalidName),
-                        ));
-                        continue;
-                    }
+                    continue;
+                }
 
-                    let task = task_creator.create_task(DbCharacter::start_delete_character(
-                        playing.0.id,
-                        character_name.clone(),
-                        server_id.0,
-                        settings.deletion_time,
-                        pool.clone(),
+                let task = task_creator.create_task(DbCharacter::start_delete_character(
+                    playing.0.id,
+                    character_name.clone(),
+                    server_id.0,
+                    settings.deletion_time,
+                    pool.clone(),
+                ));
+                cmd.entity(entity).insert(CharacterDelete(task));
+            },
+            CharacterListRequestAction::CheckName { character_name } => {
+                character_list.checked_name = None;
+                let server_id = server_id.0;
+                let task = task_creator.create_task(CharacterData::check_name_available(
+                    character_name.clone(),
+                    server_id,
+                    pool.clone(),
+                ));
+                cmd.entity(entity).insert(CharacterCheckName(task));
+            },
+            CharacterListRequestAction::Restore { character_name } => {
+                if !has_user_character_with_name(&character_list, character_name) {
+                    client.send(CharacterListResponse::new(
+                        CharacterListAction::Delete,
+                        CharacterListResult::error(CharacterListError::InvalidName),
                     ));
-                    cmd.entity(entity).insert(CharacterDelete(task));
-                },
-                CharacterListRequestAction::CheckName { character_name } => {
-                    character_list.checked_name = None;
-                    let server_id = server_id.0;
-                    let task = task_creator.create_task(CharacterData::check_name_available(
-                        character_name.clone(),
-                        server_id,
-                        pool.clone(),
-                    ));
-                    cmd.entity(entity).insert(CharacterCheckName(task));
-                },
-                CharacterListRequestAction::Restore { character_name } => {
-                    if !has_user_character_with_name(&character_list, character_name) {
-                        client.send(CharacterListResponse::new(
-                            CharacterListAction::Delete,
-                            CharacterListResult::error(CharacterListError::InvalidName),
-                        ));
-                        continue;
-                    }
+                    continue;
+                }
 
-                    let task = task_creator.create_task(DbCharacter::restore_character(
-                        playing.0.id,
-                        character_name.clone(),
-                        server_id.0,
-                        pool.clone(),
-                    ));
-                    cmd.entity(entity).insert(CharacterRestore(task));
-                },
-                CharacterListRequestAction::ShowJobSpread => {
-                    let (hunter_perc, thief_perc) = job_distribution.spread();
-                    send_job_spread(client, hunter_perc, thief_perc);
-                },
-                CharacterListRequestAction::AssignJob { .. } => {},
-            }
+                let task = task_creator.create_task(DbCharacter::restore_character(
+                    playing.0.id,
+                    character_name.clone(),
+                    server_id.0,
+                    pool.clone(),
+                ));
+                cmd.entity(entity).insert(CharacterRestore(task));
+            },
+            CharacterListRequestAction::ShowJobSpread => {
+                let (hunter_perc, thief_perc) = job_distribution.spread();
+                send_job_spread(client, hunter_perc, thief_perc);
+            },
+            CharacterListRequestAction::AssignJob { .. } => {},
         }
     }
 }
 
 pub(crate) fn handle_join(
-    query: Query<(Entity, &Client, &LoginInput, &CharacterSelect, &Playing)>,
+    query: Query<(Entity, &Client, &CharacterSelect, &Playing)>,
     mut cmd: Commands,
     mut allocator: ResMut<EntityIdPool>,
     settings: Res<GameConfig>,
+    mut reader: MessageReader<PlayerInputEvent<CharacterJoinRequest>>,
 ) {
-    for (entity, client, input, character_list, playing) in query.iter() {
-        if let Some(ref join) = input.join {
-            match character_list.characters {
-                Some(ref characters) => {
-                    let character = characters
+    for event in reader.read() {
+        let (entity, client, character_list, playing) = query.get(event.player).unwrap();
+        match character_list.characters {
+            Some(ref characters) => {
+                let character = characters
+                    .iter()
+                    .find(|char| char.character_data.charname == event.input.character_name)
+                    .unwrap();
+
+                let Some(character_data) =
+                    WorldData::characters().find_id(character.character_data.character_type as u32)
+                else {
+                    client.send(CharacterJoinResponse::error(CharacterListError::FailedToJoinWorld));
+                    continue;
+                };
+
+                if character.character_data.deletion_end.is_some() {
+                    client.send(CharacterJoinResponse::error(CharacterListError::InvalidName));
+                    continue;
+                }
+
+                let mut player = Player::from_db_data(playing.0.clone(), &character.character_data);
+                let inventory = PlayerInventory::from_db(&character.items, 45);
+                let gold = GoldPouch::new(character.character_data.gold as u64);
+                let hotbar = Hotbar::from_list(
+                    &character
+                        .hotbar
                         .iter()
-                        .find(|char| char.character_data.charname == join.character_name)
-                        .unwrap();
+                        .map(|e| (e.slot as u8, e.kind as u8, e.data as u32))
+                        .collect::<Vec<_>>(),
+                );
 
-                    let Some(character_data) =
-                        WorldData::characters().find_id(character.character_data.character_type as u32)
-                    else {
-                        client.send(CharacterJoinResponse::error(CharacterListError::FailedToJoinWorld));
-                        continue;
-                    };
+                player.character.masteries = character
+                    .masteries
+                    .iter()
+                    .map(|mastery| (mastery.mastery_id as u32, mastery.level as u8))
+                    .collect();
 
-                    if character.character_data.deletion_end.is_some() {
-                        client.send(CharacterJoinResponse::error(CharacterListError::InvalidName));
-                        continue;
-                    }
+                player.character.skills = character
+                    .skills
+                    .iter()
+                    .map(|skill| (skill.skill_group_id as u32, skill.level as u8))
+                    .collect();
 
-                    let mut player = Player::from_db_data(playing.0.clone(), &character.character_data);
-                    let inventory = PlayerInventory::from_db(&character.items, 45);
-                    let gold = GoldPouch::new(character.character_data.gold as u64);
-                    let hotbar = Hotbar::from_list(
-                        &character
-                            .hotbar
-                            .iter()
-                            .map(|e| (e.slot as u8, e.kind as u8, e.data as u32))
-                            .collect::<Vec<_>>(),
-                    );
+                let data = &character.character_data;
 
-                    player.character.masteries = character
-                        .masteries
-                        .iter()
-                        .map(|mastery| (mastery.mastery_id as u32, mastery.level as u8))
-                        .collect();
+                let pos = LocalPosition((data.region as u16).into(), Vector3::new(data.x, data.y, data.z)).to_global();
+                let position = Position::new(pos, Heading::from(data.rotation as u16));
 
-                    player.character.skills = character
-                        .skills
-                        .iter()
-                        .map(|skill| (skill.skill_group_id as u32, skill.level as u8))
-                        .collect();
+                let agent = Agent::from_character_data(character_data);
 
-                    let data = &character.character_data;
+                let game_entity = GameEntity {
+                    ref_id: data.character_type as u32,
+                    unique_id: allocator.request_id().unwrap(),
+                };
 
-                    let pos =
-                        LocalPosition((data.region as u16).into(), Vector3::new(data.x, data.y, data.z)).to_global();
-                    let position = Position::new(pos, Heading::from(data.rotation as u16));
+                client.send(CharacterJoinResponse::success());
 
-                    let agent = Agent::from_character_data(character_data);
+                send_spawn(
+                    client,
+                    &game_entity,
+                    &player,
+                    &inventory,
+                    &position,
+                    settings.max_level,
+                    &hotbar,
+                );
 
-                    let game_entity = GameEntity {
-                        ref_id: data.character_type as u32,
-                        unique_id: allocator.request_id().unwrap(),
-                    };
+                client.send(MacroStatus::Possible(
+                    MACRO_POTION, /*| MACRO_HUNT | MACRO_SKILL*/
+                    0,
+                ));
+                client.send(UnknownLargePacket::known());
+                client.send(UnknownPacket::new());
+                client.send(UnknownPacket2::new(game_entity.unique_id));
 
-                    client.send(CharacterJoinResponse::success());
-
-                    send_spawn(
-                        client,
-                        &game_entity,
-                        &player,
-                        &inventory,
-                        &position,
-                        settings.max_level,
-                        &hotbar,
-                    );
-
-                    client.send(MacroStatus::Possible(
-                        MACRO_POTION, /*| MACRO_HUNT | MACRO_SKILL*/
-                        0,
-                    ));
-                    client.send(UnknownLargePacket::new());
-                    client.send(UnknownPacket::new());
-                    client.send(UnknownPacket2::new(game_entity.unique_id));
-
-                    cmd.entity(entity)
-                        .insert(PlayerBundle::new(
-                            player,
-                            game_entity,
-                            inventory,
-                            gold,
-                            agent,
-                            position,
-                            Visibility::with_radius(500.),
-                            hotbar,
-                        ))
-                        .remove::<CharacterSelect>()
-                        .remove::<LoginInput>();
-                },
-                None => {
-                    // TODO
-                    client.send(CharacterJoinResponse::error(CharacterListError::ReachedCapacity));
-                },
-            }
+                cmd.entity(entity)
+                    .insert(PlayerBundle::new(
+                        player,
+                        game_entity,
+                        inventory,
+                        gold,
+                        agent,
+                        position,
+                        Visibility::with_radius(500.),
+                        hotbar,
+                    ))
+                    .remove::<CharacterSelect>();
+            },
+            None => {
+                // TODO
+                client.send(CharacterJoinResponse::error(CharacterListError::ReachedCapacity));
+            },
         }
     }
 }
 
 pub(crate) fn handle_auth(
-    query: Query<(Entity, &Client, &LoginInput), Without<Playing>>,
+    query: Query<(Entity, &Client), Without<Playing>>,
     mut cmd: Commands,
     login_queue: Res<LoginQueue>,
+    mut reader: MessageReader<PlayerInputEvent<AuthRequest>>,
 ) {
-    for (entity, client, input) in query.iter() {
-        if let Some(ref auth) = input.auth {
-            match login_queue.hand_in_reservation(auth.token) {
-                Ok((token, user)) => {
-                    debug!(id = ?client.0.id(), token = auth.token, "Accepted token");
-                    cmd.entity(entity)
-                        .insert(Playing(user, token))
-                        .insert(CharacterSelect::default());
-                    send_login_result(client, AuthResult::success());
-                    break;
+    for event in reader.read() {
+        let (entity, client) = query.get(event.player).unwrap();
+        match login_queue.hand_in_reservation(event.input.token) {
+            Ok((token, user)) => {
+                debug!(id = ?client.0.id(), token = event.input.token, "Accepted token");
+                cmd.entity(entity)
+                    .insert(Playing(user, token))
+                    .insert(CharacterSelect::default());
+                send_login_result(client, AuthResult::success());
+                break;
+            },
+            Err(err) => match err {
+                ReservationError::NoSuchToken | ReservationError::AlreadyHasReservation => {
+                    send_login_result(client, AuthResult::error(AuthResultError::InvalidData));
                 },
-                Err(err) => match err {
-                    ReservationError::NoSuchToken | ReservationError::AlreadyHasReservation => {
-                        send_login_result(client, AuthResult::error(AuthResultError::InvalidData));
-                    },
-                    ReservationError::NoSpotsAvailable | ReservationError::AllTokensTaken => {
-                        send_login_result(client, AuthResult::error(AuthResultError::ServerFull));
-                    },
+                ReservationError::NoSpotsAvailable | ReservationError::AllTokensTaken => {
+                    send_login_result(client, AuthResult::error(AuthResultError::ServerFull));
                 },
-            }
+            },
         }
     }
 }
@@ -344,19 +344,23 @@ fn send_spawn(
         .map(|(slot, item)| InventoryItemData {
             slot: *slot,
             rent_data: RentInfo::Empty,
-            item_id: item.reference.ref_id(),
             content_data: match item.type_data {
-                ItemTypeData::Equipment { upgrade_level } => InventoryItemContentData::Equipment {
-                    plus_level: upgrade_level,
-                    variance: item.variance.unwrap_or_default(),
-                    durability: 1,
-                    magic: vec![],
-                    bindings_1: InventoryItemBindingData::new(1, 0),
-                    bindings_2: InventoryItemBindingData::new(2, 0),
-                    bindings_3: InventoryItemBindingData::new(3, 0),
-                    bindings_4: InventoryItemBindingData::new(4, 0),
+                ItemTypeData::Equipment { upgrade_level } => ItemContentData::new_equipment(
+                    item.reference.ref_id(),
+                    EquipmentItemContentData::new(
+                        upgrade_level,
+                        item.variance.unwrap_or_default(),
+                        1,
+                        vec![],
+                        InventoryItemBindingData::new(1, 0),
+                        InventoryItemBindingData::new(2, 0),
+                        InventoryItemBindingData::new(3, 0),
+                        InventoryItemBindingData::new(4, 0),
+                    ),
+                ),
+                ItemTypeData::Consumable { amount } => {
+                    ItemContentData::new_expendable(item.reference.ref_id(), ExpendableItemContentData::new(amount))
                 },
-                ItemTypeData::Consumable { amount } => InventoryItemContentData::Expendable { stack_size: amount },
                 _ => panic!("Missing inventory type representation."),
             },
         })
@@ -365,7 +369,7 @@ fn send_spawn(
     let skill_data = WorldData::skills();
 
     client.send(CharacterSpawn::new(
-        SilkroadTime::default(),
+        PackedSilkroadTime::zero(),
         entity.ref_id,
         character_data.scale,
         character_data.level,
@@ -421,7 +425,7 @@ fn send_spawn(
                     .filter(|skill_ref| skill_ref.level <= *level)
                     .map(|skill_ref| SkillData {
                         id: skill_ref.ref_id,
-                        enabled: !reached_max,
+                        flag: !reached_max as u8,
                     })
                     .collect::<Vec<_>>()
             })
@@ -434,7 +438,6 @@ fn send_spawn(
         entity_state,
         character_data.name.clone(),
         JobInformation::empty(),
-        0,
         0,
         0,
         false,

@@ -1,6 +1,6 @@
 use skrillax_packet::Packet;
-use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
 use skrillax_serde::*;
+use skrillax_stream::registry::PacketRegistryBuilder;
 use std::fmt::{Debug, Formatter};
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, Deserialize, ByteSize, Debug)]
@@ -21,7 +21,7 @@ pub enum CharacterListAction {
     AssignJob,
 }
 
-#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Debug)]
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Deserialize, Serialize, ByteSize, Debug)]
 #[silkroad(size = 2)]
 pub enum CharacterListError {
     #[silkroad(value = 0x403)]
@@ -50,18 +50,27 @@ pub enum CharacterListError {
     CouldntConnectToServer,
 }
 
-#[derive(Clone, Serialize, ByteSize, Debug)]
+#[derive(Copy, Clone)]
+enum CharacterListRequestType {
+    CharacterList,
+    ShowSpread,
+    Empty,
+}
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 #[silkroad(size = 0)]
 pub enum CharacterListContent {
+    #[silkroad(
+        when = "matches!(ctx.get::<CharacterListRequestType>(), Some(CharacterListRequestType::CharacterList))"
+    )]
     Characters {
         characters: Vec<CharacterListEntry>,
         job: u8,
     },
+    #[silkroad(when = "matches!(ctx.get::<CharacterListRequestType>(), Some(CharacterListRequestType::ShowSpread))")]
+    JobSpread { hunters: u8, thieves: u8 },
+    #[silkroad(when = "true")]
     Empty,
-    JobSpread {
-        hunters: u8,
-        thieves: u8,
-    },
 }
 
 impl CharacterListContent {
@@ -92,7 +101,7 @@ impl CharacterListResult {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize, Debug)]
+#[derive(Clone, Serialize, Deserialize, ByteSize, Debug)]
 pub enum CharacterListRequestAction {
     #[silkroad(value = 1)]
     Create {
@@ -156,29 +165,29 @@ impl CharacterListRequestAction {
     }
 }
 
-#[derive(Clone, Copy, Serialize, ByteSize, Debug)]
+#[derive(Clone, Copy, Deserialize, Serialize, ByteSize, Debug)]
 pub enum CharacterJoinResult {
     #[silkroad(value = 1)]
     Success,
     #[silkroad(value = 2)]
-    Error { error: CharacterListError },
+    Failure { error: CharacterListError },
 }
 
 impl CharacterJoinResult {
     pub fn error(error: CharacterListError) -> Self {
-        CharacterJoinResult::Error { error }
+        CharacterJoinResult::Failure { error }
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Deserialize, Serialize, ByteSize)]
 pub enum TimeInformation {
     #[silkroad(value = 1)]
     Deleting {
-        last_logout: SilkroadTime,
+        last_logout: PackedSilkroadTime,
         deletion_time_remaining: u32,
     },
     #[silkroad(value = 0)]
-    Playable { last_logout: SilkroadTime },
+    Playable { last_logout: PackedSilkroadTime },
 }
 
 impl Debug for TimeInformation {
@@ -201,19 +210,19 @@ impl Debug for TimeInformation {
 }
 
 impl TimeInformation {
-    pub fn deleting(last_logout: SilkroadTime, deletion_time_remaining: u32) -> Self {
+    pub fn deleting(last_logout: PackedSilkroadTime, deletion_time_remaining: u32) -> Self {
         TimeInformation::Deleting {
             last_logout,
             deletion_time_remaining,
         }
     }
 
-    pub fn playable(last_logout: SilkroadTime) -> Self {
+    pub fn playable(last_logout: PackedSilkroadTime) -> Self {
         TimeInformation::Playable { last_logout }
     }
 }
 
-#[derive(Clone, Copy, Serialize, ByteSize, Debug)]
+#[derive(Clone, Copy, Deserialize, Serialize, ByteSize, Debug)]
 pub struct CharacterListEquippedItem {
     pub id: u32,
     pub upgrade_level: u8,
@@ -225,7 +234,7 @@ impl CharacterListEquippedItem {
     }
 }
 
-#[derive(Clone, Debug, Serialize, ByteSize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ByteSize)]
 pub struct CharacterListAvatarItem {
     pub id: u32,
 }
@@ -236,7 +245,7 @@ impl CharacterListAvatarItem {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Debug)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub struct CharacterListEntry {
     pub ref_id: u32,
     pub name: String,
@@ -306,9 +315,25 @@ impl CharacterListEntry {
 
 #[derive(Clone, Serialize, ByteSize, Packet, Debug)]
 #[packet(opcode = 0xB007)]
+#[silkroad(before_serialize = "track_result", after_serialize = "unset_result")]
 pub struct CharacterListResponse {
     pub action: CharacterListAction,
     pub result: CharacterListResult,
+}
+
+fn track_result(response: &CharacterListResponse, ctx: &SerdeContext) -> Result<(), SerializationError> {
+    let kind = match response.action {
+        CharacterListAction::List => CharacterListRequestType::CharacterList,
+        CharacterListAction::ShowJobSpread => CharacterListRequestType::ShowSpread,
+        _ => CharacterListRequestType::Empty,
+    };
+    ctx.set(kind);
+    Ok(())
+}
+
+fn unset_result(_: &CharacterListResponse, ctx: &SerdeContext) -> Result<(), SerializationError> {
+    ctx.unset::<CharacterListRequestType>();
+    Ok(())
 }
 
 impl CharacterListResponse {
@@ -317,19 +342,19 @@ impl CharacterListResponse {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Serialize, Deserialize, ByteSize, Packet, Debug)]
 #[packet(opcode = 0x7007)]
 pub struct CharacterListRequest {
     pub action: CharacterListRequestAction,
 }
 
-#[derive(Clone, Deserialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Serialize, Deserialize, ByteSize, Packet, Debug)]
 #[packet(opcode = 0x7001)]
 pub struct CharacterJoinRequest {
     pub character_name: String,
 }
 
-#[derive(Clone, Copy, Serialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Copy, Deserialize, Serialize, ByteSize, Packet, Debug)]
 #[packet(opcode = 0xB001)]
 pub struct CharacterJoinResponse {
     pub result: CharacterJoinResult,
@@ -344,12 +369,12 @@ impl CharacterJoinResponse {
 
     pub fn error(error: CharacterListError) -> Self {
         CharacterJoinResponse {
-            result: CharacterJoinResult::Error { error },
+            result: CharacterJoinResult::Failure { error },
         }
     }
 }
 
-#[derive(Clone, Copy, Serialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Copy, Deserialize, Serialize, ByteSize, Packet, Debug)]
 #[packet(opcode = 0x303D)]
 pub struct CharacterStatsMessage {
     pub phys_attack_min: u32,
@@ -398,7 +423,7 @@ impl CharacterStatsMessage {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
 #[packet(opcode = 0x3601)]
 pub struct UnknownPacket {
     pub unknown_1: u8,
@@ -406,10 +431,16 @@ pub struct UnknownPacket {
     pub unknown_2: Vec<UnknownPacketInner>,
 }
 
-#[derive(Clone, Copy, Serialize, ByteSize, Debug)]
+#[derive(Clone, Copy, Deserialize, Serialize, ByteSize, Debug)]
 pub struct UnknownPacketInner {
     unknown: u32,
     unknown_2: Option<u32>,
+}
+
+impl Default for UnknownPacket {
+    fn default() -> Self {
+        UnknownPacket::new()
+    }
 }
 
 impl UnknownPacket {
@@ -421,7 +452,7 @@ impl UnknownPacket {
     }
 }
 
-#[derive(Clone, Copy, Serialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Copy, Deserialize, Serialize, ByteSize, Packet, Debug)]
 #[packet(opcode = 0xB602)]
 pub struct UnknownPacket2 {
     pub unknown_1: u8,
@@ -443,7 +474,7 @@ pub const MACRO_POTION: u8 = 1;
 pub const MACRO_SKILL: u8 = 2;
 pub const MACRO_HUNT: u8 = 4;
 
-#[derive(Serialize, ByteSize, Clone, Packet)]
+#[derive(Deserialize, Serialize, ByteSize, Clone, Packet, Debug)]
 #[packet(opcode = 0x3555)]
 pub enum MacroStatus {
     #[silkroad(value = 0)]
@@ -456,15 +487,20 @@ pub enum MacroStatus {
 #[packet(opcode = 0x34c6)]
 pub struct FinishLoading;
 
-define_inbound_protocol! { CharselectClientProtocol =>
-    CharacterListRequest,
-    CharacterJoinRequest,
-    FinishLoading
+pub trait CharacterPacketRegistryExt {
+    fn register_character_packets(self) -> Self;
 }
 
-define_outbound_protocol! { CharselectServerProtocol =>
-    CharacterJoinResponse,
-    CharacterStatsMessage,
-    UnknownPacket,
-    UnknownPacket2
+impl CharacterPacketRegistryExt for PacketRegistryBuilder {
+    fn register_character_packets(self) -> Self {
+        self.register_incoming::<CharacterListRequest>()
+            .register_incoming::<CharacterJoinRequest>()
+            .register_incoming::<FinishLoading>()
+            .register_outgoing::<CharacterListResponse>()
+            .register_outgoing::<CharacterJoinResponse>()
+            .register_outgoing::<CharacterStatsMessage>()
+            .register_outgoing::<UnknownPacket>()
+            .register_outgoing::<UnknownPacket2>()
+            .register_outgoing::<MacroStatus>()
+    }
 }

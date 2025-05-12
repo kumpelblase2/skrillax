@@ -19,7 +19,7 @@ impl Heightmap<'_> {
     /// of a two-dimensional structure where a point `(1, 2)` is at index `2 * size + 1`.
     /// `tile_size` specifies the distance between two neighbouring indices, e.g. `(2,0)`
     /// and `(3,0)`. In other words, it represents the resolution of the heightmap.
-    pub(crate) fn new(data: &[f32], size: usize, tile_size: usize) -> Heightmap {
+    pub(crate) fn new(data: &[f32], size: usize, tile_size: usize) -> Heightmap<'_> {
         Heightmap {
             map: data,
             size,

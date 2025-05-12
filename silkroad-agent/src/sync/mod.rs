@@ -20,7 +20,7 @@ use silkroad_protocol::skill::LevelUpMasteryResponse;
 use silkroad_protocol::world::{
     CharacterPointsUpdate, EntityBarsUpdate, EntityUpdateState, LevelUpEffect, PlayerPickupAnimation,
 };
-use skrillax_stream::packet::{AsPacket, OutgoingPacket};
+use skrillax_stream::stream::DynamicPacket;
 use std::sync::{mpsc, Mutex};
 use system::{collect_movement_starts, collect_movement_transitions};
 
@@ -51,7 +51,7 @@ impl Update {
     }
 }
 
-#[derive(From)]
+#[derive(From, Debug)]
 pub(crate) enum SelfUpdate {
     EntityBarsUpdate(EntityBarsUpdate),
     CharacterPointsUpdate(CharacterPointsUpdate),
@@ -65,24 +65,24 @@ pub(crate) enum SelfUpdate {
     LevelUpMasteryResponse(LevelUpMasteryResponse),
 }
 
-impl AsPacket for SelfUpdate {
-    fn as_packet(&self) -> OutgoingPacket {
+impl Into<DynamicPacket> for SelfUpdate {
+    fn into(self) -> DynamicPacket {
         match self {
-            SelfUpdate::EntityBarsUpdate(p) => p.as_packet(),
-            SelfUpdate::CharacterPointsUpdate(p) => p.as_packet(),
-            SelfUpdate::ReceiveExperience(p) => p.as_packet(),
-            SelfUpdate::LevelUpEffect(p) => p.as_packet(),
-            SelfUpdate::CharacterStatsMessage(p) => p.as_packet(),
-            SelfUpdate::EntityMovementInterrupt(p) => p.as_packet(),
-            SelfUpdate::PlayerMovementResponse(p) => p.as_packet(),
-            SelfUpdate::EntityUpdateState(p) => p.as_packet(),
-            SelfUpdate::PlayerPickupAnimation(p) => p.as_packet(),
-            SelfUpdate::LevelUpMasteryResponse(p) => p.as_packet(),
+            SelfUpdate::EntityBarsUpdate(p) => p.into(),
+            SelfUpdate::CharacterPointsUpdate(p) => p.into(),
+            SelfUpdate::ReceiveExperience(p) => p.into(),
+            SelfUpdate::LevelUpEffect(p) => p.into(),
+            SelfUpdate::CharacterStatsMessage(p) => p.into(),
+            SelfUpdate::EntityMovementInterrupt(p) => p.into(),
+            SelfUpdate::PlayerMovementResponse(p) => p.into(),
+            SelfUpdate::EntityUpdateState(p) => p.into(),
+            SelfUpdate::PlayerPickupAnimation(p) => p.into(),
+            SelfUpdate::LevelUpMasteryResponse(p) => p.into(),
         }
     }
 }
 
-#[derive(From, Clone)]
+#[derive(From, Clone, Debug)]
 pub(crate) enum OtherUpdate {
     EntityBarsUpdate(EntityBarsUpdate),
     LevelUpEffect(LevelUpEffect),
@@ -92,15 +92,15 @@ pub(crate) enum OtherUpdate {
     PlayerPickupAnimation(PlayerPickupAnimation),
 }
 
-impl AsPacket for OtherUpdate {
-    fn as_packet(&self) -> OutgoingPacket {
+impl Into<DynamicPacket> for OtherUpdate {
+    fn into(self) -> DynamicPacket {
         match self {
-            OtherUpdate::EntityBarsUpdate(p) => p.as_packet(),
-            OtherUpdate::LevelUpEffect(p) => p.as_packet(),
-            OtherUpdate::EntityMovementInterrupt(p) => p.as_packet(),
-            OtherUpdate::PlayerMovementResponse(p) => p.as_packet(),
-            OtherUpdate::EntityUpdateState(p) => p.as_packet(),
-            OtherUpdate::PlayerPickupAnimation(p) => p.as_packet(),
+            OtherUpdate::EntityBarsUpdate(p) => p.into(),
+            OtherUpdate::LevelUpEffect(p) => p.into(),
+            OtherUpdate::EntityMovementInterrupt(p) => p.into(),
+            OtherUpdate::PlayerMovementResponse(p) => p.into(),
+            OtherUpdate::EntityUpdateState(p) => p.into(),
+            OtherUpdate::PlayerPickupAnimation(p) => p.into(),
         }
     }
 }

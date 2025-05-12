@@ -3,6 +3,7 @@ members = [
     "silkroad-gateway",
     "silkroad-agent",
     "crates/*",
+    "silkroad-packet-display",
 ]
 resolver = "2"
 
@@ -21,10 +22,9 @@ bytes = "1.8"
 clap = "4.5"
 pk2 = "0.3"
 pk2-sync = "0.1"
-skrillax-protocol = "0.2"
-skrillax-packet = "0.3"
-skrillax-serde = "0.2"
-skrillax-stream = "0.2"
+skrillax-packet = { version = "0.4", path = "../skrillax-network/crates/skrillax-packet" }
+skrillax-serde = { version = "0.3", path = "../skrillax-network/crates/skrillax-serde" }
+skrillax-stream = { version = "0.3", path = "../skrillax-network/crates/skrillax-stream" }
 serde = { version = "1", features = ["derive"] }
 sqlx = { version = "0.8", default-features = false, features = [
     "runtime-tokio-rustls",

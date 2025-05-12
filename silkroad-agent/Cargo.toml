@@ -6,15 +6,15 @@ resolver = "2"
 
 [dependencies]
 tracing-subscriber.workspace = true
-silkroad-protocol = { path = "../crates/silkroad-protocol" }
+silkroad-protocol = { path = "../crates/silkroad-protocol", features = ["v594"] }
 silkroad-rpc = { path = "../crates/silkroad-rpc" }
 silkroad-navmesh = { path = "../crates/silkroad-navmesh", features = ["pk2"] }
 silkroad-data = { path = "../crates/silkroad-data" }
 silkroad-game-base = { path = "../crates/silkroad-game-base" }
 silkroad-definitions = { path = "../crates/silkroad-definitions" }
 skrillax-server = { path = "../crates/skrillax-server" }
-skrillax-protocol.workspace = true
 skrillax-stream.workspace = true
+skrillax-packet.workspace = true
 tokio.workspace = true
 axum = { version = "0.7", default-features = false, features = [
     "http1",

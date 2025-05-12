@@ -19,7 +19,7 @@ use silkroad_protocol::community::GuildInformation;
 use silkroad_protocol::inventory::CharacterSpawnItemData;
 use silkroad_protocol::spawn::{
     DroppedItemSource, EntityTypeSpawnData, GroupEntitySpawnData, GroupEntitySpawnEnd, GroupEntitySpawnStart,
-    GroupSpawnDataContent, GroupSpawnType, ItemSpawnData,
+    GroupSpawnDataContent, GroupSpawnType,
 };
 use silkroad_protocol::world::{
     ActionState, ActiveScroll, AliveState, BodyState, EntityState, InteractOptions, JobType, PlayerKillState, PvpCape,
@@ -118,79 +118,58 @@ pub(crate) fn player_visibility_update(
                                 .collect()
                         })
                         .unwrap_or_default();
-                    spawns.push(GroupSpawnDataContent::Spawn {
-                        object_id: entity.ref_id,
-                        data: EntityTypeSpawnData::Character {
-                            unique_id: entity.unique_id,
-                            scale: player.character.scale,
-                            berserk_level: 0,
-                            pvp_cape: PvpCape::None,
-                            beginner: player.character.beginner_mark,
-                            title: 0,
-                            inventory_size: inventory_opt.map(|inv| inv.size() as u8).unwrap_or(0),
-                            equipment: items,
-                            avatar_inventory_size: 5,
-                            avatar_items: vec![],
-                            mask: None,
-                            position: pos.as_protocol(),
-                            movement: pos.as_standing(),
-                            entity_state: entity_state_from_agent(agent),
-                            name: player.character.name.clone(),
-                            job_type: JobType::None,
-                            pk_state: PlayerKillState::None,
-                            mounted: false,
-                            in_combat: false,
-                            active_scroll: ActiveScroll::None,
-                            unknown2: 0,
-                            guild: GuildInformation {
-                                name: "".to_string(),
-                                id: 0,
-                                member: "".to_string(),
-                                last_icon_rev: 0,
-                                union_id: 0,
-                                last_union_icon_rev: 0,
-                                is_friendly: 0,
-                                siege_unknown: 0,
-                            },
-                            unknown3: [0; 11],
-                            equipment_cooldown: false,
-                            unknown4: 0,
-                            unknown5: 0,
-                        },
-                    });
+                    spawns.push(GroupSpawnDataContent::spawn(EntityTypeSpawnData::character(
+                        entity.ref_id,
+                        player.character.scale,
+                        0,
+                        PvpCape::None,
+                        player.character.beginner_mark,
+                        0,
+                        inventory_opt.map(|inv| inv.size() as u8).unwrap_or(0),
+                        items,
+                        5,
+                        vec![],
+                        None,
+                        entity.unique_id,
+                        pos.as_protocol(),
+                        pos.as_standing(),
+                        entity_state_from_agent(agent),
+                        player.character.name.clone(),
+                        JobType::None,
+                        false,
+                        false,
+                        ActiveScroll::None,
+                        GuildInformation::empty(),
+                        false,
+                        PlayerKillState::None,
+                    )));
                 } else if let Some(monster) = monster_opt {
                     let agent = agent_opt.unwrap();
-                    spawns.push(GroupSpawnDataContent::spawn(
+                    spawns.push(GroupSpawnDataContent::spawn(EntityTypeSpawnData::monster(
                         entity.ref_id,
-                        EntityTypeSpawnData::Monster {
-                            unique_id: entity.unique_id,
-                            position: pos.as_protocol(),
-                            movement: pos.as_movement(),
-                            entity_state: entity_state_from_agent(agent),
-                            // Somehow doesn't matter right now *shrug*
-                            interaction_options: InteractOptions::None,
-                            rarity: monster.rarity,
-                            unknown: 0,
-                        },
-                    ));
+                        entity.unique_id,
+                        pos.as_protocol(),
+                        pos.as_movement(),
+                        entity_state_from_agent(agent),
+                        // Somehow doesn't matter right now *shrug*
+                        InteractOptions::None,
+                        monster.rarity,
+                        0,
+                    )));
                 } else if let Some(drop) = item_opt {
-                    let spawn_data = spawndata_from_item(entity, pos, drop, player);
-                    spawns.push(GroupSpawnDataContent::Spawn {
-                        object_id: entity.ref_id,
-                        data: EntityTypeSpawnData::Item(spawn_data),
-                    });
+                    spawns.push(GroupSpawnDataContent::spawn(spawndata_from_item(
+                        entity, pos, drop, player,
+                    )));
                 } else if let Some(_) = npc_opt {
                     let agent = agent_opt.unwrap();
-                    spawns.push(GroupSpawnDataContent::spawn(
+                    spawns.push(GroupSpawnDataContent::spawn(EntityTypeSpawnData::npc(
                         entity.ref_id,
-                        EntityTypeSpawnData::NPC {
-                            unique_id: entity.unique_id,
-                            position: pos.as_protocol(),
-                            movement: pos.as_standing(),
-                            entity_state: entity_state_from_agent(agent),
-                            interaction_options: InteractOptions::None,
-                        },
-                    ));
+                        entity.unique_id,
+                        pos.as_protocol(),
+                        pos.as_standing(),
+                        entity_state_from_agent(agent),
+                        InteractOptions::None,
+                    )));
                 }
             }
         }
@@ -223,41 +202,46 @@ fn entity_state_from_agent(agent: &Agent) -> EntityState {
     }
 }
 
-fn spawndata_from_item(entity: GameEntity, pos: &Position, drop: &Drop, for_player: &GameEntity) -> ItemSpawnData {
+fn spawndata_from_item(
+    entity: GameEntity,
+    pos: &Position,
+    drop: &Drop,
+    for_player: &GameEntity,
+) -> EntityTypeSpawnData {
     match drop.item.type_data {
-        ItemTypeData::Equipment { upgrade_level } => ItemSpawnData::Equipment {
-            upgrade: upgrade_level,
-            unique_id: entity.unique_id,
-            position: pos.as_protocol(),
-            owner: drop
-                .owner
+        ItemTypeData::Equipment { upgrade_level } => EntityTypeSpawnData::equipable_item(
+            entity.ref_id,
+            upgrade_level,
+            entity.unique_id,
+            pos.as_protocol(),
+            drop.owner
                 .map(|owner| owner.1.unique_id)
                 .filter(|id| *id != for_player.unique_id),
-            rarity: 0,
-            source: DroppedItemSource::None,
-            source_id: 0,
-        },
-        ItemTypeData::COS | ItemTypeData::Consumable { .. } => ItemSpawnData::Consumable {
-            unique_id: entity.unique_id,
-            position: pos.as_protocol(),
-            owner: drop
-                .owner
+            0,
+            DroppedItemSource::None,
+            0,
+        ),
+        ItemTypeData::COS | ItemTypeData::Consumable { .. } => EntityTypeSpawnData::consumable_item(
+            entity.ref_id,
+            entity.unique_id,
+            pos.as_protocol(),
+            drop.owner
                 .map(|owner| owner.1.unique_id)
                 .filter(|id| *id != for_player.unique_id),
-            rarity: 0,
-            source: DroppedItemSource::None,
-            source_id: 0,
-        },
-        ItemTypeData::Gold { amount } => ItemSpawnData::Gold {
+            0,
+            DroppedItemSource::None,
+            0,
+        ),
+        ItemTypeData::Gold { amount } => EntityTypeSpawnData::gold(
+            entity.ref_id,
             amount,
-            unique_id: entity.unique_id,
-            position: pos.as_protocol(),
-            owner: drop
-                .owner
+            entity.unique_id,
+            pos.as_protocol(),
+            drop.owner
                 .map(|owner| owner.1.unique_id)
                 .filter(|id| *id != for_player.unique_id),
-            rarity: 0,
-        },
+            0,
+        ),
     }
 }
 

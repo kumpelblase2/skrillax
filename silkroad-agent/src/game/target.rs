@@ -4,12 +4,14 @@ use crate::comp::npc::NPC;
 use crate::comp::player::Player;
 use crate::comp::pos::Position;
 use crate::comp::Health;
-use crate::input::PlayerInput;
+use crate::input::PlayerInputEvent;
 use crate::world::EntityLookup;
 use bevy::prelude::*;
 use cgmath::MetricSpace;
 use derive_more::Deref;
-use silkroad_protocol::world::{TargetEntityError, TargetEntityResponse, TargetEntityResult, UnTargetEntityResponse};
+use silkroad_protocol::world::{
+    TargetEntity, TargetEntityError, TargetEntityResponse, TargetEntityResult, UnTargetEntity, UnTargetEntityResponse,
+};
 
 const MAX_TARGET_DISTANCE: f32 = 500. * 500.;
 
@@ -24,7 +26,7 @@ impl Target {
 }
 
 pub(crate) fn player_update_target(
-    query: Query<(Entity, &Client, &PlayerInput, &Position, Option<&Target>)>,
+    query: Query<(Entity, &Client, &Position, Option<&Target>)>,
     mut cmd: Commands,
     lookup: Res<EntityLookup>,
     target_lookup: Query<(
@@ -34,71 +36,79 @@ pub(crate) fn player_update_target(
         Option<&NPC>,
         Option<&Player>,
     )>,
+    mut reader_target: MessageReader<PlayerInputEvent<TargetEntity>>,
+    mut reader_untarget: MessageReader<PlayerInputEvent<UnTargetEntity>>,
 ) {
-    for (entity, client, input, pos, current_target) in query.iter() {
-        'target: {
-            if let Some(ref target) = input.target {
-                if let Some(target_entity) = lookup.get_entity_for_id(target.unique_id) {
-                    if let Ok((target_pos, health, monster, npc, player)) = target_lookup.get(target_entity) {
-                        let distance = target_pos.position().distance2(pos.position().0);
-                        if distance >= MAX_TARGET_DISTANCE {
-                            // Is this an adequate response?
-                            client.send(TargetEntityResponse::new(TargetEntityResult::failure(
-                                TargetEntityError::InvalidTarget,
-                            )));
-                            break 'target; // TODO
-                        }
+    for event in reader_target.read() {
+        let Ok((entity, client, pos, _)) = query.get(event.player) else {
+            continue;
+        };
 
-                        match (health, monster, npc, player) {
-                            (Some(health), Some(_), _, _) => {
-                                client.send(TargetEntityResponse::new(TargetEntityResult::success_monster(
-                                    target.unique_id,
-                                    health.current_health,
-                                )));
-                            },
-                            (_, _, Some(_), _) => {
-                                client.send(TargetEntityResponse::new(TargetEntityResult::success_npc(
-                                    target.unique_id,
-                                )));
-                            },
-                            (Some(health), _, _, Some(player)) => {},
-                            _ => {
-                                client.send(TargetEntityResponse::new(TargetEntityResult::failure(
-                                    TargetEntityError::InvalidTarget,
-                                )));
-                                break 'target;
-                            },
-                        }
-                        cmd.entity(entity).try_insert(Target(target_entity));
-                    } else {
-                        client.send(TargetEntityResponse::new(TargetEntityResult::failure(
-                            TargetEntityError::InvalidTarget,
-                        )));
-                    };
-                } else {
+        let target = &event.input;
+        if let Some(target_entity) = lookup.get_entity_for_id(target.unique_id) {
+            if let Ok((target_pos, health, monster, npc, player)) = target_lookup.get(target_entity) {
+                let distance = target_pos.position().distance2(pos.position().0);
+                if distance >= MAX_TARGET_DISTANCE {
+                    // Is this an adequate response?
                     client.send(TargetEntityResponse::new(TargetEntityResult::failure(
                         TargetEntityError::InvalidTarget,
                     )));
+                    continue;
                 }
-            }
-        }
 
-        if let Some(ref untarget) = input.untarget {
-            let Some(target) = current_target else {
-                client.send(UnTargetEntityResponse::new(true));
-                continue;
-            };
-            let Some(found) = lookup.get_entity_for_id(untarget.unique_id) else {
-                client.send(UnTargetEntityResponse::new(false));
-                continue;
-            };
-
-            if found == target.0 {
-                cmd.entity(entity).remove::<Target>();
-                client.send(UnTargetEntityResponse::new(true));
+                match (health, monster, npc, player) {
+                    (Some(health), Some(_), _, _) => {
+                        client.send(TargetEntityResponse::new(TargetEntityResult::success_monster(
+                            target.unique_id,
+                            health.current_health,
+                        )));
+                    },
+                    (_, _, Some(_), _) => {
+                        client.send(TargetEntityResponse::new(TargetEntityResult::success_npc(
+                            target.unique_id,
+                        )));
+                    },
+                    (Some(health), _, _, Some(player)) => {},
+                    _ => {
+                        client.send(TargetEntityResponse::new(TargetEntityResult::failure(
+                            TargetEntityError::InvalidTarget,
+                        )));
+                        continue;
+                    },
+                }
+                cmd.entity(entity).try_insert(Target(target_entity));
             } else {
-                client.send(UnTargetEntityResponse::new(false));
-            }
+                client.send(TargetEntityResponse::new(TargetEntityResult::failure(
+                    TargetEntityError::InvalidTarget,
+                )));
+            };
+        } else {
+            client.send(TargetEntityResponse::new(TargetEntityResult::failure(
+                TargetEntityError::InvalidTarget,
+            )));
+        }
+    }
+
+    for event in reader_untarget.read() {
+        let Ok((entity, client, _, current_target)) = query.get(event.player) else {
+            continue;
+        };
+
+        let untarget = &event.input;
+        let Some(target) = current_target else {
+            client.send(UnTargetEntityResponse::new(true));
+            continue;
+        };
+        let Some(found) = lookup.get_entity_for_id(untarget.unique_id) else {
+            client.send(UnTargetEntityResponse::new(false));
+            continue;
+        };
+
+        if found == target.0 {
+            cmd.entity(entity).remove::<Target>();
+            client.send(UnTargetEntityResponse::new(true));
+        } else {
+            client.send(UnTargetEntityResponse::new(false));
         }
     }
 }

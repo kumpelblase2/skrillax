@@ -16,7 +16,7 @@ pub enum ObjectFile<'a> {
 }
 
 impl ObjectFile<'_> {
-    pub fn from(file_name: &str) -> ObjectFile {
+    pub fn from(file_name: &str) -> ObjectFile<'_> {
         if file_name.ends_with(".cpd") {
             Ok(ObjectFile::Compound(file_name))
         } else if file_name.ends_with(".bsr") {

@@ -3,10 +3,6 @@ use bevy::prelude::*;
 use derive_more::{Deref, DerefMut};
 use tokio::sync::oneshot::Receiver;
 
-#[derive(Component)]
-#[component(storage = "SparseSet")]
-pub(crate) struct Login;
-
 #[derive(Component, Deref, DerefMut)]
 #[component(storage = "SparseSet")]
 pub(crate) struct CharactersLoading(pub(crate) Receiver<Vec<DbCharacter>>);

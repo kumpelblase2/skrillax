@@ -58,11 +58,11 @@ impl Iterator for EnabledRegions<'_> {
 }
 
 pub trait MapInfoExt {
-    fn enabled_regions(&self) -> EnabledRegions;
+    fn enabled_regions(&self) -> EnabledRegions<'_>;
 }
 
 impl MapInfoExt for JmxMapInfo {
-    fn enabled_regions(&self) -> EnabledRegions {
+    fn enabled_regions(&self) -> EnabledRegions<'_> {
         EnabledRegions::new(&self.region_data)
     }
 }

@@ -1,8 +1,10 @@
 use kanal::{unbounded, AsyncReceiver, AsyncSender, ReceiveError, Receiver, SendError, Sender};
 use skrillax_stream::handshake::ActiveSecuritySetup;
-use skrillax_stream::packet::AsPacket;
-use skrillax_stream::stream::{InStreamError, OutStreamError, SilkroadStreamRead, SilkroadStreamWrite, SilkroadTcpExt};
-use skrillax_stream::InputProtocol;
+use skrillax_stream::registry::PacketRegistry;
+use skrillax_stream::stream::{
+    DynamicPacket, InStreamError, OutStreamError, SilkroadStreamRead, SilkroadStreamWrite, SilkroadTcpExt,
+};
+use std::fmt::Debug;
 use std::io::{self, ErrorKind};
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -15,24 +17,25 @@ use tracing::{debug, instrument, trace, warn};
 static STREAM_IDENTIFIER: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone)]
-pub struct Connection<I: InputProtocol> {
+pub struct Connection {
     remote_addr: SocketAddr,
     identifier: u64,
-    inbound: Receiver<I::Proto>,
-    outbound: Sender<Box<dyn AsPacket + Send>>,
+    inbound: Receiver<DynamicPacket>,
+    outbound: Sender<DynamicPacket>,
 }
 
-impl<I: InputProtocol + Send + 'static> Connection<I> {
-    pub fn next(&self) -> Result<Option<I::Proto>, ReceiveError> {
+impl Connection {
+    pub fn next(&self) -> Result<Option<DynamicPacket>, ReceiveError> {
         self.inbound.try_recv()
     }
 
-    pub async fn next_async(&self) -> Result<I::Proto, ReceiveError> {
+    pub async fn next_async(&self) -> Result<DynamicPacket, ReceiveError> {
         self.inbound.as_async().recv().await
     }
 
-    pub fn send<S: AsPacket + Send + 'static>(&self, packet: S) -> Result<(), SendError> {
-        self.outbound.send(Box::new(packet))
+    pub fn send<S: Into<DynamicPacket> + Debug>(&self, packet: S) -> Result<(), SendError> {
+        debug!("Sending packet: {:?}", packet);
+        self.outbound.send(packet.into())
     }
 
     pub fn id(&self) -> u64 {
@@ -43,15 +46,16 @@ impl<I: InputProtocol + Send + 'static> Connection<I> {
         self.remote_addr
     }
 
-    #[instrument(skip(socket, inbound, outbound, cancel))]
+    #[instrument(skip(socket, registry, inbound, outbound, cancel))]
     async fn handle(
         socket: TcpStream,
         identifier: u64,
+        registry: PacketRegistry,
         cancel: CancellationToken,
-        inbound: Sender<I::Proto>,
-        outbound: Receiver<Box<dyn AsPacket + Send>>,
+        inbound: Sender<DynamicPacket>,
+        outbound: Receiver<DynamicPacket>,
     ) -> bool {
-        let (mut reader, mut writer) = socket.into_silkroad_stream();
+        let (mut reader, mut writer) = socket.into_silkroad_stream(registry);
         if let Err(err) = ActiveSecuritySetup::handle(&mut reader, &mut writer).await {
             warn!(%err, "Failed to finish handshake.");
             return false;
@@ -65,10 +69,10 @@ impl<I: InputProtocol + Send + 'static> Connection<I> {
         true
     }
 
-    #[instrument(skip(writer, oubound_receiver, cancel))]
+    #[instrument(skip(writer, outbound_receiver, cancel))]
     async fn handle_send(
         mut writer: SilkroadStreamWrite<OwnedWriteHalf>,
-        oubound_receiver: AsyncReceiver<Box<dyn AsPacket + Send>>,
+        outbound_receiver: AsyncReceiver<DynamicPacket>,
         identifier: u64,
         cancel: CancellationToken,
     ) {
@@ -77,14 +81,12 @@ impl<I: InputProtocol + Send + 'static> Connection<I> {
                 _ = cancel.cancelled() => {
                     return;
                 }
-                recv = oubound_receiver.recv() => {
+                recv = outbound_receiver.recv() => {
                     let Ok(packet) = recv else {
                         return;
                     };
 
-                    let p = packet.as_packet();
-                    drop(packet);
-                    match writer.write(p).await {
+                    match writer.write_packet(packet).await {
                         Ok(_) => {},
                         Err(OutStreamError::IoError(io_error)) => {
                             cancel.cancel();
@@ -94,9 +96,18 @@ impl<I: InputProtocol + Send + 'static> Connection<I> {
                                 warn!(identifier, %io_error, "Encountered some I/O error in connection.");
                             }
                             return;
-                        }
+                        },
                         Err(OutStreamError::Framing(_)) => {
                             warn!(identifier, "Tried to send an encrypted packet, but encryption was not set up.");
+                        },
+                        Err(OutStreamError::UnknownOpcode(_)) => {
+                            warn!(identifier, "Tried to send an unknown opcode.");
+                        },
+                        Err(OutStreamError::PacketError(e)) => {
+                            warn!(identifier, %e);
+                        },
+                        Err(OutStreamError::DynamicPacketType(e)) => {
+                            warn!(identifier, %e);
                         }
                     }
                 }
@@ -107,7 +118,7 @@ impl<I: InputProtocol + Send + 'static> Connection<I> {
     #[instrument(skip(reader, inbound_sender, cancel))]
     async fn handle_receive(
         mut reader: SilkroadStreamRead<OwnedReadHalf>,
-        inbound_sender: AsyncSender<I::Proto>,
+        inbound_sender: AsyncSender<DynamicPacket>,
         identifier: u64,
         cancel: CancellationToken,
     ) {
@@ -116,7 +127,7 @@ impl<I: InputProtocol + Send + 'static> Connection<I> {
                 _ = cancel.cancelled() => {
                     return;
                 }
-                recv = reader.next_packet::<I>() => {
+                recv = reader.next_packet() => {
                     match recv {
                         Ok(packet) => {
                             let to_send = inbound_sender.send(packet);
@@ -144,14 +155,19 @@ impl<I: InputProtocol + Send + 'static> Connection<I> {
     }
 }
 
-struct AsyncServerRunner<I: InputProtocol + Send + 'static> {
+struct AsyncServerRunner {
     token: CancellationToken,
-    stream_receiver: Receiver<Connection<I>>,
+    stream_receiver: Receiver<Connection>,
     handle: JoinHandle<()>,
 }
 
-impl<I: InputProtocol + Send> AsyncServerRunner<I> {
-    async fn run(listener: TcpListener, cancel_token: CancellationToken, connection_sender: Sender<Connection<I>>) {
+impl AsyncServerRunner {
+    async fn run(
+        listener: TcpListener,
+        packet_registry: PacketRegistry,
+        cancel_token: CancellationToken,
+        connection_sender: Sender<Connection>,
+    ) {
         loop {
             tokio::select! {
                 _ = cancel_token.cancelled() => break,
@@ -170,9 +186,10 @@ impl<I: InputProtocol + Send> AsyncServerRunner<I> {
 
                             let child = cancel_token.child_token();
 
+                            let packet_registry = packet_registry.clone();
                             let connection_sender = connection_sender.clone();
                             tokio::spawn(async move {
-                                if Connection::<I>::handle(socket, identifier, child, inbound_sender, outbound_receiver).await {
+                                if Connection::handle(socket, identifier, packet_registry, child, inbound_sender, outbound_receiver).await {
                                     if let Err(e) = connection_sender.send(connection) {
                                         warn!(%e, "Could not send client over.");
                                     }
@@ -190,13 +207,13 @@ impl<I: InputProtocol + Send> AsyncServerRunner<I> {
     }
 }
 
-pub struct Server<I: InputProtocol + Send + 'static> {
+pub struct Server {
     listen_addr: SocketAddr,
-    async_connector: AsyncServerRunner<I>,
+    async_connector: AsyncServerRunner,
 }
 
-impl<I: InputProtocol + Send + 'static> Server<I> {
-    pub fn new(addr: SocketAddr) -> Result<Self, io::Error> {
+impl Server {
+    pub fn new(addr: SocketAddr, packet_registry: PacketRegistry) -> Result<Self, io::Error> {
         let (sender, receiver) = unbounded();
         let cancel = CancellationToken::new();
 
@@ -205,7 +222,7 @@ impl<I: InputProtocol + Send + 'static> Server<I> {
         socket.bind(addr)?;
         let listener = socket.listen(1024)?;
         let join_handle =
-            tokio::spawn(async move { AsyncServerRunner::<I>::run(listener, inner_cancel, sender).await });
+            tokio::spawn(async move { AsyncServerRunner::run(listener, packet_registry, inner_cancel, sender).await });
 
         Ok(Self {
             listen_addr: addr,
@@ -229,23 +246,23 @@ impl<I: InputProtocol + Send + 'static> Server<I> {
         self.async_connector.token.cancel();
     }
 
-    pub fn accepted_connections(&self) -> AcceptedClients<'_, I> {
+    pub fn accepted_connections(&self) -> AcceptedClients<'_> {
         AcceptedClients {
             inner: &self.async_connector.stream_receiver,
         }
     }
 
-    pub async fn await_client(&self) -> Connection<I> {
+    pub async fn await_client(&self) -> Connection {
         self.async_connector.stream_receiver.as_async().recv().await.unwrap()
     }
 }
 
-pub struct AcceptedClients<'a, I: InputProtocol> {
-    inner: &'a Receiver<Connection<I>>,
+pub struct AcceptedClients<'a> {
+    inner: &'a Receiver<Connection>,
 }
 
-impl<I: InputProtocol> Iterator for AcceptedClients<'_, I> {
-    type Item = Connection<I>;
+impl Iterator for AcceptedClients<'_> {
+    type Item = Connection;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.try_recv().unwrap_or_else(|_| None)

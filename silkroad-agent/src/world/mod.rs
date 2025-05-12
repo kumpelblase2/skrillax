@@ -6,7 +6,11 @@ pub use data::*;
 pub use lookup::*;
 use pk2_sync::sync::readonly::Pk2;
 use silkroad_data::npc_pos::NpcPosition;
+use silkroad_definitions::type_id::{ObjectItem, ObjectType};
 use silkroad_navmesh::builder::NavmeshBuilder;
+use silkroad_protocol::runtime::initialize_equipment_ids;
+use silkroad_protocol::spawn::register_ref_id;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 mod data;
@@ -32,6 +36,30 @@ impl Plugin for WorldPlugin {
         WorldData::load_data_from(&media_pk2).expect("Should be able to load silkroad data");
         let npcs = NpcPosition::from(&media_pk2).unwrap();
         let navmesh = NavmeshBuilder::build_from(&data_pk2).expect("should be able to load navmesh from data.");
+
+        // Technically, this is not necessary to be set, because we'd never read items from the client.
+        // But to be safe, we'll set it anyway.
+        let equipment_items = WorldData::items()
+            .iter()
+            .filter(|item| {
+                matches!(
+                    ObjectType::from_type_id(&item.common.type_id),
+                    Some(ObjectType::Item(ObjectItem::Equippable(_)))
+                )
+            })
+            .map(|item| item.common.ref_id)
+            .collect::<HashSet<_>>();
+        initialize_equipment_ids(equipment_items);
+
+        let mut object_map = HashMap::<u32, ObjectType>::new();
+        WorldData::characters().iter().for_each(|character| {
+            if let Some(object_type) = ObjectType::from_type_id(&character.common.type_id) {
+                object_map.insert(character.common.ref_id, object_type);
+            }
+        });
+
+        register_ref_id(object_map);
+
         app.insert_resource(EntityIdPool::default())
             .insert_resource(EntityLookup::default())
             .insert_resource::<NpcPositionList>(npcs.into())

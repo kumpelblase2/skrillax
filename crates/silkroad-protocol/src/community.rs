@@ -1,8 +1,8 @@
 use skrillax_packet::Packet;
-use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
 use skrillax_serde::*;
+use skrillax_stream::registry::PacketRegistryBuilder;
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct GuildInformation {
     pub name: String,
     pub id: u32,
@@ -35,9 +35,19 @@ impl GuildInformation {
             siege_unknown: 0,
         }
     }
+
+    pub fn empty() -> Self {
+        Self::new("".to_string(), 0, "".to_string(), 0, 0, 0, 0)
+    }
 }
 
-#[derive(Clone, Serialize, ByteSize, Debug)]
+impl Default for GuildInformation {
+    fn default() -> Self {
+        Self::empty()
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub struct FriendListGroup {
     pub id: u16,
     pub name: String,
@@ -53,7 +63,7 @@ impl FriendListGroup {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Debug)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
 pub struct FriendListEntry {
     pub char_id: u32,
     pub name: String,
@@ -74,7 +84,7 @@ impl FriendListEntry {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
 #[packet(opcode = 0x3305)]
 pub struct FriendListInfo {
     pub groups: Vec<FriendListGroup>,
@@ -87,30 +97,32 @@ impl FriendListInfo {
     }
 }
 
-#[derive(Clone, Deserialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Deserialize, ByteSize, Serialize, Packet, Debug)]
 #[packet(opcode = 0x7302)]
 pub struct AddFriend {
     pub name: String,
 }
 
-#[derive(Clone, Deserialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Deserialize, ByteSize, Serialize, Packet, Debug)]
 #[packet(opcode = 0x7310)]
 pub struct CreateFriendGroup {
     pub name: String,
 }
 
-#[derive(Clone, Deserialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Deserialize, ByteSize, Serialize, Packet, Debug)]
 #[packet(opcode = 0x7304)]
 pub struct DeleteFriend {
     pub friend_character_id: u32,
 }
-
-define_inbound_protocol! { FriendListClientProtocol =>
-    AddFriend,
-    CreateFriendGroup,
-    DeleteFriend
+pub trait CommunityPacketRegistryExt {
+    fn register_community_packets(self) -> Self;
 }
 
-define_outbound_protocol! { FriendListServerProtocol =>
-    FriendListInfo
+impl CommunityPacketRegistryExt for PacketRegistryBuilder {
+    fn register_community_packets(self) -> Self {
+        self.register_outgoing::<FriendListInfo>()
+            .register_incoming::<AddFriend>()
+            .register_incoming::<CreateFriendGroup>()
+            .register_incoming::<DeleteFriend>()
+    }
 }

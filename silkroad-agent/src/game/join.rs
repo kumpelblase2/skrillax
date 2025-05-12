@@ -68,7 +68,7 @@ fn send_character_stats(client: &Client, stat_points: &StatPoints, level: u8) {
 fn send_text_initialization(client: &Client) {
     let mut characters = Vec::new();
     for i in 0x1d..0x8cu64 {
-        if i < 0x85 || i >= 0x89 {
+        if !(0x85..0x89).contains(&i) {
             characters.push(i << 56);
         }
     }

@@ -12,7 +12,6 @@ use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health, Mana};
 use crate::db::character::CharacterData;
 use crate::db::user::ServerUser;
-use crate::input::PlayerInput;
 use crate::persistence::Persistable;
 use crate::sync::Reset;
 use bevy::prelude::*;
@@ -81,7 +80,6 @@ pub(crate) struct PlayerBundle {
     pos: Position,
     buff: Buffed,
     visibility: Visibility,
-    input: PlayerInput,
     state_queue: AgentStateQueue,
     speed: MovementState,
     damage_receiver: DamageReceiver,
@@ -130,7 +128,6 @@ impl PlayerBundle {
             buff: Buffed {},
             visibility,
             gold,
-            input: Default::default(),
             state_queue: Default::default(),
             speed: MovementState::default_player(),
             damage_receiver: DamageReceiver::default(),

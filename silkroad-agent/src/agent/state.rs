@@ -357,10 +357,6 @@ pub enum TransitionPriority {
 }
 
 impl AgentStateQueue {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn push(&mut self, transition: Transition) {
         self.next_states.push(transition);
     }

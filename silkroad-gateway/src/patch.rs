@@ -16,6 +16,7 @@ pub(crate) enum Patcher {
     AcceptMatching {
         min: u32,
         current: u32,
+        #[allow(dead_code)]
         dir: String,
         remote: String,
     },

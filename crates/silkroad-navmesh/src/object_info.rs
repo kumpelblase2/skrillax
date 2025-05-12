@@ -40,7 +40,7 @@ impl ObjectInfoEntry {
         &self.file
     }
 
-    pub fn object_file(&self) -> ObjectFile {
+    pub fn object_file(&self) -> ObjectFile<'_> {
         ObjectFile::from(&self.file)
     }
 

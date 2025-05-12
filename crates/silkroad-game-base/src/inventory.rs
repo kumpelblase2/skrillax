@@ -320,7 +320,7 @@ impl Inventory {
         self.items.iter().filter(|(index, _)| Self::is_equipment_slot(**index))
     }
 
-    pub fn items(&self) -> Iter<u8, Item> {
+    pub fn items(&self) -> Iter<'_, u8, Item> {
         self.items.iter()
     }
 
@@ -508,7 +508,6 @@ impl Inventory {
                     self.changes.push(InventoryChange::RemoveItem { slot: i });
                 }
             } else {
-                to_remove = 0;
                 self.items.remove(&i);
                 self.changes.push(InventoryChange::RemoveItem { slot: i });
                 removed += 1;

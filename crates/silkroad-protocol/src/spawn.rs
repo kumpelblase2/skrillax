@@ -5,10 +5,16 @@ use crate::skill::{HotbarItem, MasteryData, SkillData};
 use crate::world::{ActiveScroll, EntityState, InteractOptions, JobType, PlayerKillState, PvpCape};
 use chrono::{DateTime, Datelike, TimeZone, Timelike, Utc};
 use silkroad_definitions::rarity::EntityRarity;
+use silkroad_definitions::type_id::{
+    ObjectConsumable, ObjectEntity, ObjectItem, ObjectNonPlayer, ObjectNpc, ObjectType,
+};
 use skrillax_packet::Packet;
 use skrillax_serde::*;
+use skrillax_stream::registry::PacketRegistryBuilder;
+use std::collections::HashMap;
+use std::sync::OnceLock;
 
-#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize)]
+#[derive(Clone, Eq, PartialEq, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub enum GroupSpawnType {
     #[silkroad(value = 1)]
     Spawn,
@@ -16,7 +22,7 @@ pub enum GroupSpawnType {
     Despawn,
 }
 
-#[derive(Copy, Clone, Serialize, ByteSize)]
+#[derive(Copy, Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub enum DroppedItemSource {
     #[silkroad(value = 0)]
     None,
@@ -26,36 +32,7 @@ pub enum DroppedItemSource {
     Player,
 }
 
-#[derive(Clone, Serialize, ByteSize)]
-#[silkroad(size = 0)]
-pub enum ItemSpawnData {
-    Gold {
-        amount: u32,
-        unique_id: u32,
-        position: Position,
-        owner: Option<u32>,
-        rarity: u8,
-    },
-    Consumable {
-        unique_id: u32,
-        position: Position,
-        owner: Option<u32>,
-        rarity: u8,
-        source: DroppedItemSource,
-        source_id: u32,
-    },
-    Equipment {
-        upgrade: u8,
-        unique_id: u32,
-        position: Position,
-        owner: Option<u32>,
-        rarity: u8,
-        source: DroppedItemSource,
-        source_id: u32,
-    },
-}
-
-#[derive(Clone, Serialize, ByteSize, Packet)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
 #[packet(opcode = 0x34A5)]
 pub struct CharacterSpawnStart;
 
@@ -80,18 +57,18 @@ impl<T: TimeZone> From<DateTime<T>> for ServiceEndTime {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Deserialize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct CollectionBookTheme {
     pub index: u32,
-    pub start: SilkroadTime,
+    pub start: PackedSilkroadTime,
     pub pages: u32,
 }
 
-#[derive(Clone, Serialize, ByteSize, Deserialize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct JobInformation {
-    pub job_name: String,
     pub job_rank: u8,
     pub job_title: u8,
+    pub job_name: String,
     pub job_type: JobType,
     pub job_level: u8,
     pub job_exp: u64,
@@ -110,10 +87,10 @@ impl JobInformation {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Packet)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
 #[packet(opcode = 0x3013)]
 pub struct CharacterSpawn {
-    pub time: SilkroadTime,
+    pub time: PackedSilkroadTime,
     pub ref_id: u32,
     pub scale: u8,
     pub level: u8,
@@ -133,18 +110,29 @@ pub struct CharacterSpawn {
     pub player_kills_penalty: u32,
     pub berserk_level: u8,
     pub free_pvp: u8,
-    // pub fortress_war_mark: u8,
+    #[cfg(feature = "v594")]
+    pub fortress_war_mark: u8,
+    #[cfg(feature = "v657")]
     pub service_end: ServiceEndTime,
+    #[cfg(feature = "v594")]
+    pub service_end: ExpandedSilkroadTime,
     pub user_type: u8,
     pub server_max_level: u8,
-    pub unknown_2: u16,
+    pub unknown_2_1: u8,
+    pub unknown_2_2: u8,
     pub inventory: BagContent,
     pub avatar_items: BagContent,
-    pub specialty_bag: BagContent,
     pub job_bag: BagContent,
+    pub specialty_bag: BagContent,
+    #[cfg(feature = "v657")]
     pub unknown_5: u8,
+    #[cfg(feature = "v657")]
+    pub unknown_6: u8,
+    #[cfg(feature = "v594")]
+    pub unknown_5: u16,
     #[silkroad(list_type = "break")]
     pub masteries: Vec<MasteryData>,
+    #[cfg(feature = "v594")]
     pub unknown_6: u8,
     #[silkroad(list_type = "break")]
     pub skills: Vec<SkillData>,
@@ -152,7 +140,8 @@ pub struct CharacterSpawn {
     pub completed_quests: Vec<u32>,
     pub active_quests: Vec<ActiveQuestData>,
     pub unknown_8: u8,
-    #[silkroad(size = 3)]
+    #[cfg_attr(feature = "v657", silkroad(size = 3))]
+    #[cfg_attr(feature = "v594", silkroad(size = 4))]
     pub collection_book: Vec<CollectionBookTheme>,
     pub unique_id: u32,
     pub position: Position,
@@ -183,8 +172,9 @@ pub struct CharacterSpawn {
 }
 
 impl CharacterSpawn {
+    #[allow(clippy::useless_conversion)]
     pub fn new(
-        time: SilkroadTime,
+        time: PackedSilkroadTime,
         ref_id: u32,
         scale: u8,
         level: u8,
@@ -219,7 +209,6 @@ impl CharacterSpawn {
         entity_state: EntityState,
         character_name: String,
         job_information: JobInformation,
-        job_contribution: u32,
         job_reward: u32,
         pvp_state: u8,
         transport_flag: bool,
@@ -255,18 +244,20 @@ impl CharacterSpawn {
             player_kills_penalty,
             berserk_level,
             free_pvp,
-            // fortress_war_mark,
-            service_end: service_end.into(),
+            #[cfg(feature = "v594")]
+            fortress_war_mark,
+            service_end: service_end.try_into().expect("Should be able to expand date time"),
             user_type,
             server_max_level,
-            unknown_2: 0x0107,
+            unknown_2_1: 0x07,
+            unknown_2_2: 0x01,
             inventory,
             avatar_items,
             specialty_bag: BagContent::empty(),
             job_bag: BagContent::new(0xb, Vec::new()),
             unknown_5: 0,
+            unknown_6: 1,
             masteries,
-            unknown_6: 0,
             skills,
             completed_quests,
             active_quests,
@@ -302,11 +293,11 @@ impl CharacterSpawn {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Packet)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
 #[packet(opcode = 0x34A6)]
 pub struct CharacterSpawnEnd;
 
-#[derive(Clone, Serialize, ByteSize, Packet)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
 #[packet(opcode = 0x3016)]
 pub struct EntityDespawn {
     pub entity_id: u32,
@@ -318,26 +309,47 @@ impl EntityDespawn {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Packet)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
 #[packet(opcode = 0x3015)]
 pub struct EntitySpawn {
-    pub ref_id: u32,
-    pub spawn_data: EntityTypeSpawnData,
+    pub data: EntityTypeSpawnData,
 }
 
 impl EntitySpawn {
-    pub fn new(ref_id: u32, spawn_data: EntityTypeSpawnData) -> Self {
-        EntitySpawn { ref_id, spawn_data }
+    pub fn new(spawn_data: EntityTypeSpawnData) -> Self {
+        EntitySpawn { data: spawn_data }
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Packet)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
 #[packet(opcode = 0x3017)]
+#[silkroad(
+    after_serialize = "spawn_start_serialize",
+    after_deserialize = "spawn_start_deserialize"
+)]
 pub struct GroupEntitySpawnStart {
     pub kind: GroupSpawnType,
     pub amount: u16,
     pub unknown_1: u32,
     pub unknown_2: u16,
+}
+
+fn spawn_start_serialize(spawn: &GroupEntitySpawnStart, ctx: &SerdeContext) -> Result<(), SerializationError> {
+    ctx.set(GroupEntitySpawnCount(spawn.amount as usize));
+    ctx.set(match spawn.kind {
+        GroupSpawnType::Spawn => GroupEntityType::Spawn,
+        GroupSpawnType::Despawn => GroupEntityType::Despawn,
+    });
+    Ok(())
+}
+
+fn spawn_start_deserialize(spawn: &GroupEntitySpawnStart, ctx: &SerdeContext) -> Result<(), SerializationError> {
+    ctx.set(GroupEntitySpawnCount(spawn.amount as usize));
+    ctx.set(match spawn.kind {
+        GroupSpawnType::Spawn => GroupEntityType::Spawn,
+        GroupSpawnType::Despawn => GroupEntityType::Despawn,
+    });
+    Ok(())
 }
 
 impl GroupEntitySpawnStart {
@@ -351,10 +363,31 @@ impl GroupEntitySpawnStart {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Packet)]
+#[derive(Copy, Clone, Default)]
+pub struct GroupEntitySpawnCount(pub usize);
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum GroupEntityType {
+    Spawn,
+    Despawn,
+}
+
+impl From<GroupSpawnType> for GroupEntityType {
+    fn from(value: GroupSpawnType) -> Self {
+        match value {
+            GroupSpawnType::Spawn => GroupEntityType::Spawn,
+            GroupSpawnType::Despawn => GroupEntityType::Despawn,
+        }
+    }
+}
+
+#[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
 #[packet(opcode = 0x3019)]
 pub struct GroupEntitySpawnData {
-    #[silkroad(list_type = "none")]
+    #[silkroad(
+        list_type = "calculated",
+        calculate = "ctx.get::<GroupEntitySpawnCount>().unwrap_or_default().0"
+    )]
     pub content: Vec<GroupSpawnDataContent>,
 }
 
@@ -364,15 +397,30 @@ impl GroupEntitySpawnData {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Packet)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
 #[packet(opcode = 0x3018)]
+#[silkroad(after_serialize = "spawn_end_serialize", after_deserialize = "spawn_end_deserialize")]
 pub struct GroupEntitySpawnEnd;
 
-#[derive(Clone, Serialize, ByteSize)]
+fn spawn_end_serialize(_packet: &GroupEntitySpawnEnd, ctx: &SerdeContext) -> Result<(), SerializationError> {
+    ctx.unset::<GroupEntitySpawnCount>();
+    ctx.unset::<GroupEntityType>();
+    Ok(())
+}
+
+fn spawn_end_deserialize(_packet: &GroupEntitySpawnEnd, ctx: &SerdeContext) -> Result<(), SerializationError> {
+    ctx.unset::<GroupEntitySpawnCount>();
+    ctx.unset::<GroupEntityType>();
+    Ok(())
+}
+
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 #[silkroad(size = 0)]
 pub enum GroupSpawnDataContent {
+    #[silkroad(when = "ctx.get::<GroupEntityType>().filter(|t| *t == GroupEntityType::Despawn).is_some()")]
     Despawn { id: u32 },
-    Spawn { object_id: u32, data: EntityTypeSpawnData },
+    #[silkroad(when = "ctx.get::<GroupEntityType>().filter(|t| *t == GroupEntityType::Spawn).is_some()")]
+    Spawn { data: EntityTypeSpawnData },
 }
 
 impl GroupSpawnDataContent {
@@ -380,12 +428,12 @@ impl GroupSpawnDataContent {
         GroupSpawnDataContent::Despawn { id }
     }
 
-    pub fn spawn(object_id: u32, data: EntityTypeSpawnData) -> Self {
-        GroupSpawnDataContent::Spawn { object_id, data }
+    pub fn spawn(spawn_data: EntityTypeSpawnData) -> Self {
+        GroupSpawnDataContent::Spawn { data: spawn_data }
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct ActiveQuestData {
     pub id: u32,
     pub repeat_count: u8,
@@ -410,7 +458,7 @@ impl ActiveQuestData {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub struct ActiveQuestObjectData {
     pub index: u8,
     pub incomplete: bool,
@@ -431,11 +479,121 @@ impl ActiveQuestObjectData {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize)]
-#[silkroad(size = 0)]
+static REF_ID_TO_OBJ: OnceLock<HashMap<u32, ObjectType>> = OnceLock::new();
+
+pub fn register_ref_id(map: HashMap<u32, ObjectType>) {
+    let _ = REF_ID_TO_OBJ.set(map);
+}
+
+fn is_item_ref(id: u32) -> bool {
+    let found_ref = REF_ID_TO_OBJ.get().expect("Should have been set").get(&id);
+    found_ref
+        .map(|obj| matches!(obj, ObjectType::Item(ObjectItem::Consumable(_))))
+        .unwrap_or(false)
+}
+
+fn is_gold_ref(id: u32) -> bool {
+    let found_ref = REF_ID_TO_OBJ.get().expect("Should have been set").get(&id);
+    found_ref
+        .map(|obj| {
+            matches!(
+                obj,
+                ObjectType::Item(ObjectItem::Consumable(ObjectConsumable::Currency(_)))
+            )
+        })
+        .unwrap_or(false)
+}
+
+fn is_equipment_ref(id: u32) -> bool {
+    let found_ref = REF_ID_TO_OBJ.get().expect("Should have been set").get(&id);
+    found_ref
+        .map(|obj| matches!(obj, ObjectType::Item(ObjectItem::Equippable(_))))
+        .unwrap_or(false)
+}
+
+fn is_character_ref(id: u32) -> bool {
+    let found_ref = REF_ID_TO_OBJ.get().expect("Should have been set").get(&id);
+    found_ref
+        .map(|obj| matches!(obj, ObjectType::Entity(ObjectEntity::Player)))
+        .unwrap_or(false)
+}
+
+fn is_monster_ref(id: u32) -> bool {
+    let found_ref = REF_ID_TO_OBJ.get().expect("Should have been set").get(&id);
+    found_ref
+        .map(|obj| {
+            matches!(
+                obj,
+                ObjectType::Entity(ObjectEntity::NonPlayer(ObjectNonPlayer::Monster(_)))
+            )
+        })
+        .unwrap_or(false)
+}
+
+fn is_npc_ref(id: u32) -> bool {
+    let found_ref = REF_ID_TO_OBJ.get().expect("Should have been set").get(&id);
+    found_ref
+        .map(|obj| {
+            matches!(
+                obj,
+                ObjectType::Entity(ObjectEntity::NonPlayer(ObjectNonPlayer::NPC(ObjectNpc::Standard)))
+            )
+        })
+        .unwrap_or(false)
+}
+
+fn is_portal_ref(id: u32) -> bool {
+    let found_ref = REF_ID_TO_OBJ.get().expect("Should have been set").get(&id);
+    found_ref
+        .map(|obj| {
+            matches!(
+                obj,
+                ObjectType::Entity(ObjectEntity::NonPlayer(ObjectNonPlayer::NPC(ObjectNpc::GateStructure)))
+            )
+        })
+        .unwrap_or(false)
+}
+
+#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
+#[silkroad(size = 4)]
 pub enum EntityTypeSpawnData {
-    Item(ItemSpawnData),
+    #[silkroad(when = "is_gold_ref(tag)")]
+    GoldItem {
+        #[silkroad(tag)]
+        ref_id: u32,
+        amount: u32,
+        unique_id: u32,
+        position: Position,
+        owner: Option<u32>,
+        rarity: u8,
+    },
+    #[silkroad(when = "is_equipment_ref(tag)")]
+    EquipmentItem {
+        #[silkroad(tag)]
+        ref_id: u32,
+        upgrade: u8,
+        unique_id: u32,
+        position: Position,
+        owner: Option<u32>,
+        rarity: u8,
+        source: DroppedItemSource,
+        source_id: u32,
+    },
+    #[silkroad(when = "is_item_ref(tag)")]
+    ConsumableItem {
+        #[silkroad(tag)]
+        ref_id: u32,
+        unique_id: u32,
+        position: Position,
+        owner: Option<u32>,
+        rarity: u8,
+        source: DroppedItemSource,
+        source_id: u32,
+    },
+    #[silkroad(when = "is_character_ref(tag)")]
     Character {
+        #[silkroad(tag)]
+        ref_id: u32,
         scale: u8,
         berserk_level: u8,
         pvp_cape: PvpCape,
@@ -457,20 +615,30 @@ pub enum EntityTypeSpawnData {
         active_scroll: ActiveScroll,
         unknown2: u8,
         guild: GuildInformation,
+        #[cfg(feature = "v594")]
+        unknown3: [u8; 9],
+        #[cfg(feature = "v657")]
         unknown3: [u8; 11],
         equipment_cooldown: bool,
         pk_state: PlayerKillState,
         unknown4: u8,
+        #[cfg(feature = "v657")]
         unknown5: u8,
     },
+    #[silkroad(when = "is_npc_ref(tag)")]
     NPC {
+        #[silkroad(tag)]
+        ref_id: u32,
         unique_id: u32,
         position: Position,
         movement: EntityMovementState,
         entity_state: EntityState,
         interaction_options: InteractOptions,
     },
+    #[silkroad(when = "is_monster_ref(tag)")]
     Monster {
+        #[silkroad(tag)]
+        ref_id: u32,
         unique_id: u32,
         position: Position,
         movement: EntityMovementState,
@@ -479,20 +647,41 @@ pub enum EntityTypeSpawnData {
         rarity: EntityRarity,
         unknown: u32,
     },
+    #[silkroad(when = "is_portal_ref(tag)")]
+    Portal {
+        #[silkroad(tag)]
+        ref_id: u32,
+        unique_id: u32,
+        position: Position,
+        unknown_1: u8,
+        unknown_2: u8,
+        unknown_3: u32,
+        unknown_4: u8,
+        unknown_5: u8,
+        data: PortalData,
+    },
+}
+
+#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Debug)]
+pub enum PortalData {
+    #[silkroad(value = 1)]
+    General { unknown_1: u32, unknown_2: u32 },
 }
 
 impl EntityTypeSpawnData {
-    pub fn gold(amount: u32, unique_id: u32, position: Position, owner: Option<u32>, rarity: u8) -> Self {
-        EntityTypeSpawnData::Item(ItemSpawnData::Gold {
+    pub fn gold(ref_id: u32, amount: u32, unique_id: u32, position: Position, owner: Option<u32>, rarity: u8) -> Self {
+        EntityTypeSpawnData::GoldItem {
+            ref_id,
             amount,
             unique_id,
             position,
             owner,
             rarity,
-        })
+        }
     }
 
     pub fn character(
+        ref_id: u32,
         scale: u8,
         berserk_level: u8,
         pvp_cape: PvpCape,
@@ -513,11 +702,11 @@ impl EntityTypeSpawnData {
         in_combat: bool,
         active_scroll: ActiveScroll,
         guild: GuildInformation,
-        unknown3: [u8; 11],
         equipment_cooldown: bool,
         pk_state: PlayerKillState,
     ) -> Self {
         EntityTypeSpawnData::Character {
+            ref_id,
             scale,
             berserk_level,
             pvp_cape,
@@ -539,15 +728,20 @@ impl EntityTypeSpawnData {
             active_scroll,
             unknown2: 0,
             guild,
-            unknown3,
+            #[cfg(feature = "v594")]
+            unknown3: [0; 9],
+            #[cfg(feature = "v657")]
+            unknown3: [0; 11],
             equipment_cooldown,
             pk_state,
             unknown4: 0xFF,
+            #[cfg(feature = "v657")]
             unknown5: 0x01,
         }
     }
 
     pub fn monster(
+        ref_id: u32,
         unique_id: u32,
         position: Position,
         movement: EntityMovementState,
@@ -557,6 +751,7 @@ impl EntityTypeSpawnData {
         unknown: u32,
     ) -> Self {
         EntityTypeSpawnData::Monster {
+            ref_id,
             unique_id,
             position,
             movement,
@@ -565,5 +760,82 @@ impl EntityTypeSpawnData {
             rarity,
             unknown,
         }
+    }
+
+    pub fn npc(
+        ref_id: u32,
+        unique_id: u32,
+        position: Position,
+        movement: EntityMovementState,
+        entity_state: EntityState,
+        interaction_options: InteractOptions,
+    ) -> Self {
+        EntityTypeSpawnData::NPC {
+            ref_id,
+            unique_id,
+            position,
+            movement,
+            entity_state,
+            interaction_options,
+        }
+    }
+
+    pub fn consumable_item(
+        ref_id: u32,
+        unique_id: u32,
+        position: Position,
+        owner: Option<u32>,
+        rarity: u8,
+        source: DroppedItemSource,
+        source_id: u32,
+    ) -> Self {
+        EntityTypeSpawnData::ConsumableItem {
+            ref_id,
+            unique_id,
+            position,
+            owner,
+            rarity,
+            source,
+            source_id,
+        }
+    }
+
+    pub fn equipable_item(
+        ref_id: u32,
+        upgrade: u8,
+        unique_id: u32,
+        position: Position,
+        owner: Option<u32>,
+        rarity: u8,
+        source: DroppedItemSource,
+        source_id: u32,
+    ) -> Self {
+        EntityTypeSpawnData::EquipmentItem {
+            ref_id,
+            upgrade,
+            unique_id,
+            position,
+            owner,
+            rarity,
+            source,
+            source_id,
+        }
+    }
+}
+
+pub trait SpawnPacketRegistryExt {
+    fn register_spawn_packets(self) -> Self;
+}
+
+impl SpawnPacketRegistryExt for PacketRegistryBuilder {
+    fn register_spawn_packets(self) -> Self {
+        self.register_outgoing::<CharacterSpawnStart>()
+            .register_outgoing::<CharacterSpawn>()
+            .register_outgoing::<CharacterSpawnEnd>()
+            .register_outgoing::<EntityDespawn>()
+            .register_outgoing::<EntitySpawn>()
+            .register_outgoing::<GroupEntitySpawnStart>()
+            .register_outgoing::<GroupEntitySpawnData>()
+            .register_outgoing::<GroupEntitySpawnEnd>()
     }
 }

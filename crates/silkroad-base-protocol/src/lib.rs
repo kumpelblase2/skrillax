@@ -1,6 +1,6 @@
 use skrillax_packet::Packet;
-use skrillax_protocol::define_protocol;
 use skrillax_serde::*;
+use skrillax_stream::registry::PacketRegistryBuilder;
 
 #[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
 #[packet(opcode = 0x2001)]
@@ -19,78 +19,12 @@ impl IdentityInformation {
 #[packet(opcode = 0x2002)]
 pub struct KeepAlive;
 
-#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Debug)]
-pub enum HandshakeStage {
-    #[silkroad(value = 0xE)]
-    Initialize {
-        blowfish_seed: u64,
-        seed_count: u32,
-        seed_crc: u32,
-        handshake_seed: u64,
-        a: u32,
-        b: u32,
-        c: u32,
-    },
-    #[silkroad(value = 0x10)]
-    Finalize { challenge: u64 },
+pub trait BasePacketRegistryExt {
+    fn register_base_packets(self) -> Self;
 }
 
-impl HandshakeStage {
-    pub fn initialize(
-        blowfish_seed: u64,
-        seed_count: u32,
-        seed_crc: u32,
-        handshake_seed: u64,
-        a: u32,
-        b: u32,
-        c: u32,
-    ) -> Self {
-        HandshakeStage::Initialize {
-            blowfish_seed,
-            seed_count,
-            seed_crc,
-            handshake_seed,
-            a,
-            b,
-            c,
-        }
+impl BasePacketRegistryExt for PacketRegistryBuilder {
+    fn register_base_packets(self) -> Self {
+        self.register::<IdentityInformation>().register::<KeepAlive>()
     }
-
-    pub fn finalize(challenge: u64) -> Self {
-        HandshakeStage::Finalize { challenge }
-    }
-}
-
-#[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Packet, Debug)]
-#[packet(opcode = 0x5000)]
-pub struct SecuritySetup {
-    pub stage: HandshakeStage,
-}
-
-impl SecuritySetup {
-    pub fn new(stage: HandshakeStage) -> Self {
-        SecuritySetup { stage }
-    }
-}
-
-#[derive(Clone, Copy, Deserialize, ByteSize, Serialize, Packet, Debug)]
-#[packet(opcode = 0x5000)]
-pub struct HandshakeChallenge {
-    pub b: u32,
-    pub key: u64,
-}
-
-#[derive(Clone, Copy, Deserialize, ByteSize, Serialize, Packet, Debug)]
-#[packet(opcode = 0x9000)]
-pub struct HandshakeAccepted;
-
-define_protocol! { BaseProtocol =>
-    IdentityInformation,
-    KeepAlive
-}
-
-define_protocol! { HandshakeProtocol =>
-    SecuritySetup,
-    HandshakeChallenge,
-    HandshakeAccepted
 }

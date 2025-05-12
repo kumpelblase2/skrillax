@@ -1,6 +1,6 @@
 use skrillax_packet::Packet;
-use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
 use skrillax_serde::*;
+use skrillax_stream::registry::PacketRegistryBuilder;
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Debug, Serialize, ByteSize, Deserialize)]
 pub enum ChatTarget {
@@ -181,12 +181,15 @@ impl ChatMessageResponse {
     }
 }
 
-define_inbound_protocol! { ChatClientProtocol =>
-    ChatMessage
+pub trait ChatPacketRegistryExt {
+    fn register_chat_packets(self) -> Self;
 }
 
-define_outbound_protocol! { ChatServerProtocol =>
-    ChatMessageResponse,
-    ChatUpdate,
-    TextCharacterInitialization
+impl ChatPacketRegistryExt for PacketRegistryBuilder {
+    fn register_chat_packets(self) -> Self {
+        self.register_incoming::<ChatMessage>()
+            .register_outgoing::<ChatMessageResponse>()
+            .register_outgoing::<ChatUpdate>()
+            .register_outgoing::<TextCharacterInitialization>()
+    }
 }

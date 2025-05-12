@@ -15,7 +15,6 @@ mod mall;
 mod net;
 mod persistence;
 mod population;
-mod protocol;
 mod server_plugin;
 mod sync;
 mod tasks;
@@ -37,6 +36,8 @@ use crate::server_plugin::ServerPlugin;
 use crate::sync::SynchronizationPlugin;
 use crate::tasks::TaskCreator;
 use crate::world::WorldPlugin;
+use bevy::diagnostic::{DiagnosticsPlugin, LogDiagnosticsPlugin};
+use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::time::TimePlugin;
 use login::web::WebServer;
@@ -45,11 +46,10 @@ use rand::{rng, Rng};
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::Duration;
 use tracing::info;
 
 fn main() {
-    tracing_subscriber::fmt::init();
-
     let configuration = get_config();
     let server_id = configuration.server_id;
     let external_addr = match &configuration.external_address {
@@ -103,6 +103,13 @@ fn main() {
 
     info!("Listening for clients");
     App::new()
+        .add_plugins(LogPlugin::default())
+        .add_plugins(DiagnosticsPlugin)
+        .add_plugins(LogDiagnosticsPlugin {
+            debug: true,
+            wait_duration: Duration::from_secs(5),
+            ..default()
+        })
         .add_plugins(TimePlugin)
         .add_plugins(TaskPoolPlugin::default())
         .insert_resource::<TaskCreator>(runtime.clone().into())

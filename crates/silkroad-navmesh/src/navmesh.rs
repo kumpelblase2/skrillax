@@ -22,7 +22,7 @@ impl NavmeshContainer {
         Self { region, mesh: jmx }
     }
 
-    pub fn heightmap(&self) -> Heightmap {
+    pub fn heightmap(&self) -> Heightmap<'_> {
         Heightmap::new(&self.mesh.height_map, MESH_SIZE, MESH_TILE_SIZE)
     }
 }

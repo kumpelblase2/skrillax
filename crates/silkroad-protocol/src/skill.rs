@@ -1,6 +1,6 @@
 use skrillax_packet::Packet;
-use skrillax_protocol::{define_inbound_protocol, define_outbound_protocol};
 use skrillax_serde::*;
+use skrillax_stream::registry::PacketRegistryBuilder;
 
 #[derive(Deserialize, Serialize, ByteSize, Copy, Clone, Packet, Debug)]
 #[packet(opcode = 0x70A2)]
@@ -57,12 +57,12 @@ impl MasteryData {
 #[derive(Clone, Copy, Serialize, ByteSize, Deserialize, Debug)]
 pub struct SkillData {
     pub id: u32,
-    pub enabled: bool,
+    pub flag: u8,
 }
 
 impl SkillData {
-    pub fn new(id: u32, enabled: bool) -> Self {
-        SkillData { id, enabled }
+    pub fn new(id: u32, flag: u8) -> Self {
+        SkillData { id, flag }
     }
 }
 
@@ -81,13 +81,16 @@ pub struct HotbarItem {
     pub action_data: u32,
 }
 
-define_inbound_protocol! { SkillClientProtocol =>
-    LearnSkill,
-    LevelUpMastery,
-    HotbarUpdate
+pub trait SkillPacketRegistryExt {
+    fn register_skill_packets(self) -> Self;
 }
 
-define_outbound_protocol! { SkillServerProtocol =>
-    LearnSkillResponse,
-    LevelUpMasteryResponse
+impl SkillPacketRegistryExt for PacketRegistryBuilder {
+    fn register_skill_packets(self) -> Self {
+        self.register_incoming::<LearnSkill>()
+            .register_outgoing::<LearnSkillResponse>()
+            .register_incoming::<LevelUpMastery>()
+            .register_outgoing::<LevelUpMasteryResponse>()
+            .register_incoming::<HotbarUpdate>()
+    }
 }

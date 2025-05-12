@@ -1,18 +1,19 @@
 use crate::agent::goal::{AgentGoal, GoalTracker};
 use crate::comp::net::Client;
-use crate::input::PlayerInput;
+use crate::input::PlayerInputEvent;
 use crate::world::{EntityLookup, WorldData};
 use bevy::prelude::*;
 use silkroad_protocol::combat::{ActionTarget, DoActionType, PerformAction, PerformActionError, PerformActionResponse};
 use tracing::warn;
 
-pub(crate) fn handle_action(mut query: Query<(&Client, &PlayerInput, &mut GoalTracker)>, lookup: Res<EntityLookup>) {
-    for (client, input, mut mind) in query.iter_mut() {
-        let Some(ref action) = input.action else {
-            continue;
-        };
-
-        match action {
+pub(crate) fn handle_action(
+    mut query: Query<(&Client, &mut GoalTracker)>,
+    lookup: Res<EntityLookup>,
+    mut reader: MessageReader<PlayerInputEvent<PerformAction>>,
+) {
+    for event in reader.read() {
+        let (client, mut mind) = query.get_mut(event.player).unwrap();
+        match &event.input {
             PerformAction::Do(action) => match action {
                 DoActionType::Attack { target } => match target {
                     ActionTarget::Entity(unique_id) => {
