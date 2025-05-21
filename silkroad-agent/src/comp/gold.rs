@@ -20,12 +20,13 @@ impl GoldPouch {
 }
 
 impl ChangeProvided for GoldPouch {
-    type Change = GoldChange;
+    type Change = Self; // GoldPouch itself is the snapshot
 
     fn as_change(&self) -> Self::Change {
-        GoldChange(self.0)
+        *self // Return a copy of self since GoldPouch is Copy
     }
 }
 
-#[derive(Copy, Clone)]
-pub(crate) struct GoldChange(pub u64);
+// GoldChange struct is no longer needed here as GoldPouch itself will be the Change type
+// and will have the ApplyToDatabase implementation.
+// pub(crate) struct GoldChange(pub u64); // Removed

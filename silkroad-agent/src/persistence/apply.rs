@@ -1,5 +1,6 @@
 use crate::comp::exp::{Experienced, Leveled, SP};
-use crate::comp::gold::GoldChange;
+use crate::comp::gold::GoldPouch; // Changed from GoldChange to GoldPouch
+use crate::comp::mastery::MasteryKnowledge;
 use crate::comp::player::StatPoints;
 use crate::comp::pos::Position;
 use crate::comp::{Health, Mana};
@@ -37,6 +38,40 @@ impl ApplyToDatabase for PositionChange {
         )
         .execute(pool)
         .await?;
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl ApplyToDatabase for MasteryKnowledge {
+    async fn apply(&self, character_id: u32, pool: &PgPool) -> Result<(), sqlx::Error> {
+        // Start a database transaction.
+        let mut tx = pool.begin().await?;
+
+        // Delete all existing entries for the character_id from character_masteries.
+        sqlx::query!(
+            "DELETE FROM character_masteries WHERE character_id = $1",
+            character_id as i32
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        // Iterate through the masteries in the snapshot and insert each one as a new row.
+        // This uses a batch insert approach if possible with sqlx, or individual inserts.
+        // For simplicity, individual inserts in a loop:
+        for mastery_info in &self.masteries {
+            sqlx::query!(
+                "INSERT INTO character_masteries (character_id, mastery_id, level) VALUES ($1, $2, $3)",
+                character_id as i32,
+                mastery_info.mastery_id as i32, // Assuming mastery_id is u32 in MasteryInfo
+                mastery_info.level as i16      // Assuming level is u8 in MasteryInfo
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        // Commit the transaction.
+        tx.commit().await?;
         Ok(())
     }
 }
@@ -184,12 +219,16 @@ impl ApplyToDatabase for SpChange {
     }
 }
 
+// The old ApplyToDatabase for GoldChange is removed.
+// #[async_trait]
+// impl ApplyToDatabase for GoldChange { ... }
+
 #[async_trait]
-impl ApplyToDatabase for GoldChange {
+impl ApplyToDatabase for GoldPouch { // New implementation for GoldPouch
     async fn apply(&self, character_id: u32, pool: &PgPool) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "UPDATE characters SET gold = $1 WHERE id = $2",
-            self.0 as i32,
+            self.amount() as i64, // Use self.amount() which is u64, cast to i64 for DB
             character_id as i32
         )
         .execute(pool)

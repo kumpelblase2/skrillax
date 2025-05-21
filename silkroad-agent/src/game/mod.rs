@@ -25,9 +25,13 @@ use crate::game::inventory::handle_inventory_input;
 use crate::game::join::load_finished;
 use crate::game::logout::{handle_logout, tick_logout};
 use crate::game::mastery::{handle_mastery_levelup, learn_skill};
-use crate::game::movement::movement_monster;
+use crate::game::movement::{movement_monster, player_movement_broadcast_system as player_movement_system}; // Renamed for clarity and added
+use crate::game::handlers::{
+    handle_player_action_request, handle_player_chat, handle_player_logout_request, // Added handle_player_logout_request
+    handle_player_movement_request, handle_player_target_entity, handle_player_untarget_entity,
+};
 use crate::game::player_activity::{update_player_activity, PlayerActivity};
-use crate::game::spawn::do_spawn_mobs;
+use crate::game::spawn::{do_spawn_mobs, player_spawn_broadcast_system};
 use crate::game::stats::increase_stats;
 use crate::game::target::{deselect_despawned, player_update_target};
 use crate::game::unique::{setup_unique_timers, unique_killed, unique_spawned, update_timers};
@@ -40,6 +44,7 @@ use exp::LevelUpEvent;
 mod action;
 pub(crate) mod attack;
 mod damage;
+pub mod handlers; // Added handlers module
 mod daylight;
 pub(crate) mod drop;
 pub(crate) mod exp;
@@ -93,6 +98,14 @@ impl Plugin for GamePlugin {
                     handle_mastery_levelup,
                     learn_skill,
                     do_spawn_mobs,
+                    player_spawn_broadcast_system,
+                    // Registering new event handlers
+                    handle_player_movement_request,
+                    handle_player_chat,
+                    handle_player_action_request,
+                    handle_player_target_entity,
+                    handle_player_untarget_entity,
+                    handle_player_logout_request, // Added handler system
                 ),
             )
             .add_systems(
@@ -117,6 +130,7 @@ impl Plugin for GamePlugin {
                     advance_daylight,
                     create_drops,
                     update_hotbar,
+                    player_movement_system, // Added player_movement_broadcast_system here
                 ),
             )
             .track_change_component::<Position>()

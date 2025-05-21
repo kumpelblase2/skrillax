@@ -2,6 +2,12 @@ use crate::comp::monster::SpawnedBy;
 use crate::comp::{EntityReference, GameEntity};
 use bevy::prelude::*;
 use silkroad_data::skilldata::RefSkillData;
+use silkroad_protocol::{ // Added import block for protocol types
+    chat::ChatClientProtocol,
+    combat::PerformAction,
+    movement::MovementTarget,
+    world::{TargetEntity, UnTargetEntity},
+};
 use silkroad_definitions::TypeId;
 use silkroad_game_base::GlobalLocation;
 
@@ -56,3 +62,44 @@ pub(crate) struct ConsumeItemEvent {
     pub item: TypeId,
     pub amount: u16,
 }
+
+// --- New Gameplay Event Struct Definitions ---
+
+/// Event triggered when a player requests to move.
+#[derive(Event)]
+pub struct PlayerMovementRequestEvent {
+    pub player_entity: Entity,
+    pub request: MovementTarget,
+}
+
+/// Event triggered when a player sends a chat message.
+#[derive(Event)]
+pub struct PlayerChatEvent {
+    pub player_entity: Entity,
+    pub message: ChatClientProtocol,
+}
+
+/// Event triggered when a player requests to perform an action (e.g., skill cast, attack).
+#[derive(Event)]
+pub struct PlayerActionRequestEvent {
+    pub player_entity: Entity,
+    pub action: PerformAction,
+}
+
+/// Event triggered when a player requests to target an entity.
+#[derive(Event)]
+pub struct PlayerTargetEntityEvent {
+    pub player_entity: Entity,
+    pub target_request: TargetEntity,
+}
+
+/// Event triggered when a player requests to untarget an entity.
+#[derive(Event)]
+pub struct PlayerUntargetEntityEvent {
+    pub player_entity: Entity,
+    pub untarget_request: UnTargetEntity,
+}
+
+/// Event triggered when a player requests to log out gracefully.
+#[derive(Event)]
+pub struct PlayerLogoutRequestEvent(pub Entity);
