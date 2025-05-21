@@ -1,6 +1,10 @@
 use crate::comp::net::{Client, LastAction};
 use crate::config::GameConfig;
-use crate::event::{ClientDisconnectedEvent, LoadingFinishedEvent};
+use crate::event::{
+    ClientDisconnectedEvent, LoadingFinishedEvent, PlayerActionRequestEvent, PlayerChatEvent,
+    PlayerLogoutRequestEvent, // Added PlayerLogoutRequestEvent
+    PlayerMovementRequestEvent, PlayerTargetEntityEvent, PlayerUntargetEntityEvent,
+};
 use crate::input::{LoginInput, PlayerInput};
 use crate::mall::event::MallOpenRequestEvent;
 use crate::protocol::AgentClientProtocol;
@@ -34,6 +38,13 @@ pub(crate) fn receive_game_inputs(
     mut loading_events: EventWriter<LoadingFinishedEvent>,
     mut disconnect_events: EventWriter<ClientDisconnectedEvent>,
     mut mall_events: EventWriter<MallOpenRequestEvent>,
+    // Added EventWriters for new gameplay events
+    mut movement_request_events: EventWriter<PlayerMovementRequestEvent>,
+    mut chat_events: EventWriter<PlayerChatEvent>,
+    mut action_request_events: EventWriter<PlayerActionRequestEvent>,
+    mut target_entity_events: EventWriter<PlayerTargetEntityEvent>,
+    mut untarget_entity_events: EventWriter<PlayerUntargetEntityEvent>,
+    mut logout_request_events: EventWriter<PlayerLogoutRequestEvent>, // Added EventWriter for logout
 ) {
     for (entity, client, mut input, mut last_action) in query.iter_mut() {
         let mut had_action = false;
@@ -43,12 +54,20 @@ pub(crate) fn receive_game_inputs(
                     had_action = true;
                     match *packet {
                         AgentClientProtocol::ChatClientProtocol(chat) => {
-                            input.chat.push(chat);
+                            input.chat.push(chat.clone()); // Assuming chat is Clone
+                            chat_events.send(PlayerChatEvent {
+                                player_entity: entity,
+                                message: chat,
+                            });
                         },
                         AgentClientProtocol::MovementClientProtocol(MovementClientProtocol::PlayerMovementRequest(
                             req,
                         )) => {
-                            input.movement = Some(req.kind);
+                            // input.movement = Some(req.kind.clone()); // This line is now removed/commented out
+                            movement_request_events.send(PlayerMovementRequestEvent {
+                                player_entity: entity,
+                                request: req.kind, // req.kind is cloned by send() if necessary, or if it's Copy
+                            });
                         },
                         AgentClientProtocol::MovementClientProtocol(MovementClientProtocol::Rotation(rotate)) => {
                             input.rotation = Some(rotate);
@@ -68,14 +87,26 @@ pub(crate) fn receive_game_inputs(
                             StatClientProtocol::IncreaseInt(_) => input.increase_stats.push(StatType::INT),
                         },
                         AgentClientProtocol::CombatClientProtocol(CombatClientProtocol::PerformAction(action)) => {
-                            input.action = Some(action);
+                            input.action = Some(action.clone()); // Assuming action is Clone
+                            action_request_events.send(PlayerActionRequestEvent {
+                                player_entity: entity,
+                                action,
+                            });
                         },
                         AgentClientProtocol::WorldClientProtocol(world) => match world {
                             WorldClientProtocol::TargetEntity(target) => {
-                                input.target = Some(target);
+                                input.target = Some(target.clone()); // Assuming target is Clone
+                                target_entity_events.send(PlayerTargetEntityEvent {
+                                    player_entity: entity,
+                                    target_request: target,
+                                });
                             },
                             WorldClientProtocol::UnTargetEntity(untarget) => {
-                                input.untarget = Some(untarget);
+                                input.untarget = Some(untarget.clone()); // Assuming untarget is Clone
+                                untarget_entity_events.send(PlayerUntargetEntityEvent {
+                                    player_entity: entity,
+                                    untarget_request: untarget,
+                                });
                             },
                             WorldClientProtocol::UpdateGameGuide(guide) => {
                                 client.send(GameGuideResponse::Success(guide.0));
@@ -95,8 +126,9 @@ pub(crate) fn receive_game_inputs(
                                 client.send(ConsignmentResponse::success_empty());
                             },
                         },
-                        AgentClientProtocol::AuthProtocol(AuthProtocol::LogoutRequest(logout)) => {
-                            input.logout = Some(logout);
+                        AgentClientProtocol::AuthProtocol(AuthProtocol::LogoutRequest(_logout)) => {
+                            // input.logout = Some(logout); // This line is now removed
+                            logout_request_events.send(PlayerLogoutRequestEvent(entity));
                         },
                         AgentClientProtocol::GmClientProtocol(GmClientProtocol::GmCommand(command)) => {
                             input.gm = Some(command);
