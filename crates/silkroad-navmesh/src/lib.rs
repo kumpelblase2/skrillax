@@ -19,7 +19,7 @@ pub trait FileLoader {
 }
 
 #[cfg(feature = "pk2")]
-impl FileLoader for pk2::Pk2 {
+impl<R: std::io::Read + std::io::Seek> FileLoader for pk2_sync::sync::Pk2<R> {
     fn load_file(&self, file_path: &str) -> io::Result<Vec<u8>> {
         self.read(format!("/{}", file_path))
     }

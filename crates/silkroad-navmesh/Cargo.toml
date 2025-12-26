@@ -14,10 +14,11 @@ encoding_rs = "0.8"
 sr_formats = { git = "https://github.com/Veykril/sr_formats" }
 nom = "7"
 pk2 = { workspace = true, optional = true }
+pk2-sync = { workspace = true, optional = true }
 mint = "0.5.9"
 navmesh = "0.12.1"
 silkroad-definitions = { path = "../silkroad-definitions" }
 log = { workspace = true }
 
 [features]
-pk2 = ["dep:pk2"]
+pk2 = ["dep:pk2", "dep:pk2-sync"]

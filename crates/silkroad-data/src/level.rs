@@ -1,10 +1,10 @@
 use crate::{parse_file, FileError, ParseError};
-use pk2::Pk2;
+use pk2_sync::sync::Pk2;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::str::FromStr;
 
-pub fn load_level_map(pk2: &Pk2) -> Result<LevelMap, FileError> {
+pub fn load_level_map(pk2: &Pk2<impl std::io::Read + std::io::Seek>) -> Result<LevelMap, FileError> {
     let mut file = pk2.open_file("/server_dep/silkroad/textdata/LevelData.txt")?;
     let levels: Vec<RefLevel> = parse_file(&mut file)?;
     let map = levels.into_iter().map(|level| (level.level, level)).collect();

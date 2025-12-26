@@ -1,13 +1,13 @@
 use crate::{DataEntry, DataMap, FileError, ParseError};
 use bitflags::bitflags;
 use num_enum::TryFromPrimitive;
-use pk2::Pk2;
+use pk2_sync::sync::Pk2;
 use silkroad_definitions::type_id::{ObjectConsumable, ObjectEquippable, ObjectWeaponType};
 use std::num::{NonZeroU16, NonZeroU32, NonZeroU8};
 use std::ops::Deref;
 use std::str::FromStr;
 
-pub fn load_skill_map(pk2: &Pk2) -> Result<DataMap<RefSkillData>, FileError> {
+pub fn load_skill_map(pk2: &Pk2<impl std::io::Read + std::io::Seek>) -> Result<DataMap<RefSkillData>, FileError> {
     DataMap::from(pk2, "/server_dep/silkroad/textdata/SkillData.txt")
 }
 

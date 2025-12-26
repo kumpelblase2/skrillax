@@ -1,5 +1,5 @@
 use once_cell::sync::OnceCell;
-use pk2::Pk2;
+use pk2_sync::sync::Pk2;
 use silkroad_data::characterdata::{load_character_map, RefCharacterData};
 use silkroad_data::datamap::DataMap;
 use silkroad_data::gold::{load_gold_map, GoldMap};
@@ -26,7 +26,7 @@ static TELEPORT_BUILDINGS: OnceCell<DataMap<TeleportBuilding>> = OnceCell::new()
 pub struct WorldData;
 
 impl WorldData {
-    pub(crate) fn load_data_from(media_pk2: &Pk2) -> Result<(), FileError> {
+    pub(crate) fn load_data_from(media_pk2: &Pk2<impl std::io::Read + std::io::Seek>) -> Result<(), FileError> {
         let levels = load_level_map(media_pk2)?;
         let gold = load_gold_map(media_pk2)?;
         let characters = load_character_map(media_pk2)?;
