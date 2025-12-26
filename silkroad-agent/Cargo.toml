@@ -36,6 +36,7 @@ itertools = "*"
 bevy = { version = "0.15.2", default-features = false, features = ["trace_chrome"] }
 cgmath = "0.18"
 pk2.workspace = true
+pk2-sync.workspace = true
 id-pool = { version = "0.2", features = ["u32"], default-features = false }
 derive_more = { version = "2", features = ["deref", "deref_mut", "from", "constructor"] }
 futures = "0.3"

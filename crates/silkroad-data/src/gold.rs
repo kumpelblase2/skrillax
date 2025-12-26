@@ -1,10 +1,10 @@
 use crate::{parse_file, FileError, ParseError};
-use pk2::Pk2;
+use pk2_sync::sync::Pk2;
 use std::collections::HashMap;
 use std::ops::{Deref, RangeInclusive};
 use std::str::FromStr;
 
-pub fn load_gold_map(pk2: &Pk2) -> Result<GoldMap, FileError> {
+pub fn load_gold_map(pk2: &Pk2<impl std::io::Read + std::io::Seek>) -> Result<GoldMap, FileError> {
     let mut file = pk2.open_file("/server_dep/silkroad/textdata/levelgold.txt")?;
     let gold_lines: Vec<RefGold> = parse_file(&mut file)?;
     let map: HashMap<_, _> = gold_lines.into_iter().map(|gold| (gold.level, gold)).collect();

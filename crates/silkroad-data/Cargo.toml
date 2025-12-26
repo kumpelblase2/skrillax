@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 pk2 = { workspace = true }
+pk2-sync = { workspace = true }
 thiserror = { workspace = true }
 encoding_rs = "0.8"
 num_enum = "0.7"

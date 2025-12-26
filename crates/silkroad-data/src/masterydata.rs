@@ -1,9 +1,9 @@
 use crate::{parse_file, DataEntry, DataMap, FileError, ParseError};
-use pk2::Pk2;
+use pk2_sync::sync::Pk2;
 use std::num::NonZeroU8;
 use std::str::FromStr;
 
-pub fn load_mastery_map(pk2: &Pk2) -> Result<DataMap<RefMasteryData>, FileError> {
+pub fn load_mastery_map(pk2: &Pk2<impl std::io::Read + std::io::Seek>) -> Result<DataMap<RefMasteryData>, FileError> {
     let mut file = pk2.open_file("/server_dep/silkroad/textdata/skillmasterydata.txt")?;
     let levels: Vec<RefMasteryData> = parse_file(&mut file)?;
     let map = levels

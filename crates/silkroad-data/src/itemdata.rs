@@ -1,11 +1,11 @@
 use crate::common::RefCommon;
 use crate::{DataEntry, DataMap, FileError, ParseError};
 use num_enum::TryFromPrimitive;
-use pk2::Pk2;
+use pk2_sync::sync::Pk2;
 use std::num::{NonZeroU16, NonZeroU8};
 use std::str::FromStr;
 
-pub fn load_item_map(pk2: &Pk2) -> Result<DataMap<RefItemData>, FileError> {
+pub fn load_item_map(pk2: &Pk2<impl std::io::Read + std::io::Seek>) -> Result<DataMap<RefItemData>, FileError> {
     DataMap::from(pk2, "/server_dep/silkroad/textdata/ItemData.txt")
 }
 

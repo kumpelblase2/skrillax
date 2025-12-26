@@ -1,5 +1,5 @@
 use crate::{parse_file, FileError, ParseError};
-use pk2::Pk2;
+use pk2_sync::sync::Pk2;
 use std::str::FromStr;
 
 pub struct NpcPosition {
@@ -11,7 +11,7 @@ pub struct NpcPosition {
 }
 
 impl NpcPosition {
-    pub fn from(pk2: &Pk2) -> Result<Vec<NpcPosition>, FileError> {
+    pub fn from(pk2: &Pk2<impl std::io::Read + std::io::Seek>) -> Result<Vec<NpcPosition>, FileError> {
         let mut file = pk2.open_file("/server_dep/silkroad/textdata/NpcPos.txt")?;
         parse_file(&mut file)
     }

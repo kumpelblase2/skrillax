@@ -79,6 +79,6 @@ impl<T: TryFromPrimitive<Primitive = u8>> From<TryFromPrimitiveError<T>> for Par
 
 impl From<ChainLookupError> for FileError {
     fn from(chain_error: ChainLookupError) -> Self {
-        FileError::IoError(chain_error.into())
+        FileError::IoError(std::io::Error::new(std::io::ErrorKind::Other, chain_error))
     }
 }

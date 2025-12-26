@@ -1,25 +1,29 @@
 use crate::common::RefCommon;
 use crate::{parse_file, DataEntry, DataMap, FileError, ParseError};
-use pk2::Pk2;
+use pk2_sync::sync::Pk2;
 use silkroad_definitions::Region;
 use std::collections::HashMap;
 use std::num::NonZeroU16;
 use std::str::FromStr;
 
-pub fn load_teleport_map(pk2: &Pk2) -> Result<HashMap<u16, TeleportLocation>, FileError> {
+pub fn load_teleport_map(
+    pk2: &Pk2<impl std::io::Read + std::io::Seek>,
+) -> Result<HashMap<u16, TeleportLocation>, FileError> {
     let mut file = pk2.open_file("/server_dep/silkroad/textdata/TeleportData.txt")?;
     let teleports: Vec<TeleportLocation> = parse_file(&mut file)?;
     let map: HashMap<_, _> = teleports.into_iter().map(|gold| (gold.ref_id, gold)).collect();
     Ok(map)
 }
 
-pub fn load_teleport_links(pk2: &Pk2) -> Result<Vec<TeleportLink>, FileError> {
+pub fn load_teleport_links(pk2: &Pk2<impl std::io::Read + std::io::Seek>) -> Result<Vec<TeleportLink>, FileError> {
     let mut file = pk2.open_file("/server_dep/silkroad/textdata/TeleportLink.txt")?;
     let teleports: Vec<TeleportLink> = parse_file(&mut file)?;
     Ok(teleports)
 }
 
-pub fn load_teleport_buildings(pk2: &Pk2) -> Result<DataMap<TeleportBuilding>, FileError> {
+pub fn load_teleport_buildings(
+    pk2: &Pk2<impl std::io::Read + std::io::Seek>,
+) -> Result<DataMap<TeleportBuilding>, FileError> {
     let mut file = pk2.open_file("/server_dep/silkroad/textdata/TeleportBuilding.txt")?;
     let buildings: Vec<TeleportBuilding> = parse_file(&mut file)?;
     Ok(DataMap::new(buildings))

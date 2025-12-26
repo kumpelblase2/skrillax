@@ -1,5 +1,5 @@
 use crate::{list_files, parse_file, FileError, ParseError};
-use pk2::Pk2;
+use pk2_sync::sync::Pk2;
 use std::ops::Deref;
 use std::str::FromStr;
 
@@ -27,7 +27,7 @@ impl<T> DataMap<T> {
 }
 
 impl<T: FromStr<Err = ParseError>> DataMap<T> {
-    pub fn from(pk2: &Pk2, main_file: &str) -> Result<DataMap<T>, FileError> {
+    pub fn from(pk2: &Pk2<impl std::io::Read + std::io::Seek>, main_file: &str) -> Result<DataMap<T>, FileError> {
         let mut file = pk2.open_file(main_file)?;
         let lines = list_files(&mut file)?;
         let all_entries: Result<Vec<Vec<T>>, FileError> = lines

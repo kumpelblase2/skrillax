@@ -1,11 +1,13 @@
 use crate::common::RefCommon;
 use crate::{DataEntry, DataMap, FileError, ParseError};
-use pk2::Pk2;
+use pk2_sync::sync::Pk2;
 use silkroad_definitions::rarity::EntityRarity;
 use std::num::NonZeroU16;
 use std::str::FromStr;
 
-pub fn load_character_map(pk2: &Pk2) -> Result<DataMap<RefCharacterData>, FileError> {
+pub fn load_character_map(
+    pk2: &Pk2<impl std::io::Read + std::io::Seek>,
+) -> Result<DataMap<RefCharacterData>, FileError> {
     DataMap::from(pk2, "/server_dep/silkroad/textdata/CharacterData.txt")
 }
 
