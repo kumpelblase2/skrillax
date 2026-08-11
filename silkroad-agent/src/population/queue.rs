@@ -97,8 +97,8 @@ impl LoginQueue {
 
         match reservations.iter().position(|reservation| reservation.token == token) {
             Some(index) => {
-                let play_token = self.capacity.add_playing();
                 let reservation = reservations.remove(index);
+                let play_token = self.capacity.start_playing(reservation.spot_token);
                 Ok((play_token, reservation.content))
             },
             _ => Err(ReservationError::NoSuchToken),

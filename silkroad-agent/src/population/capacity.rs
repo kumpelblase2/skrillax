@@ -4,8 +4,7 @@ use tracing::trace;
 
 struct Capacity {
     max: u16,
-    queued: AtomicU16,
-    playing: AtomicU16,
+    admitted: AtomicU16,
 }
 
 pub struct QueueToken {
@@ -15,7 +14,7 @@ pub struct QueueToken {
 impl Drop for QueueToken {
     fn drop(&mut self) {
         trace!("Queue token expired");
-        self.inner.queued.fetch_sub(1, Ordering::Relaxed);
+        self.inner.admitted.fetch_sub(1, Ordering::AcqRel);
     }
 }
 
@@ -26,7 +25,7 @@ pub struct PlayingToken {
 impl Drop for PlayingToken {
     fn drop(&mut self) {
         trace!("Play token expired");
-        self.inner.playing.fetch_sub(1, Ordering::Relaxed);
+        self.inner.admitted.fetch_sub(1, Ordering::AcqRel);
     }
 }
 
@@ -34,27 +33,27 @@ impl Capacity {
     fn new(capacity: u16) -> Self {
         Capacity {
             max: capacity,
-            queued: AtomicU16::default(),
-            playing: AtomicU16::default(),
+            admitted: AtomicU16::default(),
         }
     }
 
     fn current_total(&self) -> u16 {
-        self.queued.load(Ordering::Acquire) + self.playing.load(Ordering::Acquire)
-    }
-
-    fn available(&self) -> u16 {
-        self.max - self.current_total()
+        self.admitted.load(Ordering::Acquire)
     }
 
     fn usage(&self) -> f32 {
-        let total_current = self.current_total() as f32;
-        let maximum = self.max as f32;
-        total_current / maximum
+        if self.max == 0 {
+            return 0.0;
+        }
+        self.current_total() as f32 / self.max as f32
     }
 
-    fn can_queue(&self) -> bool {
-        self.available() > 0
+    fn try_admit(&self) -> bool {
+        self.admitted
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
+                (current < self.max).then_some(current + 1)
+            })
+            .is_ok()
     }
 }
 
@@ -65,9 +64,8 @@ pub struct CapacityController {
 
 impl CapacityController {
     pub fn new(capacity: u16) -> Self {
-        let capacity = Capacity::new(capacity);
         CapacityController {
-            inner: Arc::new(capacity),
+            inner: Arc::new(Capacity::new(capacity)),
         }
     }
 
@@ -76,20 +74,54 @@ impl CapacityController {
     }
 
     pub fn add_queue(&self) -> Option<QueueToken> {
-        if !self.inner.can_queue() {
-            return None;
-        }
-
-        self.inner.queued.fetch_add(1, Ordering::Relaxed);
-        Some(QueueToken {
+        self.inner.try_admit().then(|| QueueToken {
             inner: Arc::clone(&self.inner),
         })
     }
 
-    pub fn add_playing(&self) -> PlayingToken {
-        self.inner.playing.fetch_add(1, Ordering::Relaxed);
-        PlayingToken {
-            inner: Arc::clone(&self.inner),
-        }
+    pub fn start_playing(&self, queue_token: QueueToken) -> PlayingToken {
+        let inner = Arc::clone(&queue_token.inner);
+        std::mem::forget(queue_token);
+        PlayingToken { inner }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Arc, Barrier};
+    use std::thread;
+
+    #[test]
+    fn concurrent_admission_never_exceeds_capacity() {
+        const MAX: usize = 4;
+        let controller = CapacityController::new(MAX as u16);
+        let barrier = Arc::new(Barrier::new(64));
+        let handles: Vec<_> = (0..64)
+            .map(|_| {
+                let controller = controller.clone();
+                let barrier = barrier.clone();
+                thread::spawn(move || {
+                    barrier.wait();
+                    controller.add_queue()
+                })
+            })
+            .collect();
+        let tokens: Vec<_> = handles.into_iter().filter_map(|h| h.join().unwrap()).collect();
+        assert_eq!(tokens.len(), MAX);
+        assert_eq!(controller.usage(), 1.0);
+        drop(tokens);
+        assert!(controller.add_queue().is_some());
+    }
+
+    #[test]
+    fn transferring_queue_token_does_not_change_usage() {
+        let controller = CapacityController::new(1);
+        let queued = controller.add_queue().unwrap();
+        let playing = controller.start_playing(queued);
+        assert_eq!(controller.usage(), 1.0);
+        assert!(controller.add_queue().is_none());
+        drop(playing);
+        assert!(controller.add_queue().is_some());
     }
 }
