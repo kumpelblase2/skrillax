@@ -49,7 +49,7 @@ impl Item {
                     }
                 } else {
                     ItemTypeData::Consumable {
-                        amount: old_amount + amount as u16,
+                        amount: old_amount.checked_add(amount as u16).ok_or(MoveError::Impossible)?,
                     }
                 }
             },
@@ -349,39 +349,30 @@ impl Inventory {
                         return Ok(0);
                     }
 
-                    if available_on_target_stack >= amount {
-                        let old_type_data = target_item.type_data;
-                        target_item.change_stack_size(amount as i16)?;
-                        let new_type_data = target_item.type_data;
+                    let moved = amount.min(available_on_target_stack).min(source_item.stack_size());
+                    let old_type_data = target_item.type_data;
+                    target_item.change_stack_size(i16::try_from(moved).map_err(|_| MoveError::Impossible)?)?;
+                    let new_type_data = target_item.type_data;
+                    if moved == source_item.stack_size() {
                         self.changes.push(InventoryChange::RemoveItem { slot: source });
-                        self.changes.push(InventoryChange::ChangeTypeData {
-                            slot: target,
-                            old_item: old_type_data,
-                            new_item: new_type_data,
-                        });
-                        self.items.insert(target, target_item);
                     } else {
-                        let old_data = target_item.type_data;
-                        target_item.change_stack_size(available_on_target_stack as i16)?;
-                        let new_data = target_item.type_data;
-                        self.changes.push(InventoryChange::ChangeTypeData {
-                            slot: target,
-                            old_item: old_data,
-                            new_item: new_data,
-                        });
                         let old_data = source_item.type_data;
-                        source_item.change_stack_size(-(available_on_target_stack as i16))?;
+                        source_item.change_stack_size(-i16::try_from(moved).map_err(|_| MoveError::Impossible)?)?;
                         let new_data = source_item.type_data;
                         self.changes.push(InventoryChange::ChangeTypeData {
                             slot: source,
                             old_item: old_data,
                             new_item: new_data,
                         });
-
                         self.items.insert(source, source_item);
-                        self.items.insert(target, target_item);
-                        return Ok(available_on_target_stack);
                     }
+                    self.changes.push(InventoryChange::ChangeTypeData {
+                        slot: target,
+                        old_item: old_type_data,
+                        new_item: new_type_data,
+                    });
+                    self.items.insert(target, target_item);
+                    return Ok(moved);
                 } else {
                     self.changes.push(InventoryChange::Swap {
                         first_slot: source,
@@ -427,6 +418,7 @@ impl Inventory {
     pub fn add_item(&mut self, mut item: Item) -> Option<u8> {
         if item.reference.max_stack_size > 1 {
             for i in self.find_slots_matching(item).collect::<Vec<_>>() {
+                let free_slot = self.empty_slot();
                 let existing = self.items.get_mut(&i).expect("The matching slot should have an item");
                 if !existing.is_max_stacked() && existing.reference.ref_id() == item.reference.ref_id() {
                     return match (existing.type_data, item.type_data) {
@@ -436,7 +428,7 @@ impl Inventory {
                             },
                             ItemTypeData::Consumable { amount: added_amount },
                         ) => {
-                            let sum_amount = existing_amount + added_amount;
+                            let sum_amount = existing_amount.checked_add(added_amount)?;
                             if sum_amount <= item.reference.max_stack_size {
                                 let old_data = existing.type_data;
                                 let new_data = ItemTypeData::Consumable { amount: sum_amount };
@@ -448,24 +440,23 @@ impl Inventory {
                                 });
                                 Some(i)
                             } else {
-                                let old_data = existing.type_data;
-                                let new_data = ItemTypeData::Consumable {
-                                    amount: item.reference.max_stack_size,
-                                };
-                                existing.type_data = new_data;
-                                self.changes.push(InventoryChange::ChangeTypeData {
-                                    slot: i,
-                                    old_item: old_data,
-                                    new_item: new_data,
-                                });
                                 let remaining = sum_amount - item.reference.max_stack_size;
-                                if let Some(free_slot) = self.empty_slot() {
+                                if let Some(free_slot) = free_slot {
+                                    let old_data = existing.type_data;
+                                    let new_data = ItemTypeData::Consumable {
+                                        amount: item.reference.max_stack_size,
+                                    };
+                                    existing.type_data = new_data;
+                                    self.changes.push(InventoryChange::ChangeTypeData {
+                                        slot: i,
+                                        old_item: old_data,
+                                        new_item: new_data,
+                                    });
                                     item.type_data = ItemTypeData::Consumable { amount: remaining };
                                     self.set_item(free_slot, item);
                                     self.changes.push(InventoryChange::AddItem { slot: free_slot, item });
                                     Some(free_slot)
                                 } else {
-                                    // We should possibly undo the previous change to update the size.
                                     None
                                 }
                             }
@@ -497,7 +488,13 @@ impl Inventory {
                 .expect("Item should still exist just after checking");
             if to_remove > 1 {
                 if existing.stack_size() > to_remove {
+                    let old_data = existing.type_data;
                     existing.change_stack_size(-(to_remove as i16))?;
+                    self.changes.push(InventoryChange::ChangeTypeData {
+                        slot: i,
+                        old_item: old_data,
+                        new_item: existing.type_data,
+                    });
                     removed += to_remove;
                     to_remove = 0;
                     break;
@@ -646,6 +643,41 @@ mod test {
         assert_eq!(2, changes.len());
         let optimized = changes.optimize();
         assert_eq!(2, optimized.len());
+    }
+
+    #[test]
+    fn inventory_regressions() {
+        let reference = FIRST_ITEM_DATA.deref();
+        let item = |amount| Item {
+            variance: None,
+            reference,
+            type_data: ItemTypeData::Consumable { amount },
+        };
+
+        let mut inv = Inventory::default();
+        inv.set_item(13, item(10));
+        inv.set_item(14, item(45));
+        assert_eq!(5, inv.move_item(13, 14, 5).unwrap());
+        assert_eq!(5, inv.get_item_at(13).unwrap().stack_size());
+
+        let mut full = Inventory::new(14);
+        full.set_item(13, item(45));
+        assert_eq!(None, full.add_item(item(10)));
+        assert_eq!(45, full.get_item_at(13).unwrap().stack_size());
+        assert!(full.changes().is_empty());
+
+        let mut overflow = item(u16::MAX);
+        assert!(overflow.change_stack_size(1).is_err());
+        assert_eq!(u16::MAX, overflow.stack_size());
+
+        let mut remove = Inventory::default();
+        remove.set_item(13, item(10));
+        remove.remove_item(item(4)).unwrap();
+        assert_eq!(6, remove.get_item_at(13).unwrap().stack_size());
+        assert!(matches!(
+            remove.changes().as_slice(),
+            [InventoryChange::ChangeTypeData { slot: 13, .. }]
+        ));
     }
 
     #[test]
