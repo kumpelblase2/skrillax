@@ -73,6 +73,7 @@ pub(crate) fn handle_list_request(
                     continue;
                 }
 
+                character_list.checked_name = None;
                 let character = create_character_from(
                     playing.0.id,
                     server_id.0,
