@@ -43,7 +43,7 @@ impl Heightmap<'_> {
     /// calculation to work. If the point is outside of the grid, e.g. if `x < 0`, [None]
     /// will be returned.
     pub fn height_at_position(&self, x: f32, y: f32) -> Option<f32> {
-        if x < 0. || x > self.max_size() as f32 || y < 0. || y > self.max_size() as f32 {
+        if x < 0. || x >= self.max_size() as f32 || y < 0. || y >= self.max_size() as f32 {
             return None;
         }
 

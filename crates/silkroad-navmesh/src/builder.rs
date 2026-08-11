@@ -5,7 +5,6 @@ use crate::{get_path_for_region, FileLoader, GlobalNavmesh, MAP_INFO_FILE};
 use silkroad_definitions::Region;
 use sr_formats::jmxvmfo::JmxMapInfo;
 use sr_formats::jmxvnvm::JmxNvm;
-use std::collections::HashMap;
 use std::io;
 use std::io::ErrorKind;
 use std::sync::Arc;
@@ -19,17 +18,13 @@ impl NavmeshBuilder {
             .map_err(|_| io::Error::new(ErrorKind::InvalidData, "Could not parse map info file."))?;
         let regions = region_info
             .enabled_regions()
-            .filter_map(|region| {
-                let new_mesh = match Self::load_mesh_for_region(loader, region) {
-                    Ok(mesh) => mesh,
-                    Err(_) => return None,
-                };
-
+            .map(|region| {
+                let new_mesh = Self::load_mesh_for_region(loader, region)?;
                 let container = NavmeshContainer::new(region, new_mesh);
                 let new_mesh = Arc::new(container);
-                Some((region, new_mesh))
+                Ok((region, new_mesh))
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<io::Result<_>>()?;
         Ok(GlobalNavmesh {
             loaded_meshes: regions,
             loaded_objects: objects,

@@ -20,6 +20,8 @@ pub enum ObjectInfoError {
     MissingCount,
     #[error("The file was too short")]
     NotEnoughLines,
+    #[error("Malformed object entry: expected {expected} fields, got {actual}")]
+    MalformedEntry { expected: usize, actual: usize },
 }
 
 impl From<ObjectInfoError> for io::Error {
@@ -50,10 +52,16 @@ impl ObjectInfoEntry {
 }
 
 impl FromStr for ObjectInfoEntry {
-    type Err = ParseIntError;
+    type Err = ObjectInfoError;
 
     fn from_str(line: &str) -> Result<Self, Self::Err> {
         let split: Vec<&str> = line.splitn(3, ' ').collect();
+        if split.len() != 3 {
+            return Err(ObjectInfoError::MalformedEntry {
+                expected: 3,
+                actual: split.len(),
+            });
+        }
         let id = u32::from_str(split[0])?;
         let flag = u32::from_str_radix(split[1].trim_start_matches("0x"), 16)?;
         let file = split[2].trim_matches('"').replace('\\', "/");
@@ -70,7 +78,7 @@ impl ObjectInfo {
     pub fn from(data: &[u8]) -> Result<Self, ObjectInfoError> {
         let (content, _enc, _bool) = WINDOWS_1252.decode(data);
         let mut lines = content.split('\n');
-        let magic = lines.next().unwrap();
+        let magic = lines.next().ok_or(ObjectInfoError::InvalidMagic)?;
         if magic != OBJ_MAGIC {
             return Err(ObjectInfoError::InvalidMagic);
         }
@@ -109,10 +117,16 @@ pub struct ObjectStringInfo {
 }
 
 impl FromStr for ObjectStringInfo {
-    type Err = ParseIntError;
+    type Err = ObjectInfoError;
 
     fn from_str(line: &str) -> Result<Self, Self::Err> {
         let split: Vec<&str> = line.splitn(9, ' ').collect();
+        if split.len() != 9 {
+            return Err(ObjectInfoError::MalformedEntry {
+                expected: 9,
+                actual: split.len(),
+            });
+        }
         let unique_id = u32::from_str_radix(split[0].trim_start_matches("0x"), 16)?;
         let flag = u32::from_str_radix(split[1].trim_start_matches("0x"), 16)?;
         let region_x = split[2].parse()?;
@@ -151,7 +165,7 @@ impl ObjectStringsInfo {
     pub fn from(data: &[u8]) -> Result<ObjectStringsInfo, ObjectInfoError> {
         let (content, _enc, _bool) = WINDOWS_1252.decode(data);
         let mut lines = content.split('\n');
-        let magic = lines.next().unwrap();
+        let magic = lines.next().ok_or(ObjectInfoError::InvalidMagic)?;
         if magic != OBJ_MAGIC {
             return Err(ObjectInfoError::InvalidMagic);
         }
@@ -180,5 +194,18 @@ impl ObjectStringsInfo {
 
     pub fn objects(&self) -> impl ExactSizeIterator<Item = &ObjectStringInfo> {
         self.objects.values()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_and_short_metadata_return_errors() {
+        assert!(ObjectInfo::from(b"").is_err());
+        assert!(ObjectStringsInfo::from(b"").is_err());
+        assert!("1 0x01".parse::<ObjectInfoEntry>().is_err());
+        assert!("0x01 0x02 1".parse::<ObjectStringInfo>().is_err());
     }
 }
