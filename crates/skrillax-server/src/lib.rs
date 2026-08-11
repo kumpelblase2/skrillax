@@ -50,11 +50,11 @@ impl<I: InputProtocol + Send + 'static> Connection<I> {
         cancel: CancellationToken,
         inbound: Sender<I::Proto>,
         outbound: Receiver<Box<dyn AsPacket + Send>>,
-    ) {
+    ) -> bool {
         let (mut reader, mut writer) = socket.into_silkroad_stream();
         if let Err(err) = ActiveSecuritySetup::handle(&mut reader, &mut writer).await {
             warn!(%err, "Failed to finish handshake.");
-            return;
+            return false;
         }
 
         let outbound = outbound.to_async();
@@ -62,6 +62,7 @@ impl<I: InputProtocol + Send + 'static> Connection<I> {
         let send_cancel = cancel.clone();
         tokio::spawn(Self::handle_send(writer, outbound, identifier, send_cancel));
         tokio::spawn(Self::handle_receive(reader, inbound, identifier, cancel));
+        true
     }
 
     #[instrument(skip(writer, oubound_receiver, cancel))]
@@ -169,13 +170,14 @@ impl<I: InputProtocol + Send> AsyncServerRunner<I> {
 
                             let child = cancel_token.child_token();
 
+                            let connection_sender = connection_sender.clone();
                             tokio::spawn(async move {
-                                Connection::<I>::handle(socket, identifier, child, inbound_sender, outbound_receiver).await;
+                                if Connection::<I>::handle(socket, identifier, child, inbound_sender, outbound_receiver).await {
+                                    if let Err(e) = connection_sender.send(connection) {
+                                        warn!(%e, "Could not send client over.");
+                                    }
+                                }
                             });
-
-                            if let Err(e) = connection_sender.send(connection) {
-                                warn!(%e, "Could not send client over.");
-                            }
                             continue;
                         },
                         Err(e) => {
@@ -227,7 +229,7 @@ impl<I: InputProtocol + Send + 'static> Server<I> {
         self.async_connector.token.cancel();
     }
 
-    pub fn accepted_connections(&self) -> AcceptedClients<I> {
+    pub fn accepted_connections(&self) -> AcceptedClients<'_, I> {
         AcceptedClients {
             inner: &self.async_connector.stream_receiver,
         }
