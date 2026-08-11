@@ -10,7 +10,7 @@ use std::time::Instant;
 use tracing::debug;
 
 pub(crate) fn accept(
-    mut events: EventWriter<ClientConnectedEvent>,
+    mut events: MessageWriter<ClientConnectedEvent>,
     network: Res<ServerResource>,
     time: Res<Time<Real>>,
     mut cmd: Commands,
@@ -26,12 +26,12 @@ pub(crate) fn accept(
             ))
             .id();
 
-        events.send(ClientConnectedEvent(entity));
+        events.write(ClientConnectedEvent(entity));
     }
 }
 
 pub(crate) fn disconnected(
-    mut events: EventReader<ClientDisconnectedEvent>,
+    mut events: MessageReader<ClientDisconnectedEvent>,
     mut cmd: Commands,
     task_creator: Res<TaskCreator>,
     pool: Res<DbPool>,
@@ -44,13 +44,13 @@ pub(crate) fn disconnected(
             let id = player.character.id;
             task_creator.spawn(CharacterData::update_last_played_of(id, pool.clone()));
         }
-        if let Some(mut cmd) = cmd.get_entity(entity) {
+        if let Ok(mut cmd) = cmd.get_entity(entity) {
             cmd.despawn();
         }
     }
 }
 
-pub(crate) fn connected(mut events: EventReader<ClientConnectedEvent>) {
+pub(crate) fn connected(mut events: MessageReader<ClientConnectedEvent>) {
     for _ in events.read() {
         // ..
     }

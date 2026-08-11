@@ -26,8 +26,8 @@ impl Plugin for NetworkPlugin {
 
         app.insert_resource::<ServerResource>(server)
             .add_systems(First, (accept, disconnected, connected))
-            .add_event::<ClientDisconnectedEvent>()
-            .add_event::<ClientConnectedEvent>();
+            .add_message::<ClientDisconnectedEvent>()
+            .add_message::<ClientConnectedEvent>();
     }
 }
 

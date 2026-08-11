@@ -256,7 +256,7 @@ impl PerformingAction {
 #[component(storage = "SparseSet")]
 pub struct Dead;
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct StateTransitionEvent {
     pub entity: Entity,
     pub from: AgentState,
@@ -481,13 +481,13 @@ pub(crate) fn run_transitions(
                             next_state.target.apply_to(&mut entity_commands);
 
                             if next_state.notify_success {
-                                commands.send_event(AgentGoalReachedEvent {
+                                commands.write_message(AgentGoalReachedEvent {
                                     entity,
                                     state: next_state.target,
                                 });
                             }
 
-                            commands.send_event(StateTransitionEvent {
+                            commands.write_message(StateTransitionEvent {
                                 entity,
                                 from: current_state,
                                 to: next_state.target,

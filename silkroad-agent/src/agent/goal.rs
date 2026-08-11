@@ -289,7 +289,7 @@ pub(crate) fn apply_goal(
 }
 
 pub(crate) fn handle_state_reached_notification(
-    mut reader: EventReader<AgentGoalReachedEvent>,
+    mut reader: MessageReader<AgentGoalReachedEvent>,
     mut query: Query<(&Client, &mut GoalTracker)>,
 ) {
     for event in reader.read() {

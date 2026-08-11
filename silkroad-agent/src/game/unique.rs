@@ -25,7 +25,7 @@ pub(crate) fn unique_spawned(query: Query<(&GameEntity, &Monster), Added<Monster
     }
 }
 
-pub(crate) fn unique_killed(mut events: EventReader<UniqueKilledEvent>, notify: Query<&Client>) {
+pub(crate) fn unique_killed(mut events: MessageReader<UniqueKilledEvent>, notify: Query<&Client>) {
     for kill in events.read() {
         notify.iter().for_each(|client| {
             client.send(GameNotification::uniquekilled(kill.unique.ref_id, kill.player.clone()));
@@ -37,7 +37,7 @@ pub(crate) fn update_timers(
     time: Res<Time>,
     mut timers: ResMut<UniqueTimers>,
     npc_pos: Res<NpcPositionList>,
-    mut writer: EventWriter<SpawnMonster>,
+    mut writer: MessageWriter<SpawnMonster>,
 ) {
     let delta = time.delta();
     let spawns = timers.update(delta);
@@ -49,7 +49,7 @@ pub(crate) fn update_timers(
         };
 
         let position = position.location().to_global().to_location();
-        writer.send(SpawnMonster {
+        writer.write(SpawnMonster {
             ref_id,
             location: position,
             spawner: None,

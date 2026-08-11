@@ -31,9 +31,9 @@ pub(crate) fn receive_game_inputs(
     mut query: Query<(Entity, &Client, &mut PlayerInput, &mut LastAction)>,
     time: Res<Time<Real>>,
     settings: Res<GameConfig>,
-    mut loading_events: EventWriter<LoadingFinishedEvent>,
-    mut disconnect_events: EventWriter<ClientDisconnectedEvent>,
-    mut mall_events: EventWriter<MallOpenRequestEvent>,
+    mut loading_events: MessageWriter<LoadingFinishedEvent>,
+    mut disconnect_events: MessageWriter<ClientDisconnectedEvent>,
+    mut mall_events: MessageWriter<MallOpenRequestEvent>,
 ) {
     for (entity, client, mut input, mut last_action) in query.iter_mut() {
         let mut had_action = false;
@@ -82,11 +82,11 @@ pub(crate) fn receive_game_inputs(
                             },
                         },
                         AgentClientProtocol::CharselectClientProtocol(CharselectClientProtocol::FinishLoading(_)) => {
-                            loading_events.send(LoadingFinishedEvent(entity));
+                            loading_events.write(LoadingFinishedEvent(entity));
                         },
                         AgentClientProtocol::InventoryClientProtocol(inventory) => match inventory {
                             InventoryClientProtocol::OpenItemMall(_) => {
-                                mall_events.send(MallOpenRequestEvent(entity));
+                                mall_events.write(MallOpenRequestEvent(entity));
                             },
                             InventoryClientProtocol::InventoryOperation(inventory) => {
                                 input.inventory = Some(inventory);
@@ -108,7 +108,7 @@ pub(crate) fn receive_game_inputs(
                     break;
                 },
                 Err(_) => {
-                    disconnect_events.send(ClientDisconnectedEvent(entity));
+                    disconnect_events.write(ClientDisconnectedEvent(entity));
                     break;
                 },
             }
@@ -120,7 +120,7 @@ pub(crate) fn receive_game_inputs(
         }
 
         if last_tick_time.duration_since(last_action.0).as_secs() > settings.client_timeout.into() {
-            disconnect_events.send(ClientDisconnectedEvent(entity));
+            disconnect_events.write(ClientDisconnectedEvent(entity));
         }
     }
 }
@@ -129,7 +129,7 @@ pub(crate) fn receive_login_inputs(
     mut query: Query<(Entity, &Client, &mut LoginInput, &mut LastAction)>,
     time: Res<Time<Real>>,
     settings: Res<GameConfig>,
-    mut disconnect_events: EventWriter<ClientDisconnectedEvent>,
+    mut disconnect_events: MessageWriter<ClientDisconnectedEvent>,
 ) {
     for (entity, client, mut input, mut last_action) in query.iter_mut() {
         let mut had_action = false;
@@ -160,7 +160,7 @@ pub(crate) fn receive_login_inputs(
                     break;
                 },
                 Err(_) => {
-                    disconnect_events.send(ClientDisconnectedEvent(entity));
+                    disconnect_events.write(ClientDisconnectedEvent(entity));
                     break;
                 },
             }
@@ -172,7 +172,7 @@ pub(crate) fn receive_login_inputs(
         }
 
         if last_tick_time.duration_since(last_action.0).as_secs() > settings.client_timeout.into() {
-            disconnect_events.send(ClientDisconnectedEvent(entity));
+            disconnect_events.write(ClientDisconnectedEvent(entity));
         }
     }
 }

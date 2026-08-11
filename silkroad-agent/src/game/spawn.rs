@@ -16,7 +16,7 @@ use silkroad_game_base::Heading;
 use tracing::debug;
 
 pub(crate) fn do_spawn_mobs(
-    mut reader: EventReader<SpawnMonster>,
+    mut reader: MessageReader<SpawnMonster>,
     mut cmd: Commands,
     mesh: Res<Navmesh>,
     mut id_pool: ResMut<EntityIdPool>,

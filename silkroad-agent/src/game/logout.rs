@@ -40,14 +40,14 @@ pub(crate) fn handle_logout(
 pub(crate) fn tick_logout(
     mut query: Query<(Entity, &Client, &mut Logout)>,
     time: Res<Time>,
-    mut writer: EventWriter<ClientDisconnectedEvent>,
+    mut writer: MessageWriter<ClientDisconnectedEvent>,
 ) {
     let delta = time.delta();
     for (entity, client, mut logout) in query.iter_mut() {
         logout.0.tick(delta);
         if logout.0.just_finished() {
             client.send(LogoutFinished);
-            writer.send(ClientDisconnectedEvent(entity));
+            writer.write(ClientDisconnectedEvent(entity));
         }
     }
 }

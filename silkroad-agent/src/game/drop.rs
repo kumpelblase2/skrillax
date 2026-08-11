@@ -8,7 +8,7 @@ use rand::Rng;
 use silkroad_data::DataEntry;
 use silkroad_game_base::{GlobalLocation, GlobalPosition, Heading, Item, Vector2Ext};
 
-#[derive(Constructor, Event)]
+#[derive(Constructor, Message)]
 pub(crate) struct SpawnDrop {
     pub item: Item,
     pub relative_position: GlobalLocation,
@@ -18,14 +18,14 @@ pub(crate) struct SpawnDrop {
 pub(crate) fn tick_drop(mut cmd: Commands, time: Res<Time>, mut drops: Query<(Entity, &mut Despawn)>) {
     for (entity, mut despawn) in drops.iter_mut() {
         despawn.0.tick(time.delta());
-        if despawn.0.finished() {
+        if despawn.0.is_finished() {
             cmd.entity(entity).despawn();
         }
     }
 }
 
 pub(crate) fn create_drops(
-    mut reader: EventReader<SpawnDrop>,
+    mut reader: MessageReader<SpawnDrop>,
     navmesh: Res<Navmesh>,
     mut id_gen: ResMut<EntityIdPool>,
     mut cmd: Commands,

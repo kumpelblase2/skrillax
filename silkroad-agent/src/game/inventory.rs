@@ -28,7 +28,7 @@ pub(crate) fn handle_inventory_input(
         &mut GoldPouch,
         &Position,
     )>,
-    mut item_spawn: EventWriter<SpawnDrop>,
+    mut item_spawn: MessageWriter<SpawnDrop>,
 ) {
     for (client, input, level, race, mut inventory, mut gold, position) in query.iter_mut() {
         if let Some(ref action) = input.inventory {
@@ -48,7 +48,7 @@ pub(crate) fn handle_inventory_input(
                     gold.spend(amount);
 
                     let item_ref = get_gold_ref_id(amount as u32);
-                    item_spawn.send(SpawnDrop::new(
+                    item_spawn.write(SpawnDrop::new(
                         Item {
                             reference: item_ref,
                             variance: None,

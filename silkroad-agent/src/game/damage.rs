@@ -13,7 +13,7 @@ use silkroad_protocol::combat::{
 };
 
 pub(crate) fn handle_damage(
-    mut reader: EventReader<DamageReceiveEvent>,
+    mut reader: MessageReader<DamageReceiveEvent>,
     mut receiver_query: Query<(
         &mut Health,
         &mut AgentStateQueue,
@@ -23,7 +23,7 @@ pub(crate) fn handle_damage(
         Option<&Invincible>,
     )>,
     sender_query: Query<(&GameEntity, Option<&Client>)>,
-    mut entity_died: EventWriter<EntityDeath>,
+    mut entity_died: MessageWriter<EntityDeath>,
 ) {
     for damage_event in reader.read() {
         let Ok((mut health, mut controller, mut receiver, player, maybe_client, invincible)) =
@@ -88,7 +88,7 @@ pub(crate) fn handle_damage(
         }
 
         if health.is_dead() {
-            entity_died.send(EntityDeath {
+            entity_died.write(EntityDeath {
                 died: damage_event.target,
                 killer: Some(damage_event.source),
             });
@@ -99,7 +99,7 @@ pub(crate) fn handle_damage(
 
 pub(crate) fn attack_player(
     mut query: Query<&mut GoalTracker, With<Monster>>,
-    mut events: EventReader<DamageReceiveEvent>,
+    mut events: MessageReader<DamageReceiveEvent>,
 ) {
     for event in events.read() {
         if let Ok(mut goal) = query.get_mut(event.target.0) {

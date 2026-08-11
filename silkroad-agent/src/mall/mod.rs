@@ -12,7 +12,7 @@ pub(crate) struct MallPlugin;
 
 impl Plugin for MallPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<MallOpenRequestEvent>()
+        app.add_message::<MallOpenRequestEvent>()
             .add_systems(Update, open_mall)
             .add_systems(PostUpdate, clean_tokens.run_if(on_timer(Duration::from_secs(60))));
     }

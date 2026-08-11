@@ -1,4 +1,4 @@
 use bevy::prelude::*;
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct MallOpenRequestEvent(pub Entity);

@@ -154,7 +154,7 @@ pub(crate) fn system_collect_exp_update(
 
 pub(crate) fn system_collect_level_up(
     collector: Res<SynchronizationCollector>,
-    mut level_up_events: EventReader<LevelUpEvent>,
+    mut level_up_events: MessageReader<LevelUpEvent>,
     mut query: Query<(Entity, &GameEntity, Option<&Player>)>,
 ) {
     for event in level_up_events.read() {
@@ -190,7 +190,7 @@ pub(crate) fn system_collect_level_up(
 }
 
 pub(crate) fn collect_movement_transitions(
-    mut state_events: EventReader<StateTransitionEvent>,
+    mut state_events: MessageReader<StateTransitionEvent>,
     collector: Res<SynchronizationCollector>,
     query: Query<(&GameEntity, &Position)>,
 ) {
@@ -359,7 +359,7 @@ pub(crate) fn collect_deaths(
 
 pub(crate) fn collect_alives(
     collector: Res<SynchronizationCollector>,
-    mut reader: EventReader<LoadingFinishedEvent>,
+    mut reader: MessageReader<LoadingFinishedEvent>,
     query: Query<&GameEntity>,
 ) {
     for event in reader.read() {

@@ -69,7 +69,7 @@ impl Agent {
     }
 }
 
-#[derive(Event, Copy, Clone)]
+#[derive(Copy, Clone, Message)]
 pub struct AgentGoalReachedEvent {
     pub entity: Entity,
     pub state: AgentState,

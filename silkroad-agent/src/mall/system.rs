@@ -19,7 +19,7 @@ pub(crate) fn clean_tokens(db: Res<DbPool>, task_creator: Res<TaskCreator>) {
 }
 
 pub(crate) fn open_mall(
-    mut events: EventReader<MallOpenRequestEvent>,
+    mut events: MessageReader<MallOpenRequestEvent>,
     query: Query<(&Client, &Player)>,
     task_creator: Res<TaskCreator>,
     db: Res<DbPool>,

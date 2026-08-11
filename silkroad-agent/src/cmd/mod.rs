@@ -23,7 +23,7 @@ pub enum Sender {
     System,
 }
 
-#[derive(Event)]
+#[derive(Message)]
 struct CommandInvocation<T> {
     sender: Sender,
     args: T,
@@ -54,13 +54,13 @@ impl Display for CommandOutcome {
     }
 }
 
-#[derive(Event)]
+#[derive(Message)]
 struct CommandResult {
     receiver: Sender,
     outcome: CommandOutcome,
 }
 
-#[derive(Event)]
+#[derive(Message)]
 struct IncomingCommand {
     sender: Sender,
     command: String,
@@ -73,16 +73,16 @@ pub struct CommandPlugin;
 
 impl Plugin for CommandPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<CommandInvocation<AddStatPoints>>()
-            .add_event::<IncomingCommand>()
-            .add_event::<CommandResult>()
-            .add_event::<CommandInvocation<AddStatPoints>>()
-            .add_event::<CommandInvocation<AddSkillPoints>>()
-            .add_event::<CommandInvocation<ChangeLevel>>()
-            .add_event::<CommandInvocation<AlterMovespeed>>()
-            .add_event::<CommandInvocation<PrintPos>>()
-            .add_event::<CommandInvocation<PrintTarget>>()
-            .add_event::<CommandInvocation<TeleportArgs>>()
+        app.add_message::<CommandInvocation<AddStatPoints>>()
+            .add_message::<IncomingCommand>()
+            .add_message::<CommandResult>()
+            .add_message::<CommandInvocation<AddStatPoints>>()
+            .add_message::<CommandInvocation<AddSkillPoints>>()
+            .add_message::<CommandInvocation<ChangeLevel>>()
+            .add_message::<CommandInvocation<AlterMovespeed>>()
+            .add_message::<CommandInvocation<PrintPos>>()
+            .add_message::<CommandInvocation<PrintTarget>>()
+            .add_message::<CommandInvocation<TeleportArgs>>()
             .add_systems(
                 CommandSchedule,
                 (
@@ -111,7 +111,7 @@ pub trait CommandExecutionExt {
 
 impl CommandExecutionExt for Commands<'_, '_> {
     fn enqueue_chat_command(&mut self, sender: Sender, command: String) {
-        self.send_event(IncomingCommand { sender, command });
+        self.write_message(IncomingCommand { sender, command });
     }
 }
 
@@ -145,13 +145,13 @@ enum SilkroadCommands {
 #[derive(Debug, Options, PartialEq)]
 struct Help {}
 
-fn parse_commands(mut incoming: EventReader<IncomingCommand>, mut cmds: Commands) {
+fn parse_commands(mut incoming: MessageReader<IncomingCommand>, mut cmds: Commands) {
     for incoming in incoming.read() {
         let command_args: Vec<&str> = incoming.command.split(' ').collect();
         let cmd = match SilkroadCommand::parse_args_default(&command_args) {
             Ok(cmd) => cmd,
             Err(err) => {
-                cmds.send_event(CommandResult {
+                cmds.write_message(CommandResult {
                     receiver: incoming.sender,
                     outcome: CommandOutcome::InvalidArguments(err.to_string()),
                 });
@@ -161,7 +161,7 @@ fn parse_commands(mut incoming: EventReader<IncomingCommand>, mut cmds: Commands
 
         let help_requested = cmd.help_requested();
         let Some(inner) = cmd.inner else {
-            cmds.send_event(CommandResult {
+            cmds.write_message(CommandResult {
                 receiver: incoming.sender,
                 outcome: CommandOutcome::Success(Some(SilkroadCommand::usage().to_string())),
             });
@@ -169,7 +169,7 @@ fn parse_commands(mut incoming: EventReader<IncomingCommand>, mut cmds: Commands
         };
 
         if help_requested || matches!(inner, SilkroadCommands::Help(_)) {
-            cmds.send_event(CommandResult {
+            cmds.write_message(CommandResult {
                 receiver: incoming.sender,
                 outcome: CommandOutcome::Success(Some(SilkroadCommand::usage().to_string())),
             });
@@ -178,43 +178,43 @@ fn parse_commands(mut incoming: EventReader<IncomingCommand>, mut cmds: Commands
 
         match inner {
             SilkroadCommands::StatPoints(args) => {
-                cmds.send_event(CommandInvocation {
+                cmds.write_message(CommandInvocation {
                     sender: incoming.sender,
                     args,
                 });
             },
             SilkroadCommands::SkillPoints(args) => {
-                cmds.send_event(CommandInvocation {
+                cmds.write_message(CommandInvocation {
                     sender: incoming.sender,
                     args,
                 });
             },
             SilkroadCommands::Level(args) => {
-                cmds.send_event(CommandInvocation {
+                cmds.write_message(CommandInvocation {
                     sender: incoming.sender,
                     args,
                 });
             },
             SilkroadCommands::Movespeed(args) => {
-                cmds.send_event(CommandInvocation {
+                cmds.write_message(CommandInvocation {
                     sender: incoming.sender,
                     args,
                 });
             },
             SilkroadCommands::Pos(args) => {
-                cmds.send_event(CommandInvocation {
+                cmds.write_message(CommandInvocation {
                     sender: incoming.sender,
                     args,
                 });
             },
             SilkroadCommands::Target(args) => {
-                cmds.send_event(CommandInvocation {
+                cmds.write_message(CommandInvocation {
                     sender: incoming.sender,
                     args,
                 });
             },
             SilkroadCommands::Tp(args) => {
-                cmds.send_event(CommandInvocation {
+                cmds.write_message(CommandInvocation {
                     sender: incoming.sender,
                     args,
                 });
@@ -226,7 +226,7 @@ fn parse_commands(mut incoming: EventReader<IncomingCommand>, mut cmds: Commands
     }
 }
 
-fn output_results(mut results: EventReader<CommandResult>, sender_query: Query<&Client>) {
+fn output_results(mut results: MessageReader<CommandResult>, sender_query: Query<&Client>) {
     for result in results.read() {
         if let Sender::Player(player) = result.receiver {
             let Ok(client) = sender_query.get(player) else {
@@ -256,13 +256,13 @@ struct AddStatPoints {
 }
 
 fn handle_stat_points(
-    mut invocations: EventReader<CommandInvocation<AddStatPoints>>,
-    mut results: EventWriter<CommandResult>,
+    mut invocations: MessageReader<CommandInvocation<AddStatPoints>>,
+    mut results: MessageWriter<CommandResult>,
     mut player_query: Query<&mut StatPoints>,
 ) {
     for add_stats in invocations.read() {
         let Sender::Player(player) = add_stats.sender else {
-            results.send(CommandResult {
+            results.write(CommandResult {
                 receiver: add_stats.sender,
                 outcome: CommandOutcome::ExecutionFailure("This command can only be used by a player.".to_string()),
             });
@@ -284,7 +284,7 @@ fn handle_stat_points(
                 }
             }
         } else {
-            results.send(CommandResult {
+            results.write(CommandResult {
                 receiver: add_stats.sender,
                 outcome: CommandOutcome::ExecutionFailure(
                     "The given entity does not have stat points or does not exist.".to_string(),
@@ -301,21 +301,21 @@ struct AddSkillPoints {
 }
 
 fn handle_sp_points(
-    mut invocations: EventReader<CommandInvocation<AddSkillPoints>>,
-    mut results: EventWriter<CommandResult>,
+    mut invocations: MessageReader<CommandInvocation<AddSkillPoints>>,
+    mut results: MessageWriter<CommandResult>,
     query: Query<&GameEntity>,
-    mut experience_events: EventWriter<ReceiveExperienceEvent>,
+    mut experience_events: MessageWriter<ReceiveExperienceEvent>,
 ) {
     for add_stats in invocations.read() {
         let Sender::Player(player) = add_stats.sender else {
-            results.send(CommandResult {
+            results.write(CommandResult {
                 receiver: add_stats.sender,
                 outcome: CommandOutcome::ExecutionFailure("This command can only be used by a player.".to_string()),
             });
             continue;
         };
 
-        experience_events.send(ReceiveExperienceEvent {
+        experience_events.write(ReceiveExperienceEvent {
             source: None,
             target: EntityReference(player, *query.get(player).unwrap()),
             exp: 0,
@@ -331,14 +331,14 @@ struct ChangeLevel {
 }
 
 fn handle_level(
-    mut invocations: EventReader<CommandInvocation<ChangeLevel>>,
-    mut results: EventWriter<CommandResult>,
+    mut invocations: MessageReader<CommandInvocation<ChangeLevel>>,
+    mut results: MessageWriter<CommandResult>,
     mut query: Query<(&mut Player, &GameEntity)>,
-    mut experience_events: EventWriter<ReceiveExperienceEvent>,
+    mut experience_events: MessageWriter<ReceiveExperienceEvent>,
 ) {
     for change_level in invocations.read() {
         let Sender::Player(player_entity) = change_level.sender else {
-            results.send(CommandResult {
+            results.write(CommandResult {
                 receiver: change_level.sender,
                 outcome: CommandOutcome::ExecutionFailure("This command can only be used by a player.".to_string()),
             });
@@ -349,7 +349,7 @@ fn handle_level(
         let (player, entity_ref) = query.get_mut(player_entity).unwrap();
         let player_level = player.character.level;
         if target_level <= player_level {
-            results.send(CommandResult {
+            results.write(CommandResult {
                 receiver: change_level.sender,
                 outcome: CommandOutcome::ExecutionFailure("Level needs to be higher than the current one.".to_string()),
             });
@@ -363,7 +363,7 @@ fn handle_level(
             .sum();
 
         if total_required_exp == 0 {
-            results.send(CommandResult {
+            results.write(CommandResult {
                 receiver: change_level.sender,
                 outcome: CommandOutcome::ExecutionFailure("Level is impossible.".to_string()),
             });
@@ -372,7 +372,7 @@ fn handle_level(
 
         let remaining = total_required_exp - player.character.exp;
 
-        experience_events.send(ReceiveExperienceEvent {
+        experience_events.write(ReceiveExperienceEvent {
             source: None,
             target: EntityReference(player_entity, *entity_ref),
             exp: remaining,
@@ -388,13 +388,13 @@ struct AlterMovespeed {
 }
 
 fn handle_movespeed(
-    mut invocations: EventReader<CommandInvocation<AlterMovespeed>>,
-    mut results: EventWriter<CommandResult>,
+    mut invocations: MessageReader<CommandInvocation<AlterMovespeed>>,
+    mut results: MessageWriter<CommandResult>,
     mut query: Query<(&mut Agent, &Client, &GameEntity)>,
 ) {
     for change_speed in invocations.read() {
         let Sender::Player(player_entity) = change_speed.sender else {
-            results.send(CommandResult {
+            results.write(CommandResult {
                 receiver: change_speed.sender,
                 outcome: CommandOutcome::ExecutionFailure("This command can only be used by a player.".to_string()),
             });
@@ -419,13 +419,13 @@ struct PrintPos {
 }
 
 fn handle_print_pos(
-    mut invocations: EventReader<CommandInvocation<PrintPos>>,
-    mut results: EventWriter<CommandResult>,
+    mut invocations: MessageReader<CommandInvocation<PrintPos>>,
+    mut results: MessageWriter<CommandResult>,
     query: Query<&Position>,
 ) {
     for change_speed in invocations.read() {
         let Sender::Player(player_entity) = change_speed.sender else {
-            results.send(CommandResult {
+            results.write(CommandResult {
                 receiver: change_speed.sender,
                 outcome: CommandOutcome::ExecutionFailure("This command can only be used by a player.".to_string()),
             });
@@ -433,7 +433,7 @@ fn handle_print_pos(
         };
 
         let pos = query.get(player_entity).unwrap();
-        results.send(CommandResult {
+        results.write(CommandResult {
             receiver: change_speed.sender,
             outcome: CommandOutcome::Success(Some(format_position(pos, change_speed.args.global))),
         });
@@ -447,14 +447,14 @@ struct PrintTarget {
 }
 
 fn handle_print_target(
-    mut invocations: EventReader<CommandInvocation<PrintTarget>>,
-    mut results: EventWriter<CommandResult>,
+    mut invocations: MessageReader<CommandInvocation<PrintTarget>>,
+    mut results: MessageWriter<CommandResult>,
     query: Query<Option<&Target>>,
     query_pos: Query<&Position>,
 ) {
     for change_speed in invocations.read() {
         let Sender::Player(player_entity) = change_speed.sender else {
-            results.send(CommandResult {
+            results.write(CommandResult {
                 receiver: change_speed.sender,
                 outcome: CommandOutcome::ExecutionFailure("This command can only be used by a player.".to_string()),
             });
@@ -462,7 +462,7 @@ fn handle_print_target(
         };
 
         let Some(target) = query.get(player_entity).unwrap() else {
-            results.send(CommandResult {
+            results.write(CommandResult {
                 receiver: change_speed.sender,
                 outcome: CommandOutcome::Success(Some("No target selected.".to_string())),
             });
@@ -471,7 +471,7 @@ fn handle_print_target(
 
         let target_pos = query_pos.get(target.entity()).unwrap();
 
-        results.send(CommandResult {
+        results.write(CommandResult {
             receiver: change_speed.sender,
             outcome: CommandOutcome::Success(Some(format_position(target_pos, change_speed.args.global))),
         });
@@ -499,14 +499,14 @@ struct TeleportArgs {
 }
 
 fn handle_teleport(
-    mut invocations: EventReader<CommandInvocation<TeleportArgs>>,
-    mut results: EventWriter<CommandResult>,
+    mut invocations: MessageReader<CommandInvocation<TeleportArgs>>,
+    mut results: MessageWriter<CommandResult>,
     navmesh: Res<Navmesh>,
     mut position: Query<&mut Position>,
 ) {
     for change_speed in invocations.read() {
         let Sender::Player(player_entity) = change_speed.sender else {
-            results.send(CommandResult {
+            results.write(CommandResult {
                 receiver: change_speed.sender,
                 outcome: CommandOutcome::ExecutionFailure("This command can only be used by a player.".to_string()),
             });

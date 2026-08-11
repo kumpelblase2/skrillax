@@ -125,8 +125,8 @@ pub(crate) fn handle_chat(
 pub(crate) fn handle_gm_commands(
     mut query: Query<(Entity, &Client, &Position, &PlayerInput)>,
     mut commands: Commands,
-    mut item_spawn: EventWriter<SpawnDrop>,
-    mut monster_spawn: EventWriter<SpawnMonster>,
+    mut item_spawn: MessageWriter<SpawnDrop>,
+    mut monster_spawn: MessageWriter<SpawnMonster>,
 ) {
     for (entity, client, position, input) in query.iter_mut() {
         if let Some(ref command) = input.gm {
@@ -134,7 +134,7 @@ pub(crate) fn handle_gm_commands(
                 GmCommand::SpawnMonster { ref_id, amount, .. } => {
                     // TODO: for some reason `rarity` is always 1
                     for _ in 0..(*amount) {
-                        monster_spawn.send(SpawnMonster {
+                        monster_spawn.write(SpawnMonster {
                             ref_id: *ref_id,
                             location: position.location(),
                             spawner: Some(SpawnedBy::Player(entity)),
@@ -163,7 +163,7 @@ pub(crate) fn handle_gm_commands(
                     } else {
                         ItemTypeData::Consumable { amount: 1 }
                     };
-                    item_spawn.send(SpawnDrop::new(
+                    item_spawn.write(SpawnDrop::new(
                         Item {
                             reference: item,
                             variance: None,

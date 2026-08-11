@@ -32,7 +32,7 @@ impl Plugin for AgentPlugin {
                     .in_set(AgentSet::Transition),
             )
             .add_systems(Update, (pickup, movement, action).in_set(AgentSet::Execute));
-        app.add_event::<StateTransitionEvent>()
-            .add_event::<AgentGoalReachedEvent>();
+        app.add_message::<StateTransitionEvent>()
+            .add_message::<AgentGoalReachedEvent>();
     }
 }

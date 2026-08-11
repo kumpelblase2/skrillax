@@ -12,7 +12,7 @@ use tracing::warn;
 
 const EXP_RECEIVE_RANGE_SQUARED: f32 = 1000.0 * 1000.0;
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct ReceiveExperienceEvent {
     pub source: Option<EntityReference>,
     pub target: EntityReference,
@@ -30,8 +30,8 @@ fn calculate_sexp(monster: &RefCharacterData, _player: &Player) -> u64 {
 }
 
 pub(crate) fn distribute_experience(
-    mut death_events: EventReader<EntityDeath>,
-    mut experience_writer: EventWriter<ReceiveExperienceEvent>,
+    mut death_events: MessageReader<EntityDeath>,
+    mut experience_writer: MessageWriter<ReceiveExperienceEvent>,
     dead_query: Query<(&DamageReceiver, &Position)>,
     lookup: Res<EntityLookup>,
     receiver_query: Query<(&GameEntity, &Position, &Player)>,
@@ -57,22 +57,22 @@ pub(crate) fn distribute_experience(
                         exp: (calculate_exp(monster_data, player) as f32 * config.game.drop.experience) as u64,
                         sp: (calculate_sexp(monster_data, player) as f32 * config.game.drop.sp_experience) as u64,
                     };
-                    experience_writer.send(event);
+                    experience_writer.write(event);
                 }
             }
         }
     }
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub(crate) struct LevelUpEvent {
     pub target: EntityReference,
     pub level: u8,
 }
 
 pub(crate) fn receive_experience(
-    mut experience_events: EventReader<ReceiveExperienceEvent>,
-    mut level_up_events: EventWriter<LevelUpEvent>,
+    mut experience_events: MessageReader<ReceiveExperienceEvent>,
+    mut level_up_events: MessageWriter<LevelUpEvent>,
     mut query: Query<(&mut Leveled, &mut Experienced, &mut SP)>,
 ) {
     let level_map = WorldData::levels();
@@ -96,7 +96,7 @@ pub(crate) fn receive_experience(
         while let Some(exp) = level_map.get_exp_for_level(level.current_level()) {
             if experienced.try_level_up(exp) {
                 level.level_up();
-                level_up_events.send(LevelUpEvent {
+                level_up_events.write(LevelUpEvent {
                     target: event.target,
                     level: level.current_level(),
                 });
@@ -108,7 +108,7 @@ pub(crate) fn receive_experience(
 }
 
 pub(crate) fn reset_health_mana_on_level(
-    mut level_up_events: EventReader<LevelUpEvent>,
+    mut level_up_events: MessageReader<LevelUpEvent>,
     mut query: Query<(&StatPoints, &mut Health, &mut Mana)>,
 ) {
     for event in level_up_events.read() {

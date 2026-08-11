@@ -26,9 +26,9 @@ pub(crate) fn get_gold_ref_id(amount: u32) -> &'static RefItemData {
 }
 
 pub(crate) fn drop_gold(
-    mut death_events: EventReader<EntityDeath>,
+    mut death_events: MessageReader<EntityDeath>,
     query: Query<(&GameEntity, &Position), With<Monster>>,
-    mut drop_events: EventWriter<SpawnDrop>,
+    mut drop_events: MessageWriter<SpawnDrop>,
 ) {
     let characters = WorldData::characters();
     let gold = WorldData::gold();
@@ -43,7 +43,7 @@ pub(crate) fn drop_gold(
             let gold_range = gold.get_for_level(monster_level);
             let amount = rng().random_range(gold_range);
             let amount = (config.game.drop.gold * amount as f32).floor() as u32;
-            drop_events.send(SpawnDrop {
+            drop_events.write(SpawnDrop {
                 item: Item {
                     reference: get_gold_ref_id(amount),
                     variance: None,

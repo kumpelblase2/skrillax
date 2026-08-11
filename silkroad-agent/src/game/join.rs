@@ -14,7 +14,7 @@ use silkroad_protocol::world::{CelestialUpdate, CharacterFinished};
 use tracing::debug;
 
 pub(crate) fn load_finished(
-    mut reader: EventReader<LoadingFinishedEvent>,
+    mut reader: MessageReader<LoadingFinishedEvent>,
     settings: Res<GameConfig>,
     daycycle: Res<DaylightCycle>,
     mut query: Query<(&Client, &GameEntity, &mut Player, &Leveled, &StatPoints)>,

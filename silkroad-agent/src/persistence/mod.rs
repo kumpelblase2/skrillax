@@ -22,11 +22,11 @@ mod apply;
 pub struct Persistable;
 
 #[derive(Component)]
-struct PersistenceCollection<T: ChangeTracked + Component> {
+struct PersistenceCollection<T: ChangeTracked + Component<Mutability = bevy::ecs::component::Mutable>> {
     changes: Vec<T::ChangeItem>,
 }
 
-impl<T: ChangeTracked + Component> Default for PersistenceCollection<T> {
+impl<T: ChangeTracked + Component<Mutability = bevy::ecs::component::Mutable>> Default for PersistenceCollection<T> {
     fn default() -> Self {
         PersistenceCollection { changes: Vec::new() }
     }
@@ -59,7 +59,9 @@ impl Plugin for PersistencePlugin {
 }
 
 pub(crate) trait AppPersistanceExt {
-    fn track_component<T: ChangeTracked + Component>(&mut self) -> &mut Self
+    fn track_component<T: ChangeTracked + Component<Mutability = bevy::ecs::component::Mutable>>(
+        &mut self,
+    ) -> &mut Self
     where
         T::ChangeItem: ApplyToDatabase;
 
@@ -69,7 +71,7 @@ pub(crate) trait AppPersistanceExt {
 }
 
 impl AppPersistanceExt for App {
-    fn track_component<T: ChangeTracked + Component>(&mut self) -> &mut Self
+    fn track_component<T: ChangeTracked + Component<Mutability = bevy::ecs::component::Mutable>>(&mut self) -> &mut Self
     where
         T::ChangeItem: ApplyToDatabase,
     {
@@ -116,14 +118,19 @@ impl AppPersistanceExt for App {
     }
 }
 
-fn add_change_tracker<T: ChangeTracked + Component>(mut cmd: Commands, query: Query<Entity, Added<T>>) {
+fn add_change_tracker<T: ChangeTracked + Component<Mutability = bevy::ecs::component::Mutable>>(
+    mut cmd: Commands,
+    query: Query<Entity, Added<T>>,
+) {
     for entity in query.iter() {
         let comp: PersistenceCollection<T> = PersistenceCollection::default();
         cmd.entity(entity).insert(comp);
     }
 }
 
-fn collect_changes<T: ChangeTracked + Component>(mut query: Query<(&mut T, &mut PersistenceCollection<T>)>) {
+fn collect_changes<T: ChangeTracked + Component<Mutability = bevy::ecs::component::Mutable>>(
+    mut query: Query<(&mut T, &mut PersistenceCollection<T>)>,
+) {
     for (mut change_source, mut change_collection) in query.iter_mut() {
         let mut changes = change_source.bypass_change_detection().changes();
         if !changes.is_empty() {
@@ -132,7 +139,7 @@ fn collect_changes<T: ChangeTracked + Component>(mut query: Query<(&mut T, &mut 
     }
 }
 
-fn apply_changes<T: ChangeTracked + Component>(
+fn apply_changes<T: ChangeTracked + Component<Mutability = bevy::ecs::component::Mutable>>(
     mut query: Query<(&Player, &mut PersistenceCollection<T>)>,
     task_creator: Res<TaskCreator>,
     pool: Res<DbPool>,
@@ -153,9 +160,9 @@ fn apply_changes<T: ChangeTracked + Component>(
     }
 }
 
-fn apply_changes_exit<T: ChangeTracked + Component>(
+fn apply_changes_exit<T: ChangeTracked + Component<Mutability = bevy::ecs::component::Mutable>>(
     mut query: Query<(&Player, &mut PersistenceCollection<T>)>,
-    mut event_reader: EventReader<ClientDisconnectedEvent>,
+    mut event_reader: MessageReader<ClientDisconnectedEvent>,
     task_creator: Res<TaskCreator>,
     pool: Res<DbPool>,
 ) where
@@ -180,7 +187,7 @@ fn apply_changes_exit<T: ChangeTracked + Component>(
 
 fn apply_changes_combined(
     components: Res<PersistedComponents>,
-    mut disconnections: EventReader<ClientDisconnectedEvent>,
+    mut disconnections: MessageReader<ClientDisconnectedEvent>,
     task_creator: Res<TaskCreator>,
     db_pool: Res<DbPool>,
     query: Query<(EntityRef, &Player)>,

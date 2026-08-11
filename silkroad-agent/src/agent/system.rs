@@ -70,7 +70,7 @@ pub(crate) fn pickup(
         } else {
             let drop = match target_query.get(pickup.parameter.target) {
                 Ok(drop) => drop,
-                Err(QueryEntityError::NoSuchEntity(_)) => {
+                Err(QueryEntityError::NotSpawned(_)) => {
                     client.send(PerformActionResponse::Stop(PerformActionError::InvalidTarget));
                     cmd.entity(entity).remove::<PickingUp>();
                     continue;
@@ -201,7 +201,7 @@ pub(crate) fn action(
                             }) {
                                 warn!("Can't consume item, because it's not equipped");
                             } else {
-                                cmd.send_event(ConsumeItemEvent {
+                                cmd.write_message(ConsumeItemEvent {
                                     player: entity,
                                     item: type_id,
                                     amount,
@@ -231,7 +231,7 @@ pub(crate) fn action(
                             panic!();
                         };
                         let target_ = target_query.get(target).unwrap();
-                        cmd.send_event(DamageReceiveEvent {
+                        cmd.write_message(DamageReceiveEvent {
                             source: EntityReference(entity, *game_entity),
                             target: EntityReference(target, *target_),
                             attack: SkillDefinition {
