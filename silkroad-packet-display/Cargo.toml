@@ -10,7 +10,7 @@ silkroad-protocol = { path = "../crates/silkroad-protocol", features = ["v594"] 
 silkroad-data = { path = "../crates/silkroad-data" }
 silkroad-definitions = { path = "../crates/silkroad-definitions" }
 silkroad-gateway-protocol = { path = "../crates/silkroad-gateway-protocol", features = ["v594"] }
-skrillax-codec = { path = "../../skrillax-network/crates/skrillax-codec", features = ["codec"] }
+skrillax-codec = { version = "0.1", features = ["codec"] }
 tokio-util = { version = "0.7.15", features = ["codec"] }
 pk2.workspace = true
 pk2-sync.workspace = true

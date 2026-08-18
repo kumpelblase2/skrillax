@@ -5273,6 +5273,8 @@ dependencies = [
 [[package]]
 name = "skrillax-codec"
 version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12624dcc347c90dceecfd51f8fc0530cc4776a8d3a170937956128b3912c1cee"
 dependencies = [
  "byteorder",
  "bytes",
@@ -5283,6 +5285,8 @@ dependencies = [
 [[package]]
 name = "skrillax-packet"
 version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b862b78d8b5acb40bd8d1156da88feaa88dd88b1bba11023c2aa84195bac893a"
 dependencies = [
  "bytes",
  "skrillax-codec",
@@ -5295,6 +5299,8 @@ dependencies = [
 [[package]]
 name = "skrillax-packet-derive"
 version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9867c374b93011e8e80f7c7de4417553cc7f9225d8fb4d74f1d4cabbb5f3d4e"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -5306,6 +5312,8 @@ dependencies = [
 [[package]]
 name = "skrillax-security"
 version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3910236100b0c6134bd68c3c7875b863bbf9d09876c2df3c657aeab0a12c88df"
 dependencies = [
  "bitflags 2.9.0",
  "blowfish 0.10.0",
@@ -5318,6 +5326,8 @@ dependencies = [
 [[package]]
 name = "skrillax-serde"
 version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9067e2b4693e3ca3b6c9f2d14125de5694cb8d7d6b21dea6345a931f2211ef5"
 dependencies = [
  "byteorder",
  "bytes",
@@ -5329,6 +5339,8 @@ dependencies = [
 [[package]]
 name = "skrillax-serde-derive"
 version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fc4baec09d0798bc4d792f7d4688ac006e6c228c5b86d48fbbf9e26be54840e"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -5351,6 +5363,8 @@ dependencies = [
 [[package]]
 name = "skrillax-stream"
 version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e82471b4c14a1ba9bd01a29984df462005c4344279e6d6fa5841f87eddfa849a"
 dependencies = [
  "bitflags 2.9.0",
  "byteorder",
