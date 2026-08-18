@@ -1,0 +1,9 @@
+[package]
+name = "silkroad-agent-persistence"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true

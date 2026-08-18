@@ -1,7 +1,7 @@
 use crate::comp::player::Player;
 use crate::config::GameConfig;
 use crate::event::ClientDisconnectedEvent;
-use crate::ext::DbPool;
+use crate::ext::{CharacterPersistenceResource, DbPool};
 use crate::tasks::TaskCreator;
 pub use apply::ApplyToDatabase;
 use bevy::ecs::component::ComponentId;
@@ -50,7 +50,7 @@ impl Plugin for PersistencePlugin {
             .expect("Game config should exist.")
             .persist_interval;
         app.init_resource::<PersistedComponents>()
-            .add_systems(PostUpdate, apply_changes_combined)
+            .add_systems(PostUpdate, (apply_changes_combined, record_character_logout))
             .add_systems(
                 PostUpdate,
                 apply_changes_periodically.run_if(on_timer(Duration::from_secs(persist_interval))),
@@ -182,6 +182,27 @@ fn apply_changes_exit<T: ChangeTracked + Component<Mutability = bevy::ecs::compo
                 }
             });
         }
+    }
+}
+
+fn record_character_logout(
+    mut disconnections: MessageReader<ClientDisconnectedEvent>,
+    query: Query<&Player>,
+    task_creator: Res<TaskCreator>,
+    character_persistence: Res<CharacterPersistenceResource>,
+) {
+    for event in disconnections.read() {
+        let Ok(player) = query.get(event.0) else {
+            continue;
+        };
+
+        let character_id = player.character.id;
+        let character_persistence = (*character_persistence).clone();
+        task_creator.spawn(async move {
+            if let Err(error) = character_persistence.record_logout(character_id).await {
+                error!(character_id, %error, "Could not update last played time");
+            }
+        });
     }
 }
 

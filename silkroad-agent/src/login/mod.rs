@@ -1,4 +1,4 @@
-use crate::login::charselect::{handle_auth, handle_join, handle_list_request};
+use crate::login::charselect::{handle_auth, handle_character_join_received, handle_join, handle_list_request};
 use crate::login::job_distribution::{update_job_distribution, JobDistribution};
 use crate::login::jobs::{
     handle_character_create, handle_character_delete, handle_character_list_received, handle_character_name_check,
@@ -7,7 +7,6 @@ use crate::login::jobs::{
 use crate::LoginQueue;
 use bevy::prelude::*;
 
-pub mod character_loader;
 mod charselect;
 mod components;
 pub mod job_distribution;
@@ -33,6 +32,7 @@ impl Plugin for LoginPlugin {
                     handle_character_delete,
                     handle_character_name_check,
                     handle_character_list_received,
+                    handle_character_join_received,
                     handle_join,
                     handle_auth,
                     handle_list_request,

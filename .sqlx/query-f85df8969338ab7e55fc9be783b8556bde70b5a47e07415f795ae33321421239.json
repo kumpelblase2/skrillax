@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT slot, kind, data\n        FROM hotbar_entries\n        WHERE character_id = $1\n        ORDER BY slot\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "slot",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 2,
+        "name": "data",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f85df8969338ab7e55fc9be783b8556bde70b5a47e07415f795ae33321421239"
+}

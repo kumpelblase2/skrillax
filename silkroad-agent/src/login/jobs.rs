@@ -1,12 +1,11 @@
 use crate::comp::net::Client;
 use crate::comp::Playing;
-use crate::db::character::CharacterItem;
-use crate::login::character_loader::DbCharacter;
 use crate::login::{
     CharacterCheckName, CharacterCreate, CharacterDelete, CharacterRestore, CharacterSelect, CharactersLoading,
 };
 use bevy::prelude::*;
 use chrono::Utc;
+use silkroad_agent_persistence::{CharacterListItem, ListedCharacter};
 use silkroad_protocol::character::{
     CharacterListAction, CharacterListContent, CharacterListEntry, CharacterListEquippedItem, CharacterListError,
     CharacterListResponse, CharacterListResult, TimeInformation,
@@ -21,20 +20,26 @@ pub(crate) fn handle_character_list_received(
 ) {
     for (entity, client, playing, mut character_list, mut loading) in query.iter_mut() {
         match loading.try_recv() {
-            Ok(characters) => {
+            Ok(Ok(characters)) => {
                 send_character_list(client, &characters);
                 character_list.characters = Some(characters);
             },
-            Err(TryRecvError::Empty) => continue,
-            Err(e) => {
-                warn!(id = playing.0.id, "Error when loading characters. {:?}", e);
+            Ok(Err(error)) => {
+                warn!(id = playing.0.id, ?error, "Could not load characters");
+                send_error(
+                    client,
+                    CharacterListAction::List,
+                    CharacterListError::CouldntConnectToServer,
+                );
             },
+            Err(TryRecvError::Empty) => continue,
+            Err(error) => warn!(id = playing.0.id, ?error, "Character loading task was cancelled"),
         }
         cmd.entity(entity).remove::<CharactersLoading>();
     }
 }
 
-fn send_character_list(client: &Client, character_list: &[DbCharacter]) {
+fn send_character_list(client: &Client, character_list: &[ListedCharacter]) {
     let characters = character_list.iter().map(from_character).collect();
     let response = CharacterListResponse::new(
         CharacterListAction::List,
@@ -43,48 +48,42 @@ fn send_character_list(client: &Client, character_list: &[DbCharacter]) {
     client.send(response);
 }
 
-fn from_character(character: &DbCharacter) -> CharacterListEntry {
-    let data = &character.character_data;
-    let last_logout = data
+fn from_character(character: &ListedCharacter) -> CharacterListEntry {
+    let last_logout = character
         .last_logout
         .and_then(|time| time.try_into().ok())
         .unwrap_or(PackedSilkroadTime::zero());
-    let target_deletion_date = data.deletion_end;
-    let playtime_information = target_deletion_date
-        .map(|end| end - Utc::now())
-        .map(|dur| dur.num_minutes() as u32)
+    let playtime_information = character
+        .deletion_end
+        .map(|end| (end - Utc::now()).num_minutes().max(0) as u32)
         .map(|remaining| TimeInformation::deleting(last_logout, remaining))
         .unwrap_or_else(|| TimeInformation::playable(last_logout));
+
     CharacterListEntry {
-        ref_id: data.character_type as u32,
-        name: data.charname.clone(),
+        ref_id: character.reference_id,
+        name: character.name.clone(),
         unknown: String::new(),
-        scale: data.scale as u8,
-        level: data.level as u8,
-        exp: data.exp as u64,
-        sp: data.sp as u32,
-        strength: data.strength as u16,
-        intelligence: data.intelligence as u16,
-        stat_points: data.stat_points as u16,
-        hp: data.current_hp as u32,
-        mp: data.current_mp as u32,
-        region: data.region as u16,
+        scale: character.scale,
+        level: character.level,
+        exp: character.experience,
+        sp: character.skill_points,
+        strength: character.strength,
+        intelligence: character.intelligence,
+        stat_points: character.stat_points,
+        hp: character.current_hp,
+        mp: character.current_mp,
+        region: character.region,
         playtime_info: playtime_information,
         guild_member_class: 0,
         guild_rename_required: None,
         academy_member_class: 0,
-        equipped_items: character
-            .items
-            .iter()
-            .filter(|item| item.slot < 13)
-            .map(from_item)
-            .collect(),
+        equipped_items: character.equipped_items.iter().map(from_item).collect(),
         avatar_items: Vec::new(),
     }
 }
 
-fn from_item(item: &CharacterItem) -> CharacterListEquippedItem {
-    CharacterListEquippedItem::new(item.item_obj_id as u32, item.upgrade_level as u8)
+fn from_item(item: &CharacterListItem) -> CharacterListEquippedItem {
+    CharacterListEquippedItem::new(item.reference_id, item.upgrade_level)
 }
 
 pub(crate) fn handle_character_name_check(
@@ -93,7 +92,7 @@ pub(crate) fn handle_character_name_check(
 ) {
     for (entity, client, playing, mut character_list, mut check) in query.iter_mut() {
         match check.try_recv() {
-            Ok((name, available)) => {
+            Ok(Ok((name, available))) => {
                 let result = if available {
                     CharacterListResult::ok(CharacterListContent::Empty)
                 } else {
@@ -102,10 +101,16 @@ pub(crate) fn handle_character_name_check(
                 character_list.checked_name = Some(name);
                 client.send(CharacterListResponse::new(CharacterListAction::CheckName, result));
             },
-            Err(TryRecvError::Empty) => continue,
-            Err(e) => {
-                warn!(id = playing.0.id, "Error when checking for name. {:?}", e);
+            Ok(Err(error)) => {
+                warn!(id = playing.0.id, %error, "Could not check character name");
+                send_error(
+                    client,
+                    CharacterListAction::CheckName,
+                    CharacterListError::CouldntConnectToServer,
+                );
             },
+            Err(TryRecvError::Empty) => continue,
+            Err(error) => warn!(id = playing.0.id, ?error, "Character name-check task was cancelled"),
         }
         cmd.entity(entity).remove::<CharacterCheckName>();
     }
@@ -117,16 +122,20 @@ pub(crate) fn handle_character_create(
 ) {
     for (entity, client, playing, mut create) in query.iter_mut() {
         match create.try_recv() {
-            Ok(_) => {
-                client.send(CharacterListResponse::new(
+            Ok(Ok(())) => client.send(CharacterListResponse::new(
+                CharacterListAction::Create,
+                CharacterListResult::ok(CharacterListContent::Empty),
+            )),
+            Ok(Err(error)) => {
+                warn!(id = playing.0.id, %error, "Could not create character");
+                send_error(
+                    client,
                     CharacterListAction::Create,
-                    CharacterListResult::ok(CharacterListContent::Empty),
-                ));
+                    CharacterListError::CouldntCreateCharacter,
+                );
             },
             Err(TryRecvError::Empty) => continue,
-            Err(e) => {
-                warn!(id = playing.0.id, "Error when creating character. {:?}", e);
-            },
+            Err(error) => warn!(id = playing.0.id, ?error, "Character creation task was cancelled"),
         }
         cmd.entity(entity).remove::<CharacterCreate>();
     }
@@ -138,20 +147,21 @@ pub(crate) fn handle_character_delete(
 ) {
     for (entity, client, playing, mut delete) in query.iter_mut() {
         match delete.try_recv() {
-            Ok(success) => {
-                if success {
-                    client.send(CharacterListResponse::new(
-                        CharacterListAction::Delete,
-                        CharacterListResult::ok(CharacterListContent::Empty),
-                    ));
-                } else {
-                    // TODO
-                }
+            Ok(Ok(true)) => client.send(CharacterListResponse::new(
+                CharacterListAction::Delete,
+                CharacterListResult::ok(CharacterListContent::Empty),
+            )),
+            Ok(Ok(false)) => send_error(client, CharacterListAction::Delete, CharacterListError::InvalidName),
+            Ok(Err(error)) => {
+                warn!(id = playing.0.id, %error, "Could not delete character");
+                send_error(
+                    client,
+                    CharacterListAction::Delete,
+                    CharacterListError::CouldntConnectToServer,
+                );
             },
             Err(TryRecvError::Empty) => continue,
-            Err(e) => {
-                warn!(id = playing.0.id, "Error when deleting character. {:?}", e);
-            },
+            Err(error) => warn!(id = playing.0.id, ?error, "Character deletion task was cancelled"),
         }
         cmd.entity(entity).remove::<CharacterDelete>();
     }
@@ -163,24 +173,26 @@ pub(crate) fn handle_character_restore(
 ) {
     for (entity, client, playing, mut restore) in query.iter_mut() {
         match restore.try_recv() {
-            Ok(result) => {
-                if result {
-                    client.send(CharacterListResponse::new(
-                        CharacterListAction::Restore,
-                        CharacterListResult::ok(CharacterListContent::Empty),
-                    ));
-                } else {
-                    client.send(CharacterListResponse::new(
-                        CharacterListAction::Restore,
-                        CharacterListResult::error(CharacterListError::InvalidName), // TODO: use a better error
-                    ));
-                }
+            Ok(Ok(true)) => client.send(CharacterListResponse::new(
+                CharacterListAction::Restore,
+                CharacterListResult::ok(CharacterListContent::Empty),
+            )),
+            Ok(Ok(false)) => send_error(client, CharacterListAction::Restore, CharacterListError::InvalidName),
+            Ok(Err(error)) => {
+                warn!(id = playing.0.id, %error, "Could not restore character");
+                send_error(
+                    client,
+                    CharacterListAction::Restore,
+                    CharacterListError::CouldntConnectToServer,
+                );
             },
             Err(TryRecvError::Empty) => continue,
-            Err(e) => {
-                warn!(id = playing.0.id, "Error when restoring character. {:?}", e);
-            },
+            Err(error) => warn!(id = playing.0.id, ?error, "Character restoration task was cancelled"),
         }
         cmd.entity(entity).remove::<CharacterRestore>();
     }
+}
+
+fn send_error(client: &Client, action: CharacterListAction, error: CharacterListError) {
+    client.send(CharacterListResponse::new(action, CharacterListResult::error(error)));
 }

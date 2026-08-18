@@ -12,6 +12,7 @@ silkroad-navmesh = { path = "../crates/silkroad-navmesh", features = ["pk2"] }
 silkroad-data = { path = "../crates/silkroad-data" }
 silkroad-game-base = { path = "../crates/silkroad-game-base" }
 silkroad-definitions = { path = "../crates/silkroad-definitions" }
+silkroad-agent-persistence = { path = "../crates/silkroad-agent-persistence" }
 skrillax-server = { path = "../crates/skrillax-server" }
 skrillax-stream.workspace = true
 skrillax-packet.workspace = true
@@ -32,7 +33,6 @@ log.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 chrono.workspace = true
-itertools = "*"
 bevy = { version = "0.19.0", default-features = false, features = ["trace"] }
 cgmath = "0.18"
 pk2.workspace = true

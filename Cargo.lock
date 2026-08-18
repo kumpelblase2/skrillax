@@ -5098,13 +5098,13 @@ dependencies = [
  "futures",
  "gumdrop",
  "id-pool",
- "itertools",
  "log",
  "once_cell",
  "pk2",
  "pk2-sync",
  "rand 0.9.0",
  "serde",
+ "silkroad-agent-persistence",
  "silkroad-data",
  "silkroad-definitions",
  "silkroad-game-base",
@@ -5119,6 +5119,15 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "silkroad-agent-persistence"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "sqlx",
+ "thiserror 2.0.12",
 ]
 
 [[package]]

@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use derive_more::{Deref, DerefMut, From};
 use id_pool::IdPool;
+use silkroad_agent_persistence::CharacterPersistence;
 use silkroad_data::npc_pos::NpcPosition;
 use silkroad_game_base::LocalLocation;
 use silkroad_navmesh::GlobalNavmesh;
@@ -19,6 +20,9 @@ impl Default for EntityIdPool {
 
 #[derive(Resource, Deref, DerefMut, From)]
 pub struct DbPool(PgPool);
+
+#[derive(Resource, Deref, Clone, From)]
+pub struct CharacterPersistenceResource(CharacterPersistence);
 
 #[derive(Resource, Deref, From)]
 pub struct Navmesh(GlobalNavmesh);

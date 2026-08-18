@@ -1,8 +1,8 @@
-use crate::db::character::CharacterItem;
 use crate::persistence::ApplyToDatabase;
 use crate::world::WorldData;
 use axum::async_trait;
 use bevy::prelude::*;
+use silkroad_agent_persistence::CharacterWorldItem;
 use silkroad_data::itemdata::RefItemData;
 use silkroad_definitions::type_id::{ObjectItem, ObjectType};
 use silkroad_game_base::{ChangeTracked, Inventory, InventoryChange, Item, ItemTypeData};
@@ -103,46 +103,43 @@ impl ApplyToDatabase for InventoryChange {
 }
 
 impl PlayerInventory {
-    fn from_db_inventory(items: &[CharacterItem], size: usize) -> Inventory {
+    fn from_loaded_inventory(items: &[CharacterWorldItem], size: usize) -> Option<Inventory> {
         let item_map = WorldData::items();
         let mut inventory = Inventory::new(size);
 
         for item in items {
-            let item_def = item_map.find_id(item.item_obj_id as u32).unwrap();
-
+            let item_def = item_map.find_id(item.reference_id)?;
+            let type_data = Self::item_type_data_for(item_def, item)?;
             inventory.set_item(
-                item.slot as u8,
+                item.slot,
                 Item {
                     reference: item_def,
-                    variance: item.variance.map(|v| v as u64),
-                    type_data: Self::item_type_data_for(item_def, item).unwrap(),
+                    variance: item.variance,
+                    type_data,
                 },
             );
         }
 
-        inventory
+        Some(inventory)
     }
 
-    fn item_type_data_for(ref_data: &RefItemData, item: &CharacterItem) -> Option<ItemTypeData> {
-        let obj_type = ObjectType::from_type_id(&ref_data.common.type_id).unwrap();
+    fn item_type_data_for(ref_data: &RefItemData, item: &CharacterWorldItem) -> Option<ItemTypeData> {
+        let obj_type = ObjectType::from_type_id(&ref_data.common.type_id)?;
         if let ObjectType::Item(item_type) = obj_type {
-            let res = match item_type {
+            Some(match item_type {
                 ObjectItem::Equippable(_) => ItemTypeData::Equipment {
-                    upgrade_level: item.upgrade_level as u8,
+                    upgrade_level: item.upgrade_level,
                 },
                 ObjectItem::Pet(_) => ItemTypeData::COS,
-                _ => ItemTypeData::Consumable {
-                    amount: item.amount as u16,
-                },
-            };
-            Some(res)
+                _ => ItemTypeData::Consumable { amount: item.amount },
+            })
         } else {
             None
         }
     }
 
-    pub(crate) fn from_db(items: &[CharacterItem], size: usize) -> Self {
-        let inventory = Self::from_db_inventory(items, size);
-        PlayerInventory { inventory }
+    pub(crate) fn from_loaded(items: &[CharacterWorldItem], size: usize) -> Option<Self> {
+        let inventory = Self::from_loaded_inventory(items, size)?;
+        Some(PlayerInventory { inventory })
     }
 }

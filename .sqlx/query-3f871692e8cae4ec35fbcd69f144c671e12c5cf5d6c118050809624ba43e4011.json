@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT skill_group_id, level\n        FROM character_skills\n        WHERE character_id = $1\n        ORDER BY skill_group_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "skill_group_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "level",
+        "type_info": "Int2"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "3f871692e8cae4ec35fbcd69f144c671e12c5cf5d6c118050809624ba43e4011"
+}

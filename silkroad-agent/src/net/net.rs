@@ -1,9 +1,6 @@
 use crate::comp::net::{Client, LastAction};
-use crate::comp::player::Player;
-use crate::db::character::CharacterData;
 use crate::event::{ClientConnectedEvent, ClientDisconnectedEvent};
-use crate::ext::{DbPool, ServerResource};
-use crate::tasks::TaskCreator;
+use crate::ext::ServerResource;
 use bevy::prelude::*;
 use std::time::Instant;
 use tracing::debug;
@@ -28,21 +25,10 @@ pub(crate) fn accept(
     }
 }
 
-pub(crate) fn disconnected(
-    mut events: MessageReader<ClientDisconnectedEvent>,
-    mut cmd: Commands,
-    task_creator: Res<TaskCreator>,
-    pool: Res<DbPool>,
-    query: Query<&Player>,
-) {
+pub(crate) fn disconnected(mut events: MessageReader<ClientDisconnectedEvent>, mut cmd: Commands) {
     for event in events.read() {
-        let entity = event.0;
         debug!("Handling client disconnect.");
-        if let Ok(player) = query.get(event.0) {
-            let id = player.character.id;
-            task_creator.spawn(CharacterData::update_last_played_of(id, pool.clone()));
-        }
-        if let Ok(mut cmd) = cmd.get_entity(entity) {
+        if let Ok(mut cmd) = cmd.get_entity(event.0) {
             cmd.despawn();
         }
     }

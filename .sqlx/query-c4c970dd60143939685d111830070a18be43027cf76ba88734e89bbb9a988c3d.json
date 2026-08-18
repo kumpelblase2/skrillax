@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT item_obj_id, upgrade_level, variance, slot, amount\n        FROM character_items\n        WHERE character_id = $1\n        ORDER BY slot\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "item_obj_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "upgrade_level",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 2,
+        "name": "variance",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "slot",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 4,
+        "name": "amount",
+        "type_info": "Int2"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "c4c970dd60143939685d111830070a18be43027cf76ba88734e89bbb9a988c3d"
+}

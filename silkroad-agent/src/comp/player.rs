@@ -10,12 +10,12 @@ use crate::comp::pos::Position;
 use crate::comp::skill::{Hotbar, SkillBook};
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health, Mana};
-use crate::db::character::CharacterData;
 use crate::db::user::ServerUser;
 use crate::persistence::Persistable;
 use crate::sync::Reset;
 use bevy::prelude::*;
 use derive_more::{Deref, From};
+use silkroad_agent_persistence::{CharacterRace as LoadedRace, WorldJoinCharacter};
 use silkroad_game_base::{Character, Race, SpawningState, Stats};
 
 #[derive(Component)]
@@ -34,34 +34,34 @@ impl CharacterRace {
 }
 
 impl Player {
-    fn from_db_character(data: &CharacterData) -> Character {
-        Character {
-            id: data.id as u32,
-            name: data.charname.clone(),
-            race: Race::Chinese,
-            scale: data.scale as u8,
-            level: data.level as u8,
-            max_level: data.max_level as u8,
-            exp: data.exp as u64,
-            sp: data.sp as u32,
-            sp_exp: data.sp_exp as u32,
-            stats: Stats::new_preallocated(data.strength as u16, data.intelligence as u16),
-            stat_points: data.stat_points as u16,
-            current_hp: data.current_hp as u32,
-            current_mp: data.current_mp as u32,
-            berserk_points: data.berserk_points as u8,
-            gold: data.gold as u64,
-            beginner_mark: data.beginner_mark,
-            gm: data.gm,
+    pub fn from_loaded(user: ServerUser, loaded: &WorldJoinCharacter) -> Self {
+        let race = match loaded.race {
+            LoadedRace::Chinese => Race::Chinese,
+            LoadedRace::European => Race::European,
+        };
+        let character = Character {
+            id: loaded.id,
+            name: loaded.name.clone(),
+            race,
+            scale: loaded.scale,
+            level: loaded.level,
+            max_level: loaded.max_level,
+            exp: loaded.experience,
+            sp: loaded.skill_points,
+            sp_exp: loaded.skill_experience,
+            stats: Stats::new_preallocated(loaded.strength, loaded.intelligence),
+            stat_points: loaded.stat_points,
+            current_hp: loaded.current_hp,
+            current_mp: loaded.current_mp,
+            berserk_points: loaded.berserk_points,
+            gold: loaded.gold,
+            beginner_mark: loaded.beginner_mark,
+            gm: loaded.game_master,
             state: SpawningState::Loading,
-            masteries: Vec::new(),
-            skills: Vec::new(),
-        }
-    }
-
-    pub fn from_db_data(user: ServerUser, character: &CharacterData) -> Self {
-        let char = Self::from_db_character(character);
-        Player { user, character: char }
+            masteries: loaded.masteries.clone(),
+            skills: loaded.skills.clone(),
+        };
+        Player { user, character }
     }
 }
 

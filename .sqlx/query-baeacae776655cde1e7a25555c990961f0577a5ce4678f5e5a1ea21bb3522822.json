@@ -1,0 +1,107 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, charname, character_type, scale, level, exp, sp,\n               strength, intelligence, stat_points, current_hp, current_mp,\n               region, deletion_end, last_logout\n        FROM characters\n        WHERE user_id = $1\n          AND server_id = $2\n          AND (deletion_end > NOW() OR deletion_end IS NULL)\n        ORDER BY id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "charname",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "character_type",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "scale",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 4,
+        "name": "level",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "exp",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "sp",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "strength",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 8,
+        "name": "intelligence",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 9,
+        "name": "stat_points",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 10,
+        "name": "current_hp",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "current_mp",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "region",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 13,
+        "name": "deletion_end",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "last_logout",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "baeacae776655cde1e7a25555c990961f0577a5ce4678f5e5a1ea21bb3522822"
+}
