@@ -1,7 +1,7 @@
-use crate::db::user::ServerUser;
 use crate::population::capacity::{CapacityController, PlayingToken, QueueToken};
 use bevy::prelude::*;
 use rand::{rng, Rng};
+use silkroad_agent_persistence::ServerUser;
 use std::ops::Add;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};

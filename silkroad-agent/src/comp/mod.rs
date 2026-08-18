@@ -13,10 +13,10 @@ pub(crate) mod skill;
 pub(crate) mod spawner;
 pub(crate) mod visibility;
 
-use crate::db::user::ServerUser;
 use crate::population::capacity::PlayingToken;
 use crate::sync::Reset;
 use bevy::prelude::*;
+use silkroad_agent_persistence::ServerUser;
 use std::time::Duration;
 
 #[derive(Component, Copy, Clone, PartialEq, Eq, Hash)]

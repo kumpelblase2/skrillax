@@ -1,12 +1,11 @@
-use crate::db::user::ServerUser;
 use crate::population::ReservationError;
 use crate::{CapacityController, LoginQueue};
 use axum::extract::{FromRef, State};
 use axum::http::HeaderMap;
 use axum::routing::{get, post};
 use axum::{serve, Json, Router};
+use silkroad_agent_persistence::UserPersistence;
 use silkroad_rpc::{ReserveRequest, ReserveResponse, ServerStatusReport};
-use sqlx::PgPool;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tracing::error;
@@ -24,7 +23,7 @@ async fn handle_capacity(State(capacity): State<CapacityController>) -> Json<Ser
 
 async fn handle_spot_request(
     State(settings): State<Settings>,
-    State(pool): State<PgPool>,
+    State(user_persistence): State<UserPersistence>,
     State(login_queue): State<LoginQueue>,
     headers: HeaderMap,
     Json(reservation): Json<ReserveRequest>,
@@ -40,7 +39,7 @@ async fn handle_spot_request(
         return Json(ReserveResponse::Error("Invalid auth token.".to_string()));
     }
 
-    let user = match ServerUser::fetch(reservation.user_id, settings.0, pool).await {
+    let user = match user_persistence.server_user(reservation.user_id, settings.0).await {
         Ok(Some(user)) => user,
         Ok(None) => return Json(ReserveResponse::NotFound),
         Err(e) => {
@@ -63,7 +62,7 @@ pub(crate) struct WebServer;
 
 #[derive(Clone, FromRef)]
 struct ServerState {
-    pool: PgPool,
+    user_persistence: UserPersistence,
     login_queue: LoginQueue,
     capacity: CapacityController,
     settings: Settings,
@@ -72,14 +71,14 @@ struct ServerState {
 impl WebServer {
     pub async fn run(
         server_id: u16,
-        pool: PgPool,
+        user_persistence: UserPersistence,
         login_queue: LoginQueue,
         capacity: CapacityController,
         token: String,
         port: u16,
     ) {
         let state = ServerState {
-            pool,
+            user_persistence,
             login_queue,
             capacity,
             settings: Settings(server_id, token),

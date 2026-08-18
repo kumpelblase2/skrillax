@@ -10,12 +10,11 @@ use crate::comp::pos::Position;
 use crate::comp::skill::{Hotbar, SkillBook};
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health, Mana};
-use crate::db::user::ServerUser;
 use crate::persistence::Persistable;
 use crate::sync::Reset;
 use bevy::prelude::*;
 use derive_more::{Deref, From};
-use silkroad_agent_persistence::{CharacterRace as LoadedRace, WorldJoinCharacter};
+use silkroad_agent_persistence::{CharacterRace as LoadedRace, ServerUser, WorldJoinCharacter};
 use silkroad_game_base::{Character, Race, SpawningState, Stats};
 
 #[derive(Component)]

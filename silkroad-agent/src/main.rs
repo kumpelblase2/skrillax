@@ -5,7 +5,6 @@ mod chat;
 mod cmd;
 mod comp;
 mod config;
-mod db;
 mod event;
 mod ext;
 mod game;
@@ -23,8 +22,7 @@ mod world;
 use crate::agent::AgentPlugin;
 use crate::cmd::CommandPlugin;
 use crate::config::get_config;
-use crate::db::server::ServerRegistration;
-use crate::ext::{CharacterPersistenceResource, DbPool};
+use crate::ext::{CharacterPersistenceResource, DbPool, UserPersistenceResource};
 use crate::game::GamePlugin;
 use crate::input::ReceivePlugin;
 use crate::login::LoginPlugin;
@@ -43,7 +41,7 @@ use bevy::time::TimePlugin;
 use login::web::WebServer;
 use rand::distr::Alphanumeric;
 use rand::{rng, Rng};
-use silkroad_agent_persistence::CharacterPersistence;
+use silkroad_agent_persistence::{CharacterPersistence, ServerPersistence, ServerRegistration, UserPersistence};
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -76,22 +74,23 @@ fn main() {
 
     let token: String = rng().sample_iter(&Alphanumeric).take(30).map(char::from).collect();
 
+    let server_persistence = ServerPersistence::new(db_pool.clone());
     runtime
-        .block_on(ServerRegistration::setup(
-            server_id,
-            configuration.name.clone(),
-            configuration.region.clone(),
-            external_addr,
-            configuration.rpc_address.clone(),
-            configuration.rpc_port,
-            token.clone(),
-            db_pool.clone(),
-        ))
+        .block_on(server_persistence.register(ServerRegistration {
+            identifier: server_id,
+            name: configuration.name.clone(),
+            region: configuration.region.clone(),
+            listen_address: external_addr,
+            rpc_address: configuration.rpc_address.clone(),
+            rpc_port: configuration.rpc_port,
+            token: token.clone(),
+        }))
         .expect("Should be able to register server");
 
+    let user_persistence = UserPersistence::new(db_pool.clone());
     let _web_handle = runtime.spawn(WebServer::run(
         server_id,
-        db_pool.clone(),
+        user_persistence.clone(),
         queue.clone(),
         capacity_manager,
         token,
@@ -116,6 +115,7 @@ fn main() {
         .add_plugins(TaskPoolPlugin::default())
         .insert_resource::<TaskCreator>(runtime.clone().into())
         .insert_resource::<CharacterPersistenceResource>(character_persistence.into())
+        .insert_resource::<UserPersistenceResource>(user_persistence.into())
         .insert_resource::<DbPool>(db_pool.into())
         .add_plugins(ServerPlugin::new(configuration.game.clone(), server_id))
         .add_plugins(NetworkPlugin::new(listen_addr, runtime))

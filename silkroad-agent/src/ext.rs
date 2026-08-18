@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use derive_more::{Deref, DerefMut, From};
 use id_pool::IdPool;
-use silkroad_agent_persistence::CharacterPersistence;
+use silkroad_agent_persistence::{CharacterPersistence, UserPersistence};
 use silkroad_data::npc_pos::NpcPosition;
 use silkroad_game_base::LocalLocation;
 use silkroad_navmesh::GlobalNavmesh;
@@ -23,6 +23,9 @@ pub struct DbPool(PgPool);
 
 #[derive(Resource, Deref, Clone, From)]
 pub struct CharacterPersistenceResource(CharacterPersistence);
+
+#[derive(Resource, Deref, Clone, From)]
+pub struct UserPersistenceResource(UserPersistence);
 
 #[derive(Resource, Deref, From)]
 pub struct Navmesh(GlobalNavmesh);

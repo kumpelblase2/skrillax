@@ -1,11 +1,12 @@
-use crate::db::user::ServerUser;
-use crate::ext::DbPool;
+use crate::ext::UserPersistenceResource;
 use crate::server_plugin::ServerId;
 use crate::tasks::TaskCreator;
 use bevy::prelude::*;
+use silkroad_agent_persistence::{ServerJobDistribution, UserReadError};
 use std::time::Duration;
 use tokio::sync::oneshot::error::TryRecvError;
 use tokio::sync::oneshot::Receiver;
+use tracing::error;
 
 const REFRESH_INTERVAL: u64 = 60 * 60;
 
@@ -14,7 +15,7 @@ pub(crate) struct JobDistribution {
     hunters: u32,
     thieves: u32,
     refresh_timer: Timer,
-    refresh_result: Option<Receiver<(u32, u32)>>,
+    refresh_result: Option<Receiver<Result<ServerJobDistribution, UserReadError>>>,
 }
 
 impl JobDistribution {
@@ -50,7 +51,7 @@ impl Default for JobDistribution {
 }
 
 pub(crate) fn update_job_distribution(
-    pool: Res<DbPool>,
+    user_persistence: Res<UserPersistenceResource>,
     server_id: Res<ServerId>,
     time: Res<Time>,
     task_runtime: Res<TaskCreator>,
@@ -59,22 +60,26 @@ pub(crate) fn update_job_distribution(
     if job.refresh_result.is_none() {
         job.refresh_timer.tick(time.delta());
         if job.refresh_timer.just_finished() {
-            let pool = pool.clone();
+            let user_persistence = user_persistence.as_ref().clone();
             let server_id = server_id.0;
-            let receiver = task_runtime.create_task(ServerUser::fetch_job_distribution(server_id, pool));
+            let receiver = task_runtime.create_task(async move { user_persistence.job_distribution(server_id).await });
             job.refresh_result = Some(receiver);
         }
     }
 
     if let Some(receive) = job.refresh_result.as_mut() {
         match receive.try_recv() {
-            Ok((hunter, thief)) => {
-                job.hunters = hunter;
-                job.thieves = thief;
+            Ok(Ok(distribution)) => {
+                job.hunters = distribution.hunters;
+                job.thieves = distribution.thieves;
+                job.refresh_result = None;
+            },
+            Ok(Err(error)) => {
+                error!(%error, server_id = server_id.0, "Could not refresh job distribution");
                 job.refresh_result = None;
             },
             Err(TryRecvError::Empty) => {},
-            _ => {
+            Err(TryRecvError::Closed) => {
                 job.refresh_result = None;
             },
         }
