@@ -7,11 +7,25 @@ use skrillax_stream::registry::PacketRegistryBuilder;
 pub struct IdentityInformation {
     pub module_name: String,
     pub locality: u8,
+    #[silkroad(when = "module_name == \"AgentServer\"")]
+    pub port: Option<u16>,
 }
 
 impl IdentityInformation {
     pub fn new(module_name: String, locality: u8) -> Self {
-        IdentityInformation { module_name, locality }
+        IdentityInformation {
+            module_name,
+            locality,
+            port: None,
+        }
+    }
+
+    pub fn new_agent(locality: u8, port: u16) -> Self {
+        IdentityInformation {
+            module_name: "AgentServer".to_string(),
+            locality,
+            port: Some(port),
+        }
     }
 }
 
