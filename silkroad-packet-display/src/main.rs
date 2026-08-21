@@ -1,7 +1,7 @@
 use bytes::BytesMut;
 use clap::Parser;
 use color_eyre::eyre::{Result, eyre};
-use etherparse::{SlicedPacket, TransportSlice};
+use etherparse::{NetSlice, SlicedPacket, TransportSlice};
 use pcap::Capture;
 use silkroad_data::characterdata::load_character_map;
 use silkroad_definitions::type_id::ObjectType;
@@ -46,18 +46,17 @@ use skrillax_stream::handshake::{
 };
 use skrillax_stream::registry::PacketRegistry;
 use skrillax_stream::stream::DynamicPacket;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Display, Formatter};
-use std::net::IpAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::path::PathBuf;
-use std::str::FromStr;
 use tokio_util::codec::Decoder;
 use tracing::{debug, error, info, warn};
 
 mod security;
 
 use security::CaptureSecurity;
-use silkroad_gateway_protocol::{FrameworkStateRequest, FrameworkStateUpdate};
+use silkroad_gateway_protocol::{FrameworkStateRequest, FrameworkStateUpdate, LoginResponse, LoginResult};
 
 pub fn maybe_hex(s: &str) -> Result<u16, String> {
     const HEX_PREFIX: &str = "0x";
@@ -73,17 +72,17 @@ pub fn maybe_hex(s: &str) -> Result<u16, String> {
     result.map_err(|e| format!("Failed to parse hex value: {}", e))
 }
 
-/// CLI tool to display packets from a pcap file filtered by gateway IP and port
+/// CLI tool to display gateway packets and follow the agent endpoint announced at login
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
 struct Cli {
-    /// Gateway IP address
-    #[clap(long, default_value = "127.0.0.1")]
-    gateway: String,
-
     /// Gateway port
     #[clap(long, default_value = "15779")]
     gateway_port: u16,
+
+    /// Agent port to follow without waiting for a successful login response
+    #[clap(long)]
+    agent_port: Option<u16>,
 
     /// Path to the pcap file to read
     #[clap(name = "PCAP_FILE")]
@@ -263,26 +262,105 @@ impl Default for PacketStreams {
     }
 }
 
-fn packet_matches(packet: &SlicedPacket, _ips: &[IpAddr], ports: &[u16]) -> bool {
-    // let Some(InternetSlice::Ipv4(ipv4)) = &packet.net else {
-    //     return false;
-    // };
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+struct ConnectionKey {
+    server: SocketAddr,
+    client: SocketAddr,
+}
 
-    // if ips.len() > 0
-    //     && !ips
-    //         .iter()
-    //         .any(|ip| ipv4.header().destination_addr().eq(ip) || ipv4.header().source_addr().eq(ip))
-    // {
-    //     return false;
-    // }
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct MatchedPacket {
+    connection: ConnectionKey,
+    direction: Direction,
+}
 
-    let Some(TransportSlice::Tcp(tcp)) = &packet.transport else {
-        return false;
+struct CaptureFilter {
+    gateway_port: u16,
+    configured_agent_port: Option<u16>,
+    learned_agent_endpoints: HashSet<SocketAddr>,
+}
+
+impl CaptureFilter {
+    fn new(gateway_port: u16, configured_agent_port: Option<u16>) -> Self {
+        Self {
+            gateway_port,
+            configured_agent_port,
+            learned_agent_endpoints: HashSet::new(),
+        }
+    }
+
+    /// Adds every distinct successful login target. Captures may contain
+    /// repeated logins or logins for more than one agent server.
+    fn add_agent_endpoint(&mut self, endpoint: SocketAddr) -> bool {
+        self.learned_agent_endpoints.insert(endpoint)
+    }
+
+    fn match_packet(&self, packet: &SlicedPacket) -> Option<MatchedPacket> {
+        let (source, destination) = socket_addresses(packet)?;
+
+        let direction = if self.learned_agent_endpoints.contains(&source) {
+            Direction::ServerToClient
+        } else if self.learned_agent_endpoints.contains(&destination) {
+            Direction::ClientToServer
+        } else if source.port() == self.gateway_port || self.configured_agent_port == Some(source.port()) {
+            Direction::ServerToClient
+        } else if destination.port() == self.gateway_port || self.configured_agent_port == Some(destination.port()) {
+            Direction::ClientToServer
+        } else {
+            return None;
+        };
+
+        let connection = match direction {
+            Direction::ServerToClient => ConnectionKey {
+                server: source,
+                client: destination,
+            },
+            Direction::ClientToServer => ConnectionKey {
+                server: destination,
+                client: source,
+            },
+        };
+
+        Some(MatchedPacket { connection, direction })
+    }
+}
+
+fn socket_addresses(packet: &SlicedPacket) -> Option<(SocketAddr, SocketAddr)> {
+    let (source_ip, destination_ip): (IpAddr, IpAddr) = match packet.net.as_ref()? {
+        NetSlice::Ipv4(ipv4) => (
+            ipv4.header().source_addr().into(),
+            ipv4.header().destination_addr().into(),
+        ),
+        NetSlice::Ipv6(ipv6) => (
+            ipv6.header().source_addr().into(),
+            ipv6.header().destination_addr().into(),
+        ),
+        NetSlice::Arp(_) => return None,
+    };
+    let TransportSlice::Tcp(tcp) = packet.transport.as_ref()? else {
+        return None;
     };
 
-    ports
-        .iter()
-        .any(|port| tcp.source_port() == *port || tcp.destination_port() == *port)
+    Some((
+        SocketAddr::new(source_ip, tcp.source_port()),
+        SocketAddr::new(destination_ip, tcp.destination_port()),
+    ))
+}
+
+struct ConnectionState {
+    streams: PacketStreams,
+    server_to_client_context: SerdeContext,
+    client_to_server_context: SerdeContext,
+}
+
+impl ConnectionState {
+    fn new(brute_force_threads: usize) -> Self {
+        Self {
+            streams: PacketStreams::new(brute_force_threads),
+            server_to_client_context: SerdeContext::default(),
+            client_to_server_context: SerdeContext::default(),
+        }
+    }
 }
 
 fn main() -> Result<()> {
@@ -295,6 +373,7 @@ fn main() -> Result<()> {
         .register_base_packets()
         .register::<FrameworkStateUpdate>()
         .register::<FrameworkStateRequest>()
+        .register::<LoginResponse>()
         .register::<CelestialUpdate>()
         .register::<LunarEventInfo>()
         .register_passive_handshake()
@@ -345,11 +424,17 @@ fn main() -> Result<()> {
 
     register_ref_id(object_map);
 
-    // Parse gateway IP
-    let gateway_ip =
-        IpAddr::from_str(&cli.gateway).map_err(|_| eyre!("Invalid gateway IP address: {}", cli.gateway))?;
-
-    info!("Filtering packets for gateway {}:{}", gateway_ip, cli.gateway_port);
+    let mut packet_filter = CaptureFilter::new(cli.gateway_port, cli.agent_port);
+    match cli.agent_port {
+        Some(agent_port) => info!(
+            gateway_port = cli.gateway_port,
+            agent_port, "Filtering gateway and agent packets by port"
+        ),
+        None => info!(
+            gateway_port = cli.gateway_port,
+            "Filtering gateway packets until a successful login identifies an agent endpoint"
+        ),
+    }
 
     // Open the pcap file
     info!("Opening pcap file: {:?}", cli.pcap_file);
@@ -359,9 +444,7 @@ fn main() -> Result<()> {
         .threads
         .unwrap_or_else(|| std::thread::available_parallelism().map_or(1, usize::from))
         .max(1);
-    let mut streams = PacketStreams::new(brute_force_threads);
-    let server_to_client_context = SerdeContext::default();
-    let client_to_server_context = SerdeContext::default();
+    let mut connections = HashMap::<ConnectionKey, ConnectionState>::new();
     let mut timeline = CaptureTimeline::default();
 
     // Process each TCP payload immediately. Each direction retains only its
@@ -376,23 +459,21 @@ fn main() -> Result<()> {
             continue;
         };
 
-        if !packet_matches(&packet, &[], &[cli.gateway_port]) {
+        let Some(matched) = packet_filter.match_packet(&packet) else {
             continue;
-        }
-
+        };
         let Some(TransportSlice::Tcp(tcp)) = &packet.transport else {
-            panic!("Only TCP packets should have matched.")
+            unreachable!("only TCP packets can match the capture filter")
         };
 
+        let direction = matched.direction;
+        let connection = connections
+            .entry(matched.connection)
+            .or_insert_with(|| ConnectionState::new(brute_force_threads));
         let content = tcp.payload();
-        let direction = if tcp.source_port() == cli.gateway_port {
-            Direction::ServerToClient
-        } else {
-            Direction::ClientToServer
-        };
 
         debug!(?direction, bytes = content.len(), "Processing TCP payload");
-        let packets = match streams.push(direction, content) {
+        let packets = match connection.streams.push(direction, content) {
             Ok(packets) => packets,
             Err(e) => {
                 error!(?direction, "Failed to process packet: {:?}", e);
@@ -400,8 +481,8 @@ fn main() -> Result<()> {
             },
         };
         let context = match direction {
-            Direction::ServerToClient => &server_to_client_context,
-            Direction::ClientToServer => &client_to_server_context,
+            Direction::ServerToClient => &connection.server_to_client_context,
+            Direction::ClientToServer => &connection.client_to_server_context,
         };
 
         let registry = match direction {
@@ -411,7 +492,11 @@ fn main() -> Result<()> {
 
         for packet in packets {
             let metadata = timeline.next_packet(frame, direction);
-            process_packet(packet, registry, context, cli.opcode, metadata);
+            if let Some(agent_endpoint) = process_packet(packet, registry, context, cli.opcode, metadata)
+                && packet_filter.add_agent_endpoint(agent_endpoint)
+            {
+                info!(%agent_endpoint, "Following agent endpoint announced by successful login");
+            }
         }
     }
 
@@ -424,7 +509,7 @@ fn process_packet(
     context: &SerdeContext,
     opcode: Option<u16>,
     metadata: PacketMetadata,
-) {
+) -> Option<SocketAddr> {
     let packet_opcode = packet.opcode();
     let packet_size = packet.data().len();
     let packet_span = tracing::info_span!(
@@ -443,7 +528,7 @@ fn process_packet(
         Ok((consumed_bytes, parsed)) => (consumed_bytes, parsed),
         Err(e) => {
             error!(error = ?e, "failed to decode packet");
-            return;
+            return None;
         },
     };
 
@@ -456,9 +541,7 @@ fn process_packet(
     }
 
     if parsed.opcode() == GroupEntitySpawnStart::ID {
-        let Some(spawn) = parsed.as_packet::<GroupEntitySpawnStart>() else {
-            return;
-        };
+        let spawn = parsed.as_packet::<GroupEntitySpawnStart>()?;
         context.set::<GroupEntityType>(spawn.kind.into());
         context.set(GroupEntitySpawnCount(spawn.amount as usize));
     } else if parsed.opcode() == LevelUpEffect::ID {
@@ -467,8 +550,30 @@ fn process_packet(
         context.unset::<DidLevelUp>();
     }
 
+    let agent_endpoint = successful_login_endpoint(&parsed);
+
     if opcode.is_none_or(|opcode| opcode == packet_opcode) {
         display_packet(parsed);
+    }
+
+    agent_endpoint
+}
+
+fn successful_login_endpoint(packet: &DynamicPacket) -> Option<SocketAddr> {
+    let response = packet.as_packet::<LoginResponse>()?;
+    let LoginResult::Success {
+        agent_ip, agent_port, ..
+    } = &response.result
+    else {
+        return None;
+    };
+
+    match agent_ip.parse::<IpAddr>() {
+        Ok(agent_ip) => Some(SocketAddr::new(agent_ip, *agent_port)),
+        Err(error) => {
+            warn!(agent_ip, error = %error, "successful login contained an invalid agent IP address");
+            None
+        },
     }
 }
 
@@ -523,6 +628,7 @@ fn display_packet(packet: DynamicPacket) {
             PerformAction,
             FrameworkStateUpdate,
             FrameworkStateRequest,
+            LoginResponse,
             UnTargetEntity,
             UpdateGameGuide,
             CharacterListRequest,
@@ -585,6 +691,7 @@ fn display_packet(packet: DynamicPacket) {
 mod tests {
     use super::*;
     use bytes::Bytes;
+    use etherparse::PacketBuilder;
     use skrillax_codec::SilkroadFrame;
 
     fn serialize(frame: SilkroadFrame) -> Bytes {
@@ -598,6 +705,92 @@ mod tests {
             opcode,
             data: Bytes::from_static(data),
         })
+    }
+
+    fn tcp_packet(source_ip: [u8; 4], source_port: u16, destination_ip: [u8; 4], destination_port: u16) -> Vec<u8> {
+        let builder = PacketBuilder::ethernet2([1; 6], [2; 6])
+            .ipv4(source_ip, destination_ip, 20)
+            .tcp(source_port, destination_port, 1, 1024);
+        let mut bytes = Vec::with_capacity(builder.size(0));
+        builder.write(&mut bytes, &[]).unwrap();
+        bytes
+    }
+
+    fn match_tcp_packet(filter: &CaptureFilter, bytes: &[u8]) -> Option<MatchedPacket> {
+        let packet = SlicedPacket::from_ethernet(bytes).unwrap();
+        filter.match_packet(&packet)
+    }
+
+    #[test]
+    fn cli_defaults_to_gateway_port_without_an_agent_port() {
+        let cli = Cli::try_parse_from(["packet-display", "--silkroad-dir", "/tmp/silkroad", "capture.pcap"]).unwrap();
+
+        assert_eq!(cli.gateway_port, 15779);
+        assert_eq!(cli.agent_port, None);
+    }
+
+    #[test]
+    fn gateway_filter_matches_both_directions_by_port() {
+        let filter = CaptureFilter::new(15779, None);
+        let server_packet = tcp_packet([10, 0, 0, 2], 15779, [10, 0, 0, 1], 40000);
+        let client_packet = tcp_packet([10, 0, 0, 1], 40000, [10, 0, 0, 2], 15779);
+
+        let server_match = match_tcp_packet(&filter, &server_packet).unwrap();
+        let client_match = match_tcp_packet(&filter, &client_packet).unwrap();
+
+        assert_eq!(server_match.direction, Direction::ServerToClient);
+        assert_eq!(client_match.direction, Direction::ClientToServer);
+        assert_eq!(server_match.connection, client_match.connection);
+    }
+
+    #[test]
+    fn configured_agent_port_is_filtered_without_a_login_response() {
+        let filter = CaptureFilter::new(15779, Some(15780));
+        let packet = tcp_packet([10, 0, 0, 1], 40000, [10, 0, 0, 2], 15780);
+
+        let matched = match_tcp_packet(&filter, &packet).unwrap();
+
+        assert_eq!(matched.direction, Direction::ClientToServer);
+        assert_eq!(matched.connection.server, "10.0.0.2:15780".parse().unwrap());
+    }
+
+    #[test]
+    fn learned_agent_endpoints_are_exact_and_idempotent() {
+        let mut filter = CaptureFilter::new(15779, None);
+        let first_endpoint = "10.0.0.2:15780".parse().unwrap();
+        let second_endpoint = "10.0.0.3:15781".parse().unwrap();
+
+        assert!(filter.add_agent_endpoint(first_endpoint));
+        assert!(!filter.add_agent_endpoint(first_endpoint));
+        assert!(filter.add_agent_endpoint(second_endpoint));
+
+        let first = tcp_packet([10, 0, 0, 2], 15780, [10, 0, 0, 1], 40000);
+        let second = tcp_packet([10, 0, 0, 1], 40001, [10, 0, 0, 3], 15781);
+        let same_port_different_ip = tcp_packet([10, 0, 0, 4], 15780, [10, 0, 0, 1], 40002);
+
+        assert_eq!(
+            match_tcp_packet(&filter, &first).unwrap().direction,
+            Direction::ServerToClient
+        );
+        assert_eq!(
+            match_tcp_packet(&filter, &second).unwrap().direction,
+            Direction::ClientToServer
+        );
+        assert!(match_tcp_packet(&filter, &same_port_different_ip).is_none());
+    }
+
+    #[test]
+    fn successful_login_supplies_the_agent_endpoint() {
+        let packet = DynamicPacket::from(LoginResponse::new(LoginResult::success(
+            42,
+            "10.0.0.2".to_owned(),
+            15780,
+        )));
+
+        assert_eq!(
+            successful_login_endpoint(&packet),
+            Some("10.0.0.2:15780".parse().unwrap())
+        );
     }
 
     #[test]
