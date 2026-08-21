@@ -1,3 +1,4 @@
+use crate::combat::SkillCastType::Attack;
 use crate::movement::Location;
 use bytes::BytesMut;
 use skrillax_packet::Packet;
@@ -74,7 +75,6 @@ pub enum PerformActionResponse {
 #[derive(Serialize, ByteSize, Clone, Debug)]
 pub struct DamageContent {
     pub damage_instances: u8,
-    #[silkroad(list_type = "length")]
     pub entities: Vec<PerEntityDamage>,
 }
 
@@ -175,6 +175,14 @@ impl DamageValue {
 pub enum SkillPartDamage {
     #[silkroad(value = 0)]
     Default(DamageValue),
+    #[silkroad(value = 1)]
+    Damage(DamageValue),
+    #[silkroad(value = 0x02)]
+    Block,
+    #[silkroad(value = 0x04)]
+    KnockDown(DamageValue),
+    #[silkroad(value = 0x05)]
+    Knockback(DamageValue),
     #[silkroad(value = 0x80)]
     KillingBlow(DamageValue),
     #[silkroad(value = 0x08)]
@@ -218,9 +226,17 @@ pub enum ActionType {
     #[silkroad(value = 0)]
     None,
     #[silkroad(value = 1)]
-    Attack { damage: Option<DamageContent> },
+    Attack { damage: DamageContent },
     #[silkroad(value = 8)]
     Teleport,
+}
+
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Debug)]
+pub enum SkillCastType {
+    #[silkroad(value = 0)]
+    Buff,
+    #[silkroad(value = 2)]
+    Attack,
 }
 
 #[derive(Serialize, ByteSize, Deserialize, Clone, Packet, Debug)]
@@ -228,12 +244,14 @@ pub enum ActionType {
 pub enum PerformActionUpdate {
     #[silkroad(value = 1)]
     Success {
-        unknown: u16, // 0x3002 | 0x3000
+        cast_type: SkillCastType,
+        unknown: u8, // 0x30
         skill_id: u32,
         source: u32,
         instance: u32,
         unknown_4: u32, // (0x27ef2b , 0x47c1f) 261713 0?
         target: u32,
+        unknown_5: u8,
         kind: ActionType,
     },
     #[silkroad(value = 2)]
@@ -243,12 +261,14 @@ pub enum PerformActionUpdate {
 impl PerformActionUpdate {
     pub fn success(skill_id: u32, source: u32, target: u32, instance: u32, kind: ActionType) -> Self {
         PerformActionUpdate::Success {
-            unknown: 0x3002,
+            cast_type: Attack,
+            unknown: 0x30,
             skill_id,
             source,
             instance,
             unknown_4: 0,
             target,
+            unknown_5: 1,
             kind,
         }
     }
@@ -279,9 +299,9 @@ pub trait CombatPacketRegistryExt {
 
 impl CombatPacketRegistryExt for PacketRegistryBuilder {
     fn register_combat_packets(self) -> Self {
-        self.register_incoming::<PerformAction>()
-            .register_outgoing::<PerformActionResponse>()
-            .register_outgoing::<PerformActionUpdate>()
-            .register_outgoing::<ReceiveExperience>()
+        self.register::<PerformAction>()
+            .register::<PerformActionResponse>()
+            .register::<PerformActionUpdate>()
+            .register::<ReceiveExperience>()
     }
 }

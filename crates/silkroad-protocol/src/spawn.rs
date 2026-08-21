@@ -829,13 +829,13 @@ pub trait SpawnPacketRegistryExt {
 
 impl SpawnPacketRegistryExt for PacketRegistryBuilder {
     fn register_spawn_packets(self) -> Self {
-        self.register_outgoing::<CharacterSpawnStart>()
-            .register_outgoing::<CharacterSpawn>()
-            .register_outgoing::<CharacterSpawnEnd>()
-            .register_outgoing::<EntityDespawn>()
-            .register_outgoing::<EntitySpawn>()
-            .register_outgoing::<GroupEntitySpawnStart>()
-            .register_outgoing::<GroupEntitySpawnData>()
-            .register_outgoing::<GroupEntitySpawnEnd>()
+        self.register::<CharacterSpawnStart>()
+            .register::<CharacterSpawn>()
+            .register::<CharacterSpawnEnd>()
+            .register::<EntityDespawn>()
+            .register::<EntitySpawn>()
+            .register::<GroupEntitySpawnStart>()
+            .register::<GroupEntitySpawnData>()
+            .register::<GroupEntitySpawnEnd>()
     }
 }

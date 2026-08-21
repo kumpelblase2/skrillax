@@ -485,6 +485,66 @@ impl QueueUpdate {
     }
 }
 
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x2005)]
+pub struct FrameworkStateUpdate {
+    pub flag: u8,
+    #[silkroad(when = "flag & 0x01 != 0")]
+    pub server_body: Option<FrameworkStateServerBodyCont>,
+    #[silkroad(when = "flag & 0x02 != 0")]
+    pub server_cord: Option<FrameworkStateServerCordCont>,
+}
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
+pub struct FrameworkStateServerBodyCont {
+    pub _empty: u8,
+    #[silkroad(list_type = "break")]
+    pub inner: Vec<FrameworkStateServerBody>,
+}
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
+pub struct FrameworkStateServerBody {
+    pub id: u16,
+    pub state: u32,
+}
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
+pub struct FrameworkStateServerCordCont {
+    pub _empty: u8,
+    #[silkroad(list_type = "break")]
+    pub inner: Vec<FrameworkStateServerCord>,
+}
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
+pub struct FrameworkStateServerCord {
+    pub cord: u32,
+    pub state: u32,
+}
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
+#[packet(opcode = 0x6005)]
+pub struct FrameworkStateRequest {
+    pub flag: u8,
+    #[silkroad(when = "flag & 0x01 != 0")]
+    pub server_body: Option<FrameworkRequestServerBodyCont>,
+    #[silkroad(when = "flag & 0x02 != 0")]
+    pub server_cord: Option<FrameworkRequestServerCordCont>,
+}
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
+pub struct FrameworkRequestServerBodyCont {
+    pub _empty: u8,
+    #[silkroad(list_type = "break")]
+    pub inner: Vec<u32>,
+}
+
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
+pub struct FrameworkRequestServerCordCont {
+    pub _empty: u8,
+    #[silkroad(list_type = "break")]
+    pub inner: Vec<u32>,
+}
+
 #[derive(Packet, Serialize, Deserialize, ByteSize, Clone, Debug)]
 #[packet(opcode = 0x3013)]
 pub struct TempCharacterData {

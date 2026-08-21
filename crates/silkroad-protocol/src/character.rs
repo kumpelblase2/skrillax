@@ -4,6 +4,7 @@ use skrillax_stream::registry::PacketRegistryBuilder;
 use std::fmt::{Debug, Formatter};
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, Deserialize, ByteSize, Debug)]
+#[silkroad(after_deserialize = "mark_character_list_action")]
 pub enum CharacterListAction {
     #[silkroad(value = 1)]
     Create,
@@ -19,6 +20,16 @@ pub enum CharacterListAction {
     ShowJobSpread,
     #[silkroad(value = 0x10)]
     AssignJob,
+}
+
+fn mark_character_list_action(action: &CharacterListAction, ctx: &SerdeContext) -> Result<(), SerializationError> {
+    let kind = match action {
+        CharacterListAction::List => CharacterListRequestType::CharacterList,
+        CharacterListAction::ShowJobSpread => CharacterListRequestType::ShowSpread,
+        _ => CharacterListRequestType::Empty,
+    };
+    ctx.set(kind);
+    Ok(())
 }
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Deserialize, Serialize, ByteSize, Debug)]
@@ -83,12 +94,18 @@ impl CharacterListContent {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Debug)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
+#[silkroad(after_deserialize = "after_list_result")]
 pub enum CharacterListResult {
     #[silkroad(value = 1)]
     Ok { content: CharacterListContent },
     #[silkroad(value = 2)]
-    Error { error: CharacterListError },
+    Failure { error: CharacterListError },
+}
+
+fn after_list_result(_result: &CharacterListResult, ctx: &SerdeContext) -> Result<(), SerializationError> {
+    ctx.unset::<CharacterListRequestType>();
+    Ok(())
 }
 
 impl CharacterListResult {
@@ -97,7 +114,7 @@ impl CharacterListResult {
     }
 
     pub fn error(error: CharacterListError) -> Self {
-        CharacterListResult::Error { error }
+        CharacterListResult::Failure { error }
     }
 }
 
@@ -313,7 +330,7 @@ impl CharacterListEntry {
     }
 }
 
-#[derive(Clone, Serialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
 #[packet(opcode = 0xB007)]
 #[silkroad(before_serialize = "track_result", after_serialize = "unset_result")]
 pub struct CharacterListResponse {
@@ -493,14 +510,14 @@ pub trait CharacterPacketRegistryExt {
 
 impl CharacterPacketRegistryExt for PacketRegistryBuilder {
     fn register_character_packets(self) -> Self {
-        self.register_incoming::<CharacterListRequest>()
-            .register_incoming::<CharacterJoinRequest>()
-            .register_incoming::<FinishLoading>()
-            .register_outgoing::<CharacterListResponse>()
-            .register_outgoing::<CharacterJoinResponse>()
-            .register_outgoing::<CharacterStatsMessage>()
-            .register_outgoing::<UnknownPacket>()
-            .register_outgoing::<UnknownPacket2>()
-            .register_outgoing::<MacroStatus>()
+        self.register::<CharacterListRequest>()
+            .register::<CharacterJoinRequest>()
+            .register::<FinishLoading>()
+            .register::<CharacterListResponse>()
+            .register::<CharacterJoinResponse>()
+            .register::<CharacterStatsMessage>()
+            .register::<UnknownPacket>()
+            .register::<UnknownPacket2>()
+            .register::<MacroStatus>()
     }
 }

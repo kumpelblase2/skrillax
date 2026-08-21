@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 skrillax-stream.workspace = true
 skrillax-packet.workspace = true
+skrillax-security = "0.2"
 silkroad-protocol = { path = "../crates/silkroad-protocol", features = ["v594"] }
 silkroad-data = { path = "../crates/silkroad-data" }
 silkroad-definitions = { path = "../crates/silkroad-definitions" }

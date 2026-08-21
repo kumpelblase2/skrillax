@@ -87,10 +87,10 @@ pub trait SkillPacketRegistryExt {
 
 impl SkillPacketRegistryExt for PacketRegistryBuilder {
     fn register_skill_packets(self) -> Self {
-        self.register_incoming::<LearnSkill>()
-            .register_outgoing::<LearnSkillResponse>()
-            .register_incoming::<LevelUpMastery>()
-            .register_outgoing::<LevelUpMasteryResponse>()
-            .register_incoming::<HotbarUpdate>()
+        self.register::<LearnSkill>()
+            .register::<LearnSkillResponse>()
+            .register::<LevelUpMastery>()
+            .register::<LevelUpMasteryResponse>()
+            .register::<HotbarUpdate>()
     }
 }

@@ -185,10 +185,10 @@ pub trait MovementPacketRegistryExt {
 
 impl MovementPacketRegistryExt for PacketRegistryBuilder {
     fn register_movement_packets(self) -> Self {
-        self.register_incoming::<PlayerMovementRequest>()
-            .register_incoming::<Rotation>()
-            .register_outgoing::<PlayerMovementResponse>()
-            .register_outgoing::<EntityMovementInterrupt>()
-            .register_outgoing::<ChangeSpeed>()
+        self.register::<PlayerMovementRequest>()
+            .register::<Rotation>()
+            .register::<PlayerMovementResponse>()
+            .register::<EntityMovementInterrupt>()
+            .register::<ChangeSpeed>()
     }
 }

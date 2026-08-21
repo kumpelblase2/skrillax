@@ -472,11 +472,11 @@ pub trait InventoryPacketRegistryExt {
 
 impl InventoryPacketRegistryExt for PacketRegistryBuilder {
     fn register_inventory_packets(self) -> Self {
-        self.register_incoming::<OpenItemMall>()
-            .register_incoming::<InventoryOperation>()
-            .register_incoming::<ConsignmentList>()
-            .register_outgoing::<OpenItemMallResponse>()
-            .register_outgoing::<ConsignmentResponse>()
-            .register_outgoing::<InventoryOperationResult>()
+        self.register::<OpenItemMall>()
+            .register::<InventoryOperation>()
+            .register::<ConsignmentList>()
+            .register::<OpenItemMallResponse>()
+            .register::<ConsignmentResponse>()
+            .register::<InventoryOperationResult>()
     }
 }

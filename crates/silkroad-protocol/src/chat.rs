@@ -187,9 +187,9 @@ pub trait ChatPacketRegistryExt {
 
 impl ChatPacketRegistryExt for PacketRegistryBuilder {
     fn register_chat_packets(self) -> Self {
-        self.register_incoming::<ChatMessage>()
-            .register_outgoing::<ChatMessageResponse>()
-            .register_outgoing::<ChatUpdate>()
-            .register_outgoing::<TextCharacterInitialization>()
+        self.register::<ChatMessage>()
+            .register::<ChatMessageResponse>()
+            .register::<ChatUpdate>()
+            .register::<TextCharacterInitialization>()
     }
 }

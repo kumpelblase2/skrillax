@@ -295,12 +295,12 @@ pub trait AuthPacketRegistryExt {
 
 impl AuthPacketRegistryExt for PacketRegistryBuilder {
     fn register_auth_packets(self) -> Self {
-        self.register_incoming::<AuthRequest>()
-            .register_outgoing::<AuthResponse>()
-            .register_incoming::<LogoutRequest>()
-            .register_outgoing::<LogoutResponse>()
-            .register_outgoing::<LogoutFinished>()
-            .register_outgoing::<Disconnect>()
+        self.register::<AuthRequest>()
+            .register::<AuthResponse>()
+            .register::<LogoutRequest>()
+            .register::<LogoutResponse>()
+            .register::<LogoutFinished>()
+            .register::<Disconnect>()
             .register::<UnknownLargePacket>()
     }
 }

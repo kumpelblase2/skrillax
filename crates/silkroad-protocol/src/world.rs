@@ -1,4 +1,3 @@
-use crate::movement::MovementType;
 use skrillax_packet::Packet;
 use skrillax_serde::*;
 use skrillax_stream::registry::PacketRegistryBuilder;
@@ -80,7 +79,7 @@ pub enum BodyState {
     #[silkroad(value = 0)]
     None,
     #[silkroad(value = 1)]
-    Berserk,
+    Berserk { enhanced: bool },
     #[silkroad(value = 2)]
     Untouchable,
     #[silkroad(value = 3)]
@@ -322,12 +321,24 @@ impl GameNotification {
     }
 }
 
+#[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Serialize, ByteSize, Deserialize, Debug)]
+pub enum MovementTypeUpdate {
+    #[silkroad(value = 3)]
+    Running,
+    #[silkroad(value = 2)]
+    Walking,
+    #[silkroad(value = 0)]
+    Standing,
+    #[silkroad(value = 4)]
+    Sitting,
+}
+
 #[derive(Copy, Clone, Serialize, ByteSize, Deserialize, Debug)]
 pub enum UpdatedState {
     #[silkroad(value = 0)]
     Life(AliveState),
     #[silkroad(value = 1)]
-    Movement(MovementType),
+    Movement(MovementTypeUpdate),
     #[silkroad(value = 4)]
     Body(BodyState),
     #[silkroad(value = 7)]
@@ -353,7 +364,7 @@ impl EntityUpdateState {
         }
     }
 
-    pub fn movement(unique_id: u32, new: MovementType) -> Self {
+    pub fn movement(unique_id: u32, new: MovementTypeUpdate) -> Self {
         EntityUpdateState {
             unique_id,
             update: UpdatedState::Movement(new),
@@ -532,16 +543,42 @@ pub enum IncreaseIntResponse {
     Failure(u16),
 }
 
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Debug, Packet)]
+#[packet(opcode = 0x30d6)]
+pub struct AddQuestMarker {
+    pub marker_id: u32,
+    pub quest_id: u32,
+    pub unknown: u8,
+    pub kind: QuestMarkLevel,
+    pub region: u16,
+    pub x: u32,
+    pub y: u32,
+    pub z: u32,
+    pub npc_unique_id: u32,
+}
+
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Debug)]
+pub enum QuestMarkLevel {
+    #[silkroad(value = 1)]
+    New,
+    #[silkroad(value = 2)]
+    Open,
+    #[silkroad(value = 3)]
+    Complete,
+    #[silkroad(value = 4)]
+    Hard,
+}
+
 pub trait StatPacketRegistryExt {
     fn register_stat_packets(self) -> Self;
 }
 
 impl StatPacketRegistryExt for PacketRegistryBuilder {
     fn register_stat_packets(self) -> Self {
-        self.register_incoming::<IncreaseStr>()
-            .register_incoming::<IncreaseInt>()
-            .register_outgoing::<IncreaseStrResponse>()
-            .register_outgoing::<IncreaseIntResponse>()
+        self.register::<IncreaseStr>()
+            .register::<IncreaseInt>()
+            .register::<IncreaseStrResponse>()
+            .register::<IncreaseIntResponse>()
     }
 }
 
@@ -551,16 +588,19 @@ pub trait WorldPacketRegistryExt {
 
 impl WorldPacketRegistryExt for PacketRegistryBuilder {
     fn register_world_packets(self) -> Self {
-        self.register_incoming::<TargetEntity>()
-            .register_incoming::<UnTargetEntity>()
-            .register_incoming::<UpdateGameGuide>()
-            .register_outgoing::<TargetEntityResponse>()
-            .register_outgoing::<UnTargetEntityResponse>()
-            .register_outgoing::<EntityBarsUpdate>()
-            .register_outgoing::<LevelUpEffect>()
-            .register_outgoing::<PlayerPickupAnimation>()
-            .register_outgoing::<GameGuideResponse>()
-            .register_outgoing::<EntityUpdateState>()
-            .register_outgoing::<CharacterPointsUpdate>()
+        self.register::<TargetEntity>()
+            .register::<UnTargetEntity>()
+            .register::<UpdateGameGuide>()
+            .register::<TargetEntityResponse>()
+            .register::<UnTargetEntityResponse>()
+            .register::<EntityBarsUpdate>()
+            .register::<LevelUpEffect>()
+            .register::<PlayerPickupAnimation>()
+            .register::<GameGuideResponse>()
+            .register::<EntityUpdateState>()
+            .register::<CharacterPointsUpdate>()
+            .register::<AddQuestMarker>()
+            .register::<WeatherUpdate>()
+            .register::<CharacterFinished>()
     }
 }

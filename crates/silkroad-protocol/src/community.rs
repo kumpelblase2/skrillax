@@ -120,9 +120,9 @@ pub trait CommunityPacketRegistryExt {
 
 impl CommunityPacketRegistryExt for PacketRegistryBuilder {
     fn register_community_packets(self) -> Self {
-        self.register_outgoing::<FriendListInfo>()
-            .register_incoming::<AddFriend>()
-            .register_incoming::<CreateFriendGroup>()
-            .register_incoming::<DeleteFriend>()
+        self.register::<FriendListInfo>()
+            .register::<AddFriend>()
+            .register::<CreateFriendGroup>()
+            .register::<DeleteFriend>()
     }
 }
