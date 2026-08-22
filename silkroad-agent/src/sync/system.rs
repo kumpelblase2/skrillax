@@ -17,12 +17,12 @@ use silkroad_game_base::{Heading, LocalPosition, MovementSpeed};
 use silkroad_protocol::character::CharacterStatsMessage;
 use silkroad_protocol::combat::ReceiveExperience;
 use silkroad_protocol::movement::{
-    EntityMovementInterrupt, MovementDestination, MovementSource, MovementType, PlayerMovementResponse,
+    EntityMovementInterrupt, MovementDestination, MovementSource, PlayerMovementResponse,
 };
 use silkroad_protocol::skill::LevelUpMasteryResponse;
 use silkroad_protocol::world::{
     AliveState, BodyState, CharacterPointsUpdate, EntityBarUpdateSource, EntityBarUpdates, EntityBarsUpdate,
-    EntityUpdateState, LevelUpEffect, PlayerPickupAnimation, UpdatedState,
+    EntityUpdateState, LevelUpEffect, MovementTypeUpdate, PlayerPickupAnimation, UpdatedState,
 };
 use std::ops::Deref;
 
@@ -316,8 +316,8 @@ pub(crate) fn collect_movement_speed_change(
         let update = EntityUpdateState {
             unique_id: game_entity.unique_id,
             update: UpdatedState::Movement(match state.deref() {
-                MovementSpeed::Running | MovementSpeed::Berserk => MovementType::Running,
-                MovementSpeed::Walking => MovementType::Walking,
+                MovementSpeed::Running | MovementSpeed::Berserk => MovementTypeUpdate::Running,
+                MovementSpeed::Walking => MovementTypeUpdate::Walking,
             }),
         };
         collector.send_update(Update::update_all(entity, update));

@@ -1,5 +1,5 @@
 use crate::comp::net::{Client, LastAction};
-use crate::config::GameConfig;
+use crate::config::{get_config, GameConfig};
 use crate::event::ClientDisconnectedEvent;
 use crate::input::events::PlayerInputEvent;
 use bevy::prelude::*;
@@ -114,16 +114,17 @@ pub(crate) fn handle_packet_inputs(
     }
 }
 
-fn send_identity_information(client: &Client) {
-    client.send(IdentityInformation::new("AgentServer".to_string(), 0))
+fn send_identity_information(client: &Client, port: u16) {
+    client.send(IdentityInformation::new_agent(0, port))
 }
 
 pub(crate) fn handle_identity_information(
     mut reader: MessageReader<PlayerInputEvent<IdentityInformation>>,
     query: Query<&Client>,
 ) {
+    let port = get_config().listen_port;
     reader.read().for_each(|event| {
         let client = query.get(event.player).unwrap();
-        send_identity_information(client);
+        send_identity_information(client, port);
     });
 }

@@ -60,13 +60,13 @@ pub(crate) fn handle_damage(
                 damage_event.target.1.unique_id,
                 damage_event.attack.instance,
                 ActionType::Attack {
-                    damage: Some(DamageContent {
+                    damage: DamageContent {
                         damage_instances: 1,
                         entities: vec![PerEntityDamage {
                             target: damage_event.target.1.unique_id,
                             damage: vec![damage_data],
                         }],
-                    }),
+                    },
                 },
             ));
         } else if let Some(client) = maybe_client {
@@ -76,13 +76,13 @@ pub(crate) fn handle_damage(
                 damage_event.target.1.unique_id,
                 damage_event.attack.instance,
                 ActionType::Attack {
-                    damage: Some(DamageContent {
+                    damage: DamageContent {
                         damage_instances: 1,
                         entities: vec![PerEntityDamage {
                             target: damage_event.target.1.unique_id,
                             damage: vec![damage_data],
                         }],
-                    }),
+                    },
                 },
             ));
         }

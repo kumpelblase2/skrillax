@@ -66,10 +66,7 @@ impl Client {
                         }
                     } else if let Some(identity) = packet.as_packet::<IdentityInformation>() {
                         debug!(module = ?identity.module_name, local = identity.locality, "Client application identity");
-                            connection.send(IdentityInformation {
-                                module_name: "GatewayServer".to_string(),
-                                locality: 0,
-                            })?;
+                        connection.send(IdentityInformation::new("GatewayServer".to_string(),0))?;
                     } else if packet.as_packet::<GatewayNoticeRequest>().is_some() {
                         let mut news = news.lock().await;
                             let news = news.get_news().await;

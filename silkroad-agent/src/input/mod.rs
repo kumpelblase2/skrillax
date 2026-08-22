@@ -9,7 +9,7 @@ use silkroad_protocol::character::{CharacterJoinRequest, CharacterListRequest, F
 use silkroad_protocol::chat::ChatMessage;
 use silkroad_protocol::combat::PerformAction;
 use silkroad_protocol::gm::GmCommand;
-use silkroad_protocol::inventory::{ConsignmentList, InventoryOperation, InventoryOperationRequest, OpenItemMall};
+use silkroad_protocol::inventory::{ConsignmentList, InventoryOperation, OpenItemMall};
 use silkroad_protocol::movement::{PlayerMovementRequest, Rotation};
 use silkroad_protocol::skill::{HotbarUpdate, LearnSkill, LevelUpMastery};
 use silkroad_protocol::world::{
