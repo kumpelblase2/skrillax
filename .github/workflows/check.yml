@@ -25,5 +25,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+      - name: install libpcap
+        run: sudo apt-get update && sudo apt-get install --yes libpcap-dev
       - name: cargo clippy
         run: cargo clippy
