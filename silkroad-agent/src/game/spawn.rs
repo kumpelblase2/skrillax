@@ -10,7 +10,7 @@ use crate::event::SpawnMonster;
 use crate::ext::{EntityIdPool, Navmesh};
 use crate::world::WorldData;
 use bevy::prelude::*;
-use rand::{rng, Rng};
+use rand::{rng, RngExt};
 use silkroad_definitions::rarity::EntityRarityType;
 use silkroad_game_base::Heading;
 use tracing::debug;

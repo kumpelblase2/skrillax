@@ -4,7 +4,7 @@ use crate::comp::{Despawn, EntityReference, GameEntity};
 use crate::ext::{EntityIdPool, Navmesh};
 use bevy::prelude::*;
 use derive_more::Constructor;
-use rand::Rng;
+use rand::RngExt;
 use silkroad_data::DataEntry;
 use silkroad_game_base::{GlobalLocation, GlobalPosition, Heading, Item, Vector2Ext};
 

@@ -7,7 +7,7 @@ use crate::server_plugin::ServerId;
 use crate::tasks::TaskCreator;
 use bevy::prelude::*;
 use rand::distr::Alphanumeric;
-use rand::{rng, Rng};
+use rand::{rng, RngExt};
 use silkroad_protocol::inventory::{OpenItemMallResponse, OpenItemMallResult};
 use sqlx::PgPool;
 use tracing::debug;

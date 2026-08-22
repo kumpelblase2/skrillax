@@ -40,7 +40,7 @@ use bevy::prelude::*;
 use bevy::time::TimePlugin;
 use login::web::WebServer;
 use rand::distr::Alphanumeric;
-use rand::{rng, Rng};
+use rand::{rng, RngExt};
 use silkroad_agent_persistence::{CharacterPersistence, ServerPersistence, ServerRegistration, UserPersistence};
 use std::net::SocketAddr;
 use std::str::FromStr;

@@ -6,7 +6,7 @@ use crate::comp::pos::Position;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Health};
 use bevy::prelude::*;
-use rand::{rng, Rng};
+use rand::{rng, RngExt};
 use silkroad_definitions::rarity::EntityRarity;
 use silkroad_game_base::GlobalLocation;
 use std::ops::Range;

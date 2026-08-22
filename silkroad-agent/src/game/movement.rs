@@ -4,7 +4,7 @@ use crate::comp::monster::RandomStroll;
 use crate::comp::pos::Position;
 use crate::ext::Navmesh;
 use bevy::prelude::*;
-use rand::{rng, Rng};
+use rand::{rng, RngExt};
 use silkroad_game_base::{GlobalLocation, Vector2Ext};
 use std::time::Duration;
 

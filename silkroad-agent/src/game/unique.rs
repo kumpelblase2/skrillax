@@ -6,7 +6,7 @@ use crate::event::{SpawnMonster, UniqueKilledEvent};
 use crate::ext::NpcPositionList;
 use bevy::prelude::*;
 use rand::prelude::IteratorRandom;
-use rand::{rng, Rng};
+use rand::{rng, RngExt};
 use silkroad_definitions::rarity::EntityRarityType;
 use silkroad_game_base::NpcPosExt;
 use silkroad_protocol::world::GameNotification;

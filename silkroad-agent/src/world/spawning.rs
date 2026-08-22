@@ -15,7 +15,7 @@ use crate::world::WorldData;
 use bevy::prelude::*;
 use cgmath::Vector3;
 use id_pool::IdPool;
-use rand::Rng;
+use rand::RngExt;
 use silkroad_data::characterdata::RefCharacterData;
 use silkroad_data::DataEntry;
 use silkroad_definitions::rarity::EntityRarityType;
