@@ -319,7 +319,7 @@ impl PatchResponse {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Serialize, Deserialize, ByteSize, Packet)]
 #[packet(opcode = 0x610A)]
 pub struct LoginRequest {
     pub unknown_1: u8,
@@ -327,6 +327,18 @@ pub struct LoginRequest {
     pub password: String,
     pub shard_id: u16,
     pub unknown_2: u8,
+}
+
+impl std::fmt::Debug for LoginRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LoginRequest")
+            .field("unknown_1", &self.unknown_1)
+            .field("username", &self.username)
+            .field("password", &"[REDACTED]")
+            .field("shard_id", &self.shard_id)
+            .field("unknown_2", &self.unknown_2)
+            .finish()
+    }
 }
 
 #[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
@@ -670,4 +682,26 @@ pub struct UnknownLargePacketDInner {
 pub struct UnknownLargePacketDInnerInner {
     pub index: u64,
     pub data: u32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn login_request_debug_redacts_password() {
+        let request = LoginRequest {
+            unknown_1: 1,
+            username: "test-user".to_owned(),
+            password: "login-password-canary".to_owned(),
+            shard_id: 7,
+            unknown_2: 2,
+        };
+
+        for output in [format!("{request:?}"), format!("{request:#?}")] {
+            assert!(!output.contains("login-password-canary"));
+            assert!(output.contains("[REDACTED]"));
+            assert!(output.contains("test-user"));
+        }
+    }
 }

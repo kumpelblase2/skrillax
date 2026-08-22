@@ -68,7 +68,7 @@ impl AuthResult {
     }
 }
 
-#[derive(Clone, ByteSize, Deserialize, Serialize, Packet, Debug)]
+#[derive(Clone, ByteSize, Deserialize, Serialize, Packet)]
 #[packet(opcode = 0x6103)]
 pub struct AuthRequest {
     pub token: u32,
@@ -76,6 +76,18 @@ pub struct AuthRequest {
     pub password: String,
     pub unknown: u8,
     pub mac_bytes: [u8; 6],
+}
+
+impl std::fmt::Debug for AuthRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuthRequest")
+            .field("token", &self.token)
+            .field("username", &self.username)
+            .field("password", &"[REDACTED]")
+            .field("unknown", &self.unknown)
+            .field("mac_bytes", &self.mac_bytes)
+            .finish()
+    }
 }
 
 #[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
@@ -302,5 +314,27 @@ impl AuthPacketRegistryExt for PacketRegistryBuilder {
             .register::<LogoutFinished>()
             .register::<Disconnect>()
             .register::<UnknownLargePacket>()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn auth_request_debug_redacts_password() {
+        let request = AuthRequest {
+            token: 42,
+            username: "test-user".to_owned(),
+            password: "auth-password-canary".to_owned(),
+            unknown: 1,
+            mac_bytes: [1, 2, 3, 4, 5, 6],
+        };
+
+        for output in [format!("{request:?}"), format!("{request:#?}")] {
+            assert!(!output.contains("auth-password-canary"));
+            assert!(output.contains("[REDACTED]"));
+            assert!(output.contains("test-user"));
+        }
     }
 }
