@@ -26,6 +26,8 @@ use skrillax_stream::registry::PacketRegistry;
 use skrillax_stream::stream::DynamicPacket;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+use std::io;
+use std::io::IsTerminal;
 use std::net::{IpAddr, SocketAddr};
 use std::path::PathBuf;
 use tokio_util::codec::Decoder;
@@ -240,7 +242,11 @@ impl ConnectionState {
 fn main() -> Result<()> {
     // Capture-relative timestamps are attached to packet events. Suppress the
     // wall-clock processing timestamp so it cannot be mistaken for capture time.
-    tracing_subscriber::fmt().without_time().with_target(false).init();
+    tracing_subscriber::fmt()
+        .without_time()
+        .with_target(false)
+        .with_ansi(io::stdout().is_terminal())
+        .init();
     color_eyre::install()?;
 
     let client_packet_registry = PacketRegistry::builder()
