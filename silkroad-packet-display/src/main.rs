@@ -1,6 +1,6 @@
 use bytes::BytesMut;
 use clap::Parser;
-use color_eyre::eyre::{Result, eyre};
+use color_eyre::eyre::{Report as EyreReport, Result, eyre};
 use etherparse::{SlicedPacket, TransportSlice};
 use pcap::Capture;
 use silkroad_data::characterdata::load_character_map;
@@ -36,11 +36,13 @@ use tracing::{debug, error, info, warn};
 mod capture_filter;
 mod packet_display;
 mod security;
+mod tcp_reassembly;
 
 use capture_filter::{CaptureFilter, ConnectionKey, Direction};
-use packet_display::display_packet;
+use packet_display::{HexDump, display_packet};
 use security::CaptureSecurity;
 use silkroad_gateway_protocol::{FrameworkStateRequest, FrameworkStateUpdate, LoginResponse, LoginResult};
+use tcp_reassembly::TcpReassembler;
 
 pub fn maybe_hex(s: &str) -> Result<u16, String> {
     const HEX_PREFIX: &str = "0x";
@@ -74,6 +76,10 @@ struct Cli {
 
     #[clap(long, value_parser=maybe_hex)]
     opcode: Option<u16>,
+
+    /// Show complete payload bytes for packets that fail decoding (may expose credentials)
+    #[clap(long)]
+    show_failed_bytes: bool,
 
     #[clap(long)]
     silkroad_dir: PathBuf,
@@ -139,10 +145,30 @@ impl Display for CaptureSeconds {
     }
 }
 
+#[derive(Debug)]
+struct PacketStreamError {
+    completed_packets: Vec<IncomingPacket>,
+    source: EyreReport,
+}
+
+impl PacketStreamError {
+    fn new(completed_packets: Vec<IncomingPacket>, source: EyreReport) -> Self {
+        Self {
+            completed_packets,
+            source,
+        }
+    }
+
+    fn into_parts(self) -> (Vec<IncomingPacket>, EyreReport) {
+        (self.completed_packets, self.source)
+    }
+}
+
 struct PacketStream {
     frame_buffer: BytesMut,
     codec: SilkroadCodec,
     reframer: IncomingPacketReframer,
+    failed: bool,
 }
 
 impl Default for PacketStream {
@@ -151,6 +177,7 @@ impl Default for PacketStream {
             frame_buffer: BytesMut::new(),
             codec: SilkroadCodec,
             reframer: IncomingPacketReframer::new(ReframingLimits::recommended()),
+            failed: false,
         }
     }
 }
@@ -158,19 +185,26 @@ impl Default for PacketStream {
 impl PacketStream {
     /// Adds one TCP payload and returns every logical packet completed by it.
     /// Incomplete frame and massive-packet data remains here for the next
-    /// payload from this same direction.
+    /// payload from this same direction. Fatal framing errors quarantine the
+    /// direction because decoding cannot safely resume at an arbitrary byte.
     fn push(
         &mut self,
         direction: Direction,
         payload: &[u8],
         security: &mut CaptureSecurity,
-    ) -> Result<Vec<IncomingPacket>> {
+    ) -> std::result::Result<Vec<IncomingPacket>, PacketStreamError> {
+        if self.failed {
+            return Ok(Vec::new());
+        }
+
         self.frame_buffer.extend_from_slice(payload);
         let mut packets = Vec::new();
 
         loop {
-            let Some(frame) = self.codec.decode(&mut self.frame_buffer)? else {
-                break;
+            let frame = match self.codec.decode(&mut self.frame_buffer) {
+                Ok(Some(frame)) => frame,
+                Ok(None) => break,
+                Err(error) => return Err(self.fail(packets, error.into())),
             };
 
             let packet = {
@@ -178,13 +212,20 @@ impl PacketStream {
                     Direction::ServerToClient => security.server_to_client_context(),
                     Direction::ClientToServer => security.client_to_server_context(),
                 };
-                self.reframer.push(&frame, context)?
+                match self.reframer.push(&frame, context) {
+                    Ok(packet) => packet,
+                    Err(error) => return Err(self.fail(packets, error.into())),
+                }
             };
 
             if let Some(packet) = packet {
-                match direction {
-                    Direction::ServerToClient => security.observe_server_packet(&packet)?,
-                    Direction::ClientToServer => security.observe_client_packet(&packet)?,
+                let observation = match direction {
+                    Direction::ServerToClient => security.observe_server_packet(&packet),
+                    Direction::ClientToServer => security.observe_client_packet(&packet),
+                };
+                if let Err(error) = observation {
+                    packets.push(packet);
+                    return Err(self.fail(packets, error));
                 }
                 packets.push(packet);
             }
@@ -192,11 +233,19 @@ impl PacketStream {
 
         Ok(packets)
     }
+
+    fn fail(&mut self, completed_packets: Vec<IncomingPacket>, source: EyreReport) -> PacketStreamError {
+        self.failed = true;
+        self.frame_buffer.clear();
+        PacketStreamError::new(completed_packets, source)
+    }
 }
 
 struct PacketStreams {
     server_to_client: PacketStream,
     client_to_server: PacketStream,
+    server_to_client_tcp: TcpReassembler,
+    client_to_server_tcp: TcpReassembler,
     security: CaptureSecurity,
 }
 
@@ -205,11 +254,37 @@ impl PacketStreams {
         Self {
             server_to_client: PacketStream::default(),
             client_to_server: PacketStream::default(),
+            server_to_client_tcp: TcpReassembler::default(),
+            client_to_server_tcp: TcpReassembler::default(),
             security: CaptureSecurity::new(brute_force_threads),
         }
     }
 
-    fn push(&mut self, direction: Direction, payload: &[u8]) -> Result<Vec<IncomingPacket>> {
+    fn push_tcp(
+        &mut self,
+        direction: Direction,
+        sequence_number: u32,
+        syn: bool,
+        fin: bool,
+        payload: &[u8],
+    ) -> std::result::Result<Vec<IncomingPacket>, PacketStreamError> {
+        let contiguous = match direction {
+            Direction::ServerToClient => self.server_to_client_tcp.push(sequence_number, syn, fin, payload),
+            Direction::ClientToServer => self.client_to_server_tcp.push(sequence_number, syn, fin, payload),
+        }
+        .map_err(|error| PacketStreamError::new(Vec::new(), error.into()))?;
+        self.push(direction, &contiguous)
+    }
+
+    fn is_finished(&self) -> bool {
+        self.server_to_client_tcp.is_finished() && self.client_to_server_tcp.is_finished()
+    }
+
+    fn push(
+        &mut self,
+        direction: Direction,
+        payload: &[u8],
+    ) -> std::result::Result<Vec<IncomingPacket>, PacketStreamError> {
         match direction {
             Direction::ServerToClient => self.server_to_client.push(direction, payload, &mut self.security),
             Direction::ClientToServer => self.client_to_server.push(direction, payload, &mut self.security),
@@ -223,19 +298,29 @@ impl Default for PacketStreams {
     }
 }
 
+const MAX_ACTIVE_CONNECTIONS: usize = 4096;
+
 struct ConnectionState {
     streams: PacketStreams,
     server_to_client_context: SerdeContext,
     client_to_server_context: SerdeContext,
+    opening_syn_sequence: Option<u32>,
+    last_seen_frame: u64,
 }
 
 impl ConnectionState {
-    fn new(brute_force_threads: usize) -> Self {
+    fn new(brute_force_threads: usize, opening_syn_sequence: Option<u32>, last_seen_frame: u64) -> Self {
         Self {
             streams: PacketStreams::new(brute_force_threads),
             server_to_client_context: SerdeContext::default(),
             client_to_server_context: SerdeContext::default(),
+            opening_syn_sequence,
+            last_seen_frame,
         }
+    }
+
+    fn starts_new_incarnation(&self, syn_sequence: u32) -> bool {
+        self.opening_syn_sequence != Some(syn_sequence)
     }
 }
 
@@ -327,8 +412,8 @@ fn main() -> Result<()> {
     let mut connections = HashMap::<ConnectionKey, ConnectionState>::new();
     let mut timeline = CaptureTimeline::default();
 
-    // Process each TCP payload immediately. Each direction retains only its
-    // own incomplete frame/logical packet while capture order moves on.
+    // Reassemble each TCP direction before retaining incomplete Silkroad
+    // frames or logical packets for the next contiguous bytes.
     while let Ok(captured_packet) = cap.next_packet() {
         let capture_timestamp_us = (captured_packet.header.ts.tv_sec as i64)
             .saturating_mul(1_000_000)
@@ -347,19 +432,55 @@ fn main() -> Result<()> {
         };
 
         let direction = matched.direction;
+        let content = tcp.payload();
+        if tcp.rst() {
+            connections.remove(&matched.connection);
+            debug!(?direction, "Reset TCP connection state");
+            continue;
+        }
+        if !connections.contains_key(&matched.connection) && content.is_empty() && !tcp.syn() {
+            // Do not recreate a normally closed connection for its final ACK.
+            continue;
+        }
+        if !connections.contains_key(&matched.connection)
+            && connections.len() >= MAX_ACTIVE_CONNECTIONS
+            && let Some(evicted) = connections
+                .iter()
+                .min_by_key(|(_, connection)| connection.last_seen_frame)
+                .map(|(&key, _)| key)
+        {
+            connections.remove(&evicted);
+            warn!(?evicted, "Evicted oldest TCP connection state");
+        }
+        if tcp.syn() && !tcp.ack() {
+            let starts_new_incarnation = connections
+                .get(&matched.connection)
+                .is_none_or(|connection| connection.starts_new_incarnation(tcp.sequence_number()));
+            if starts_new_incarnation {
+                connections.insert(
+                    matched.connection,
+                    ConnectionState::new(brute_force_threads, Some(tcp.sequence_number()), frame.number),
+                );
+            }
+        }
         let connection = connections
             .entry(matched.connection)
-            .or_insert_with(|| ConnectionState::new(brute_force_threads));
-        let content = tcp.payload();
+            .or_insert_with(|| ConnectionState::new(brute_force_threads, None, frame.number));
+        connection.last_seen_frame = frame.number;
 
         debug!(?direction, bytes = content.len(), "Processing TCP payload");
-        let packets = match connection.streams.push(direction, content) {
+        let packets = match connection
+            .streams
+            .push_tcp(direction, tcp.sequence_number(), tcp.syn(), tcp.fin(), content)
+        {
             Ok(packets) => packets,
-            Err(e) => {
-                error!(?direction, "Failed to process packet: {:?}", e);
-                continue;
+            Err(failure) => {
+                let (packets, error) = failure.into_parts();
+                error!(?direction, "Failed to process packet: {:?}", error);
+                packets
             },
         };
+        let connection_finished = connection.streams.is_finished();
         let context = match direction {
             Direction::ServerToClient => &connection.server_to_client_context,
             Direction::ClientToServer => &connection.client_to_server_context,
@@ -372,11 +493,17 @@ fn main() -> Result<()> {
 
         for packet in packets {
             let metadata = timeline.next_packet(frame, direction);
-            if let Some(agent_endpoint) = process_packet(packet, registry, context, cli.opcode, metadata)
+            if let Some(agent_endpoint) =
+                process_packet(packet, registry, context, cli.opcode, cli.show_failed_bytes, metadata)
                 && packet_filter.add_agent_endpoint(agent_endpoint)
             {
                 info!(%agent_endpoint, "Following agent endpoint announced by successful login");
             }
+        }
+
+        if connection_finished {
+            connections.remove(&matched.connection);
+            debug!(?direction, "Closed TCP connection state");
         }
     }
 
@@ -388,6 +515,7 @@ fn process_packet(
     registry: &PacketRegistry,
     context: &SerdeContext,
     opcode: Option<u16>,
+    show_failed_bytes: bool,
     metadata: PacketMetadata,
 ) -> Option<SocketAddr> {
     let packet_opcode = packet.opcode();
@@ -407,7 +535,11 @@ fn process_packet(
     let (consumed_bytes, parsed) = match registry.decode(packet_opcode, packet.data(), context) {
         Ok((consumed_bytes, parsed)) => (consumed_bytes, parsed),
         Err(e) => {
-            error!(error = ?e, "failed to decode packet");
+            if show_failed_bytes {
+                error!(error = ?e, payload = %HexDump(packet.data()), "failed to decode packet");
+            } else {
+                error!(error = ?e, "failed to decode packet");
+            }
             return None;
         },
     };
@@ -482,6 +614,21 @@ mod tests {
 
         assert_eq!(cli.gateway_port, 15779);
         assert_eq!(cli.agent_port, None);
+        assert!(!cli.show_failed_bytes);
+    }
+
+    #[test]
+    fn cli_can_enable_failed_packet_byte_output() {
+        let cli = Cli::try_parse_from([
+            "packet-display",
+            "--silkroad-dir",
+            "/tmp/silkroad",
+            "--show-failed-bytes",
+            "capture.pcap",
+        ])
+        .unwrap();
+
+        assert!(cli.show_failed_bytes);
     }
 
     #[test]
@@ -609,6 +756,191 @@ mod tests {
         assert_eq!(server_packets.len(), 1);
         assert_eq!(server_packets[0].opcode(), 0x1001);
         assert_eq!(server_packets[0].data(), b"massive packet");
+    }
+
+    #[test]
+    fn matching_opening_syn_is_a_retransmission_not_a_new_connection() {
+        let connection = ConnectionState::new(1, Some(99), 1);
+
+        assert!(!connection.starts_new_incarnation(99));
+        assert!(connection.starts_new_incarnation(100));
+    }
+
+    #[test]
+    fn duplicate_syn_with_payload_emits_a_silkroad_packet_once() {
+        let encoded = frame(0x1001, b"fast open");
+        let mut streams = PacketStreams::default();
+
+        let first = streams
+            .push_tcp(Direction::ClientToServer, 99, true, false, &encoded)
+            .unwrap();
+        let duplicate_syn = streams
+            .push_tcp(Direction::ClientToServer, 99, true, false, &encoded)
+            .unwrap();
+
+        assert_eq!(first.len(), 1);
+        assert_eq!(first[0].data(), b"fast open");
+        assert!(duplicate_syn.is_empty());
+    }
+
+    #[test]
+    fn tcp_retransmission_emits_a_silkroad_packet_once() {
+        let encoded = frame(0x1001, b"packet");
+        let mut streams = PacketStreams::default();
+
+        let first = streams
+            .push_tcp(Direction::ServerToClient, 100, false, false, &encoded)
+            .unwrap();
+        let retransmission = streams
+            .push_tcp(Direction::ServerToClient, 100, false, false, &encoded)
+            .unwrap();
+
+        assert_eq!(first.len(), 1);
+        assert_eq!(first[0].opcode(), 0x1001);
+        assert_eq!(first[0].data(), b"packet");
+        assert!(retransmission.is_empty());
+    }
+
+    #[test]
+    fn tcp_sequence_spaces_are_independent_in_each_direction() {
+        let server_frame = frame(0x1001, b"server");
+        let client_frame = frame(0x2002, b"client");
+        let mut streams = PacketStreams::default();
+
+        let server_packets = streams
+            .push_tcp(Direction::ServerToClient, 100, false, false, &server_frame)
+            .unwrap();
+        let client_packets = streams
+            .push_tcp(Direction::ClientToServer, 100, false, false, &client_frame)
+            .unwrap();
+        let client_retransmission = streams
+            .push_tcp(Direction::ClientToServer, 100, false, false, &client_frame)
+            .unwrap();
+
+        assert_eq!(server_packets.len(), 1);
+        assert_eq!(server_packets[0].data(), b"server");
+        assert_eq!(client_packets.len(), 1);
+        assert_eq!(client_packets[0].data(), b"client");
+        assert!(client_retransmission.is_empty());
+    }
+
+    #[test]
+    fn out_of_order_tcp_segments_are_reassembled_before_silkroad_framing() {
+        let encoded = frame(0x1001, b"packet");
+        let split_at = encoded.len() / 2;
+        let mut streams = PacketStreams::default();
+
+        streams
+            .push_tcp(Direction::ServerToClient, 99, true, false, b"")
+            .unwrap();
+        assert!(
+            streams
+                .push_tcp(
+                    Direction::ServerToClient,
+                    100 + split_at as u32,
+                    false,
+                    false,
+                    &encoded[split_at..],
+                )
+                .unwrap()
+                .is_empty()
+        );
+        let packets = streams
+            .push_tcp(Direction::ServerToClient, 100, false, false, &encoded[..split_at])
+            .unwrap();
+
+        assert_eq!(packets.len(), 1);
+        assert_eq!(packets[0].opcode(), 0x1001);
+        assert_eq!(packets[0].data(), b"packet");
+    }
+
+    #[test]
+    fn packet_streams_finish_after_both_tcp_directions_close() {
+        let mut streams = PacketStreams::default();
+
+        streams
+            .push_tcp(Direction::ServerToClient, 100, false, true, b"")
+            .unwrap();
+        assert!(!streams.is_finished());
+        streams
+            .push_tcp(Direction::ClientToServer, 200, false, true, b"")
+            .unwrap();
+
+        assert!(streams.is_finished());
+    }
+
+    #[test]
+    fn partial_tcp_retransmission_does_not_corrupt_silkroad_framing() {
+        let encoded = frame(0x1001, b"packet");
+        let split_at = encoded.len() / 2;
+        let mut streams = PacketStreams::default();
+
+        assert!(
+            streams
+                .push_tcp(Direction::ServerToClient, 100, false, false, &encoded[..split_at])
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            streams
+                .push_tcp(Direction::ServerToClient, 100, false, false, &encoded[..split_at])
+                .unwrap()
+                .is_empty()
+        );
+        let packets = streams
+            .push_tcp(
+                Direction::ServerToClient,
+                100 + split_at as u32,
+                false,
+                false,
+                &encoded[split_at..],
+            )
+            .unwrap();
+
+        assert_eq!(packets.len(), 1);
+        assert_eq!(packets[0].opcode(), 0x1001);
+        assert_eq!(packets[0].data(), b"packet");
+    }
+
+    #[test]
+    fn complete_packets_survive_a_later_framing_error_in_the_same_segment() {
+        let valid = frame(0x1001, b"valid");
+        let mut payload = BytesMut::from(valid.as_ref());
+        payload.extend_from_slice(&[1, 0, 0x0d, 0x60, 0, 0, 2]);
+
+        let failure = PacketStreams::default()
+            .push(Direction::ServerToClient, &payload)
+            .unwrap_err();
+        let (packets, _) = failure.into_parts();
+
+        assert_eq!(packets.len(), 1);
+        assert_eq!(packets[0].opcode(), 0x1001);
+        assert_eq!(packets[0].data(), b"valid");
+    }
+
+    #[test]
+    fn packet_that_fails_security_observation_is_still_reported() {
+        let malformed_security_capability = frame(0x5000, b"");
+
+        let failure = PacketStreams::default()
+            .push(Direction::ServerToClient, &malformed_security_capability)
+            .unwrap_err();
+        let (packets, _) = failure.into_parts();
+
+        assert_eq!(packets.len(), 1);
+        assert_eq!(packets[0].opcode(), 0x5000);
+    }
+
+    #[test]
+    fn fatal_framing_error_quarantines_the_direction() {
+        let malformed = [1, 0, 0x0d, 0x60, 0, 0, 2];
+        let valid = frame(0x1001, b"ignored");
+        let mut streams = PacketStreams::default();
+
+        streams.push(Direction::ServerToClient, &malformed).unwrap_err();
+        let packets = streams.push(Direction::ServerToClient, &valid).unwrap();
+
+        assert!(packets.is_empty());
     }
 
     #[test]

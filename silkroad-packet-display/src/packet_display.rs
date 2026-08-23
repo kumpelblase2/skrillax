@@ -34,6 +34,47 @@ use tracing::{info, warn};
 
 struct PrettyDebug<'a, T: ?Sized>(&'a T);
 
+pub(crate) struct HexDump<'a>(pub(crate) &'a [u8]);
+
+impl Display for HexDump<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if self.0.is_empty() {
+            return f.write_str("<empty>");
+        }
+
+        for (line, chunk) in self.0.chunks(16).enumerate() {
+            if line > 0 {
+                f.write_str("\n")?;
+            }
+
+            write!(f, "{:08x}  ", line * 16)?;
+            for column in 0..16 {
+                if column == 8 {
+                    f.write_str(" ")?;
+                }
+                if let Some(byte) = chunk.get(column) {
+                    write!(f, "{byte:02x} ")?;
+                } else {
+                    f.write_str("   ")?;
+                }
+            }
+
+            f.write_str(" |")?;
+            for byte in chunk {
+                let character = if byte.is_ascii_graphic() || *byte == b' ' {
+                    char::from(*byte)
+                } else {
+                    '.'
+                };
+                write!(f, "{character}")?;
+            }
+            f.write_str("|")?;
+        }
+
+        Ok(())
+    }
+}
+
 impl<T: Debug + ?Sized> Display for PrettyDebug<'_, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:#?}", self.0)
@@ -175,5 +216,23 @@ mod tests {
             short_packet_type_name("silkroad_protocol::movement::PlayerMovementResponse"),
             "PlayerMovementResponse"
         );
+    }
+
+    #[test]
+    fn hex_dump_displays_offsets_hex_bytes_and_ascii() {
+        let bytes = b"Silkroad\0packet bytes!";
+
+        assert_eq!(
+            HexDump(bytes).to_string(),
+            concat!(
+                "00000000  53 69 6c 6b 72 6f 61 64  00 70 61 63 6b 65 74 20  |Silkroad.packet |\n",
+                "00000010  62 79 74 65 73 21                                 |bytes!|",
+            )
+        );
+    }
+
+    #[test]
+    fn hex_dump_identifies_an_empty_payload() {
+        assert_eq!(HexDump(&[]).to_string(), "<empty>");
     }
 }
