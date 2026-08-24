@@ -5117,6 +5117,7 @@ dependencies = [
  "silkroad-data",
  "silkroad-definitions",
  "silkroad-game-base",
+ "silkroad-loot",
  "silkroad-navmesh",
  "silkroad-protocol",
  "silkroad-rpc",
@@ -5124,6 +5125,7 @@ dependencies = [
  "skrillax-server",
  "skrillax-stream",
  "sqlx",
+ "tempfile",
  "thiserror 2.0.12",
  "tokio",
  "tracing",
@@ -5222,6 +5224,20 @@ dependencies = [
  "silkroad-base-protocol",
  "skrillax-packet",
  "skrillax-serde",
+]
+
+[[package]]
+name = "silkroad-loot"
+version = "0.1.0"
+dependencies = [
+ "rand 0.10.2",
+ "ron 0.12.2",
+ "serde",
+ "silkroad-data",
+ "silkroad-definitions",
+ "silkroad-game-base",
+ "tempfile",
+ "thiserror 2.0.12",
 ]
 
 [[package]]

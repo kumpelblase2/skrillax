@@ -18,6 +18,13 @@ This project is organized in a few subprojects, each having their own individual
 It also uses the [`skrillax-network`](https://github.com/kumpelblase2/skrillax-network) family of crates, such as
 `skrillax-stream`, `skrillax-serde`, and `skrillax-packet`.
 
+## Loot Tables
+
+Monster drops are defined in versioned `.ron` files under `configs/loot`, compiled and
+validated against the client's `Media.pk2` at startup. The shipped default gives every
+ordinary monster a guaranteed gold drop. See [docs/loot-tables.md](docs/loot-tables.md)
+for the full schema, probability semantics, and examples.
+
 ## Usage
 
 While there's a lot (probably 97%) still missing, it's possible to run the server(s) and connect to it. There are

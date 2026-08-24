@@ -22,14 +22,20 @@ impl Deref for GoldMap {
 }
 
 impl GoldMap {
-    pub fn get_for_level(&self, level: u8) -> RangeInclusive<u32> {
+    pub fn new(map: HashMap<u8, RefGold>) -> Self {
+        Self(map)
+    }
+
+    pub fn range_for_level(&self, level: u8) -> Option<RangeInclusive<u32>> {
         if level == 0 {
-            return 0..=0;
+            return Some(0..=0);
         }
 
-        self.get(&level)
-            .map(|level| level.min..=level.max)
-            .unwrap_or_else(|| 0..=0)
+        self.get(&level).map(|gold| gold.min..=gold.max)
+    }
+
+    pub fn get_for_level(&self, level: u8) -> RangeInclusive<u32> {
+        self.range_for_level(level).unwrap_or_else(|| 0..=0)
     }
 }
 

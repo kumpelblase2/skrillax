@@ -32,6 +32,16 @@ impl EntityRarity {
     pub fn new(party: bool, kind: EntityRarityType) -> Self {
         Self { party, kind }
     }
+
+    /// The rarity variant of this entity, ignoring any party status.
+    pub fn kind(self) -> EntityRarityType {
+        self.kind
+    }
+
+    /// Whether this entity was spawned as a party variant.
+    pub fn is_party(self) -> bool {
+        self.party
+    }
 }
 
 impl PartialEq<EntityRarityType> for EntityRarity {

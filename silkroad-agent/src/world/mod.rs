@@ -1,5 +1,6 @@
 use crate::config::GameConfig;
 use crate::ext::{EntityIdPool, Navmesh, NpcPositionList};
+use crate::game::loot::LootResource;
 use crate::world::lookup::{collect_entities, maintain_entities};
 use bevy::prelude::*;
 pub use data::*;
@@ -7,6 +8,7 @@ pub use lookup::*;
 use pk2_sync::sync::readonly::Pk2;
 use silkroad_data::npc_pos::NpcPosition;
 use silkroad_definitions::type_id::{ObjectItem, ObjectType};
+use silkroad_loot::LootTables;
 use silkroad_navmesh::builder::NavmeshBuilder;
 use silkroad_protocol::runtime::initialize_equipment_ids;
 use silkroad_protocol::spawn::register_ref_id;
@@ -34,6 +36,22 @@ impl Plugin for WorldPlugin {
         let media_file = location.join("Media.pk2");
         let media_pk2 = Pk2::open_readonly(media_file, BLOWFISH_KEY).unwrap();
         WorldData::load_data_from(&media_pk2).expect("Should be able to load silkroad data");
+
+        let loot_config = app
+            .world()
+            .get_resource::<GameConfig>()
+            .expect("Game settings should exist")
+            .loot
+            .clone();
+        let loot_tables = LootTables::load_and_compile(
+            Path::new(&loot_config.directory),
+            loot_config.rate,
+            WorldData::items(),
+            WorldData::characters(),
+            WorldData::gold(),
+        )
+        .unwrap_or_else(|error| panic!("Invalid loot configuration: {error}"));
+
         let npcs = NpcPosition::from(&media_pk2).unwrap();
         let navmesh = NavmeshBuilder::build_from(&data_pk2).expect("should be able to load navmesh from data.");
 
@@ -60,7 +78,8 @@ impl Plugin for WorldPlugin {
 
         register_ref_id(object_map);
 
-        app.insert_resource(EntityIdPool::default())
+        app.insert_resource(LootResource::new(loot_tables))
+            .insert_resource(EntityIdPool::default())
             .insert_resource(EntityLookup::default())
             .insert_resource::<NpcPositionList>(npcs.into())
             .add_systems(Startup, spawning::spawn_npcs)

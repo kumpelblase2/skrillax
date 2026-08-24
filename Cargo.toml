@@ -22,6 +22,7 @@ bytes = "1.8"
 clap = "4.5"
 pk2 = "0.3"
 pk2-sync = "0.1"
+ron = "0.12"
 skrillax-packet = { version = "0.4" }
 skrillax-serde = { version = "0.3" }
 skrillax-stream = { version = "0.3" }

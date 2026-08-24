@@ -5,14 +5,14 @@ use crate::comp::net::Client;
 use crate::comp::player::CharacterRace;
 use crate::comp::pos::Position;
 use crate::game::drop::SpawnDrop;
-use crate::game::gold::get_gold_ref_id;
+use crate::game::loot::LootResource;
 use crate::input::PlayerInputEvent;
 use bevy::prelude::*;
 use silkroad_definitions::type_id::{
     ObjectClothingPart, ObjectClothingType, ObjectConsumable, ObjectConsumableAmmo, ObjectEquippable, ObjectItem,
     ObjectJewelryType, ObjectRace, ObjectType, ObjectWeaponType,
 };
-use silkroad_game_base::{Inventory, Item, ItemTypeData, MoveError, Race};
+use silkroad_game_base::{Inventory, MoveError, Race};
 use silkroad_protocol::inventory::{
     InventoryOperation, InventoryOperationError, InventoryOperationRequest, InventoryOperationResponseData,
     InventoryOperationResult,
@@ -30,6 +30,7 @@ pub(crate) fn handle_inventory_input(
     )>,
     mut item_spawn: MessageWriter<SpawnDrop>,
     mut reader: MessageReader<PlayerInputEvent<InventoryOperation>>,
+    loot: Res<LootResource>,
 ) {
     for event in reader.read() {
         let Ok((client, level, race, mut inventory, mut gold, position)) = query.get_mut(event.player) else {
@@ -51,16 +52,7 @@ pub(crate) fn handle_inventory_input(
 
                 gold.spend(amount);
 
-                let item_ref = get_gold_ref_id(amount as u32);
-                item_spawn.write(SpawnDrop::new(
-                    Item {
-                        reference: item_ref,
-                        variance: None,
-                        type_data: ItemTypeData::Gold { amount: amount as u32 },
-                    },
-                    position.location(),
-                    None,
-                ));
+                item_spawn.write(SpawnDrop::new(loot.gold_item(amount as u32), position.location(), None));
 
                 client.send(InventoryOperationResult::Success(
                     InventoryOperationResponseData::DropGold { amount },

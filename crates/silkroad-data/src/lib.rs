@@ -65,6 +65,8 @@ pub enum ParseError {
     NumberParseError(#[from] ParseIntError),
     #[error("Could not parse to boolean: {0}")]
     BooleanParseError(#[from] ParseBoolError),
+    #[error("Invalid boolean value, expected 0 or 1: {0}")]
+    InvalidBoolean(u8),
     #[error("A number could not be parsed: {0}")]
     FloatParseError(#[from] ParseFloatError),
     #[error("Unknown variant for enum '{1}': {0}")]

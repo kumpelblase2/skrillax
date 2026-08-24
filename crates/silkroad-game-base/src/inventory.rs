@@ -548,6 +548,7 @@ mod test {
 
     static FIRST_ITEM_DATA: Lazy<RefItemData> = Lazy::new(|| RefItemData {
         common: RefCommon {
+            service: true,
             ref_id: 1,
             id: "TestItem".to_string(),
             type_id: ObjectType::Item(ObjectItem::Consumable(ObjectConsumable::Recovery(
@@ -558,6 +559,8 @@ mod test {
             despawn_time: Default::default(),
         },
         price: 100,
+        rarity: silkroad_data::itemdata::RefItemRarity::General,
+        can_drop: true,
         max_stack_size: 50,
         range: None,
         required_level: None,
@@ -567,6 +570,7 @@ mod test {
 
     static SECOND_ITEM_DATA: Lazy<RefItemData> = Lazy::new(|| RefItemData {
         common: RefCommon {
+            service: true,
             ref_id: 2,
             id: "TestItem2".to_string(),
             type_id: ObjectType::Item(ObjectItem::Consumable(ObjectConsumable::Recovery(
@@ -577,6 +581,8 @@ mod test {
             despawn_time: Default::default(),
         },
         price: 100,
+        rarity: silkroad_data::itemdata::RefItemRarity::General,
+        can_drop: true,
         max_stack_size: 50,
         range: None,
         required_level: None,

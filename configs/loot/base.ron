@@ -1,0 +1,38 @@
+// Conservative default loot definitions.
+//
+// Every ordinary monster death is guaranteed to drop a gold amount drawn
+// from the level-appropriate range of levelgold.txt. Additional pools can
+// be added in further .ron files in this directory; see the project
+// documentation for the full schema and semantics.
+(
+    version: 1,
+    default_profile: Some("world-default"),
+
+    pools: [
+        (
+            name: "gold",
+            entries: [
+                (weight: 1, generator: Gold),
+            ],
+        ),
+    ],
+
+    profiles: [
+        (
+            name: "world-default",
+            rolls: [
+                (pool: "gold", attempts: 1, chance: 1.0),
+            ],
+        ),
+    ],
+
+    // Replace the default base profile for matching (inclusive) level bands.
+    // Ranges may not overlap.
+    level_assignments: [],
+
+    // Each monster may have at most one exact assignment.
+    monster_assignments: [],
+
+    rarity_modifiers: [],
+    party_modifier: None,
+)

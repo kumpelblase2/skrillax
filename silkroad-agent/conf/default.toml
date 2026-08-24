@@ -47,6 +47,9 @@ password = "skrillax"
 database = "skrillax"
 
 [game.drop]
-gold = 1.0
 experience = 1.0
 sp-experience = 1.0
+
+[game.loot]
+directory = "configs/loot"
+rate = 1.0

@@ -19,7 +19,6 @@ use crate::game::exp::{
     distribute_experience, receive_experience, reset_health_mana_on_level, update_max_hp_mp_on_stat_change,
     ReceiveExperienceEvent,
 };
-use crate::game::gold::drop_gold;
 use crate::game::hotbar::update_hotbar;
 use crate::game::inventory::handle_inventory_input;
 use crate::game::join::load_finished;
@@ -43,11 +42,11 @@ mod damage;
 mod daylight;
 pub(crate) mod drop;
 pub(crate) mod exp;
-mod gold;
 mod hotbar;
 pub(crate) mod inventory;
 mod join;
 pub(crate) mod logout;
+pub(crate) mod loot;
 mod mastery;
 mod movement;
 pub(crate) mod player_activity;
@@ -102,7 +101,7 @@ impl Plugin for GamePlugin {
                     handle_damage,
                     handle_monster_death.after(handle_damage),
                     distribute_experience.after(handle_damage),
-                    drop_gold.after(handle_damage),
+                    loot::generate_loot.after(handle_damage),
                     receive_experience.after(distribute_experience),
                     reset_health_mana_on_level.after(receive_experience),
                     update_max_hp_mp_on_stat_change

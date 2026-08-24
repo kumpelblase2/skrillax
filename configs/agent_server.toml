@@ -3,3 +3,8 @@ rpc-address = "agent"
 
 [game]
 data-location = "/usr/silkroad"
+
+# Loot table definitions are loaded from [game.loot].directory (default:
+# "configs/loot"); see docs/loot-tables.md for the full schema.
+# [game.loot]
+# rate = 1.0

@@ -17,3 +17,8 @@ While the current code works, there are quite a few areas that I'm unhappy with 
 how character data is stored in character select and the transition over to in game with this character data. It still
 seems quite messy in my eyes. Additionally, the way packets are handled when in game won't scale and I'd like to have a
 better solution.
+
+## Loot Tables
+
+Monster drops are configured through versioned `.ron` files (default: `configs/loot`), which are validated against
+`Media.pk2` and compiled at startup. See [docs/loot-tables.md](../docs/loot-tables.md) for details.

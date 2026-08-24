@@ -53,6 +53,7 @@ pub(crate) struct GameConfig {
     pub(crate) masteries: MasteryConfig,
     pub(crate) persist_interval: u64,
     pub(crate) drop: DropConfig,
+    pub(crate) loot: LootConfig,
 }
 
 #[derive(Deserialize, Default, Clone)]
@@ -93,9 +94,28 @@ pub(crate) struct MasteryConfig {
 #[derive(Deserialize, Default, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct DropConfig {
-    pub(crate) gold: f32,
     pub(crate) experience: f32,
     pub(crate) sp_experience: f32,
+}
+
+/// Operational settings for the custom loot table system.
+#[derive(Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) struct LootConfig {
+    /// Directory containing loot definition `.ron` files. Relative to the
+    /// server process working directory.
+    pub(crate) directory: String,
+    /// Global multiplier on expected successful pool selections.
+    pub(crate) rate: f64,
+}
+
+impl Default for LootConfig {
+    fn default() -> Self {
+        Self {
+            directory: String::from("configs/loot"),
+            rate: 1.0,
+        }
+    }
 }
 
 #[derive(Deserialize)]
