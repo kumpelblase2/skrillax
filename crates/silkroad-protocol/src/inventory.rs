@@ -466,6 +466,19 @@ pub enum OpenItemMallResult {
     Success { jid: u32, token: String },
 }
 
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x3536)]
+pub struct CheckTradesAllowed;
+
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x3537)]
+pub enum TradesAllowedResponse {
+    #[silkroad(value = 1)]
+    Allowed,
+    #[silkroad(value = 0)]
+    Disallowed,
+}
+
 pub trait InventoryPacketRegistryExt {
     fn register_inventory_packets(self) -> Self;
 }
@@ -478,5 +491,7 @@ impl InventoryPacketRegistryExt for PacketRegistryBuilder {
             .register::<OpenItemMallResponse>()
             .register::<ConsignmentResponse>()
             .register::<InventoryOperationResult>()
+            .register::<CheckTradesAllowed>()
+            .register::<TradesAllowedResponse>()
     }
 }

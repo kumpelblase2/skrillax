@@ -1,6 +1,7 @@
 use skrillax_packet::Packet;
 use skrillax_serde::*;
 use skrillax_stream::registry::PacketRegistryBuilder;
+use std::fmt::{Debug, Formatter};
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Copy, Debug, Serialize, ByteSize, Deserialize)]
 pub enum ChatTarget {
@@ -127,11 +128,21 @@ impl ChatMessageResult {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize, ByteSize, Packet, Debug)]
+#[derive(Clone, Deserialize, Serialize, ByteSize, Packet)]
 #[packet(opcode = 0x3535)]
 pub struct TextCharacterInitialization {
     // TODO this should be raw
     pub characters: Vec<u64>,
+}
+
+impl Debug for TextCharacterInitialization {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "TextCharacterInitialization {{ characters: <{}> }}",
+            self.characters.len()
+        )
+    }
 }
 
 impl TextCharacterInitialization {

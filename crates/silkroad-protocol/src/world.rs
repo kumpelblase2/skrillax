@@ -569,6 +569,28 @@ pub enum QuestMarkLevel {
     Hard,
 }
 
+#[derive(Serialize, ByteSize, Deserialize, Clone, Debug, Packet)]
+#[packet(opcode = 0x385E)]
+pub struct GuildMatchingList {
+    unknown: u8,
+    entries: Vec<GuildMatchingEntry>,
+    footer: [u8; 5],
+}
+
+#[derive(Serialize, ByteSize, Deserialize, Clone, Debug)]
+pub struct GuildMatchingEntry {
+    matching_id: u32,
+    guild_name: String,
+    guild_captain_level: u32,
+    guild_captain_name: String,
+    message: String,
+
+    flags_a: u32,
+    member_count: u32,
+    flags_b: u32,
+    unknown_string: String,
+}
+
 pub trait StatPacketRegistryExt {
     fn register_stat_packets(self) -> Self;
 }
@@ -602,5 +624,8 @@ impl WorldPacketRegistryExt for PacketRegistryBuilder {
             .register::<AddQuestMarker>()
             .register::<WeatherUpdate>()
             .register::<CharacterFinished>()
+            .register::<GuildMatchingList>()
+            .register::<CelestialUpdate>()
+            .register::<LunarEventInfo>()
     }
 }
