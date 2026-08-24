@@ -1,4 +1,8 @@
-use silkroad_gateway_protocol::{FrameworkStateRequest, FrameworkStateUpdate, LoginResponse};
+use silkroad_gateway_protocol::{
+    FrameworkStateRequest, FrameworkStateUpdate, GatewayNoticeRequest, GatewayNoticeResponse, LoginRequest,
+    LoginResponse, PasscodeRequiredResponse, PatchRequest, PatchResponse, PingServerRequest, PingServerResponse,
+    SecurityCodeInput, SecurityCodeResponse, ShardListRequest, ShardListResponse,
+};
 use silkroad_protocol::auth::{
     AuthRequest, AuthResponse, Disconnect, LogoutFinished, LogoutRequest, LogoutResponse, UnknownLargePacket,
 };
@@ -11,7 +15,8 @@ use silkroad_protocol::combat::{PerformAction, PerformActionResponse, PerformAct
 use silkroad_protocol::community::FriendListInfo;
 use silkroad_protocol::gm::GmCommand;
 use silkroad_protocol::inventory::{
-    ConsignmentList, ConsignmentResponse, InventoryOperation, InventoryOperationResult, OpenItemMall,
+    CheckTradesAllowed, ConsignmentList, ConsignmentResponse, InventoryOperation, InventoryOperationResult,
+    OpenItemMall, TradesAllowedResponse,
 };
 use silkroad_protocol::movement::{
     ChangeSpeed, EntityMovementInterrupt, PlayerMovementRequest, PlayerMovementResponse, Rotation,
@@ -23,8 +28,8 @@ use silkroad_protocol::spawn::{
 };
 use silkroad_protocol::world::{
     AddQuestMarker, CelestialUpdate, CharacterFinished, CharacterPointsUpdate, EntityBarsUpdate, EntityUpdateState,
-    GameGuideResponse, IncreaseInt, IncreaseStr, LevelUpEffect, LunarEventInfo, PlayerPickupAnimation, TargetEntity,
-    TargetEntityResponse, UnTargetEntity, UpdateGameGuide, WeatherUpdate,
+    GameGuideResponse, GuildMatchingList, IncreaseInt, IncreaseStr, LevelUpEffect, LunarEventInfo,
+    PlayerPickupAnimation, TargetEntity, TargetEntityResponse, UnTargetEntity, UpdateGameGuide, WeatherUpdate,
 };
 use silkroad_protocol::{IdentityInformation, KeepAlive};
 use skrillax_stream::handshake::{HandshakeAccepted, HandshakeChallenge, SecurityCapabilityCheck};
@@ -187,7 +192,23 @@ pub(crate) fn display_packet(packet: DynamicPacket) {
             EntityMovementInterrupt,
             PlayerPickupAnimation,
             InventoryOperationResult,
-            LevelUpEffect
+            LevelUpEffect,
+            PatchRequest,
+            PatchResponse,
+            LoginRequest,
+            LoginResponse,
+            PasscodeRequiredResponse,
+            SecurityCodeResponse,
+            GuildMatchingList,
+            GatewayNoticeRequest,
+            GatewayNoticeResponse,
+            PingServerRequest,
+            PingServerResponse,
+            ShardListRequest,
+            ShardListResponse,
+            SecurityCodeInput,
+            CheckTradesAllowed,
+            TradesAllowedResponse
         ]
     );
 }

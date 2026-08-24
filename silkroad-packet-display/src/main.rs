@@ -18,7 +18,7 @@ use silkroad_protocol::skill::SkillPacketRegistryExt;
 use silkroad_protocol::spawn::{
     GroupEntitySpawnCount, GroupEntitySpawnStart, GroupEntityType, SpawnPacketRegistryExt, register_ref_id,
 };
-use silkroad_protocol::world::{CelestialUpdate, LevelUpEffect, LunarEventInfo, WorldPacketRegistryExt};
+use silkroad_protocol::world::{LevelUpEffect, WorldPacketRegistryExt};
 use skrillax_codec::SilkroadCodec;
 use skrillax_packet::{IncomingPacket, IncomingPacketReframer, Packet, ReframingLimits, SerdeContext};
 use skrillax_stream::handshake::HandshakePacketRegistryExt;
@@ -41,7 +41,12 @@ mod tcp_reassembly;
 use capture_filter::{CaptureFilter, ConnectionKey, Direction};
 use packet_display::{HexDump, display_packet};
 use security::CaptureSecurity;
-use silkroad_gateway_protocol::{FrameworkStateRequest, FrameworkStateUpdate, LoginResponse, LoginResult};
+use silkroad_data::itemdata::load_item_map;
+use silkroad_gateway_protocol::{
+    FrameworkStateRequest, FrameworkStateUpdate, GatewayNoticeRequest, GatewayNoticeResponse, LoginRequest,
+    LoginResponse, LoginResult, PasscodeRequiredResponse, PatchRequest, PatchResponse, PingServerRequest,
+    PingServerResponse, SecurityCodeInput, SecurityCodeResponse, ShardListRequest, ShardListResponse,
+};
 use tcp_reassembly::TcpReassembler;
 
 pub fn maybe_hex(s: &str) -> Result<u16, String> {
@@ -339,8 +344,12 @@ fn main() -> Result<()> {
         .register::<FrameworkStateUpdate>()
         .register::<FrameworkStateRequest>()
         .register::<LoginResponse>()
-        .register::<CelestialUpdate>()
-        .register::<LunarEventInfo>()
+        .register::<PatchResponse>()
+        .register::<PasscodeRequiredResponse>()
+        .register::<SecurityCodeResponse>()
+        .register::<GatewayNoticeResponse>()
+        .register::<PingServerResponse>()
+        .register::<ShardListResponse>()
         .register_passive_handshake()
         .register_auth_packets()
         .register_character_packets()
@@ -370,6 +379,12 @@ fn main() -> Result<()> {
         .register_skill_packets()
         .register_spawn_packets()
         .register_world_packets()
+        .register::<PatchRequest>()
+        .register::<LoginRequest>()
+        .register::<GatewayNoticeRequest>()
+        .register::<PingServerRequest>()
+        .register::<ShardListRequest>()
+        .register::<SecurityCodeInput>()
         .build()
         .expect("Should be able to build registry.");
 
@@ -380,10 +395,26 @@ fn main() -> Result<()> {
     info!("Using silkroad dir {:?}", media_path);
     let pk2_file = pk2_sync::Pk2::open(media_path, "169841")?;
     let characters = load_character_map(&pk2_file)?;
+    let items = load_item_map(&pk2_file)?;
     let mut object_map = HashMap::<u32, ObjectType>::new();
     characters.iter().for_each(|character| {
         if let Some(object_type) = ObjectType::from_type_id(&character.common.type_id) {
             object_map.insert(character.common.ref_id, object_type);
+        }
+    });
+    items.iter().for_each(|item| {
+        let Some(option) = ObjectType::from_type_id(&item.common.type_id) else {
+            return;
+        };
+
+        if !matches!(option, ObjectType::Item(_)) {
+            return;
+        }
+
+        let old = object_map.insert(item.common.ref_id, option);
+
+        if old.is_some() {
+            warn!("Overwriting object type for ref_id {}", item.common.ref_id);
         }
     });
 
