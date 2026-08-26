@@ -88,7 +88,7 @@ impl FromStr for RefItemData {
         let range: u16 = elements.get(94).ok_or(ParseError::MissingColumn(94))?.parse()?;
         let required_level: u8 = elements.get(33).ok_or(ParseError::MissingColumn(33))?.parse()?;
         let rarity: u8 = elements.get(15).ok_or(ParseError::MissingColumn(15))?.parse()?;
-        let can_drop = elements.get(20).ok_or(ParseError::MissingColumn(20))?.parse::<u8>()?;
+        let can_drop = elements.get(21).ok_or(ParseError::MissingColumn(21))?.parse::<u8>()?;
         if can_drop > 1 {
             return Err(ParseError::InvalidBoolean(can_drop));
         }

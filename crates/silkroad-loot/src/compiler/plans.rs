@@ -4,7 +4,7 @@ use crate::runtime::{
     CompiledGenerator, CompiledModifiers, CompiledMonsterPlan, CompiledProfile, WorstCaseFactors, MAX_DROPS_PER_DEATH,
 };
 use silkroad_data::characterdata::RefCharacterData;
-use silkroad_definitions::type_id::ObjectType;
+use silkroad_definitions::type_id::{ObjectMonster, ObjectType};
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -288,6 +288,8 @@ fn is_monster(character: &RefCharacterData) -> bool {
     use silkroad_definitions::type_id::{ObjectEntity, ObjectNonPlayer};
     matches!(
         ObjectType::from_type_id(&character.common.type_id),
-        Some(ObjectType::Entity(ObjectEntity::NonPlayer(ObjectNonPlayer::Monster(_))))
+        Some(ObjectType::Entity(ObjectEntity::NonPlayer(ObjectNonPlayer::Monster(
+            ObjectMonster::General
+        ))))
     )
 }
