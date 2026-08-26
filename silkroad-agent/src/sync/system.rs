@@ -9,12 +9,12 @@ use crate::comp::player::{Player, StatPoints};
 use crate::comp::pos::Position;
 use crate::comp::visibility::{Invisible, Visibility};
 use crate::comp::{GameEntity, Health, Mana};
-use crate::event::LoadingFinishedEvent;
 use crate::game::exp::LevelUpEvent;
+use crate::input::PlayerInputEvent;
 use crate::sync::{SynchronizationCollector, Update};
 use bevy::prelude::*;
 use silkroad_game_base::{Heading, LocalPosition, MovementSpeed};
-use silkroad_protocol::character::CharacterStatsMessage;
+use silkroad_protocol::character::{CharacterStatsMessage, FinishLoading};
 use silkroad_protocol::combat::ReceiveExperience;
 use silkroad_protocol::movement::{
     EntityMovementInterrupt, MovementDestination, MovementSource, PlayerMovementResponse,
@@ -358,16 +358,16 @@ pub(crate) fn collect_deaths(
 
 pub(crate) fn collect_alives(
     collector: Res<SynchronizationCollector>,
-    mut reader: MessageReader<LoadingFinishedEvent>,
+    mut reader: MessageReader<PlayerInputEvent<FinishLoading>>,
     query: Query<&GameEntity>,
 ) {
     for event in reader.read() {
-        let Ok(game_entity) = query.get(event.0) else {
+        let Ok(game_entity) = query.get(event.player) else {
             continue;
         };
         let update = EntityUpdateState::life(game_entity.unique_id, AliveState::Alive);
         collector.send_update(Update {
-            source: event.0,
+            source: event.player,
             change_self: Some(update.into()),
             change_others: Some(update.into()),
         });

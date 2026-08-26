@@ -3,24 +3,24 @@ use crate::comp::net::Client;
 use crate::comp::player::{Player, StatPoints};
 use crate::comp::GameEntity;
 use crate::config::GameConfig;
-use crate::event::LoadingFinishedEvent;
 use crate::game::daylight::DaylightCycle;
+use crate::input::PlayerInputEvent;
 use bevy::prelude::*;
 use silkroad_game_base::SpawningState;
-use silkroad_protocol::character::CharacterStatsMessage;
+use silkroad_protocol::character::{CharacterStatsMessage, FinishLoading};
 use silkroad_protocol::chat::{ChatSource, ChatUpdate, TextCharacterInitialization};
 use silkroad_protocol::community::{FriendListGroup, FriendListInfo};
 use silkroad_protocol::world::{CelestialUpdate, CharacterFinished};
 use tracing::debug;
 
 pub(crate) fn load_finished(
-    mut reader: MessageReader<LoadingFinishedEvent>,
+    mut reader: MessageReader<PlayerInputEvent<FinishLoading>>,
     settings: Res<GameConfig>,
     daycycle: Res<DaylightCycle>,
     mut query: Query<(&Client, &GameEntity, &mut Player, &Leveled, &StatPoints)>,
 ) {
     for event in reader.read() {
-        let (client, game_entity, mut player, level, stat_points) = match query.get_mut(event.0) {
+        let (client, game_entity, mut player, level, stat_points) = match query.get_mut(event.player) {
             Ok(data) => data,
             _ => continue,
         };

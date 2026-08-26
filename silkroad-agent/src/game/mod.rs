@@ -7,9 +7,7 @@ use crate::comp::player::StatPoints;
 use crate::comp::pos::Position;
 use crate::comp::skill::{Hotbar, SkillBook};
 use crate::comp::{Health, Mana};
-use crate::event::{
-    DamageReceiveEvent, EntityDeath, LoadingFinishedEvent, PlayerLevelUp, SpawnMonster, UniqueKilledEvent,
-};
+use crate::event::{DamageReceiveEvent, EntityDeath, PlayerLevelUp, SpawnMonster, UniqueKilledEvent};
 use crate::ext::ActionIdCounter;
 use crate::game::action::handle_action;
 use crate::game::damage::{attack_player, handle_damage, handle_monster_death};
@@ -65,7 +63,6 @@ impl Plugin for GamePlugin {
             .insert_resource(DaylightCycle::official())
             .insert_resource(ActionIdCounter::default())
             .add_message::<PlayerLevelUp>()
-            .add_message::<LoadingFinishedEvent>()
             .add_message::<UniqueKilledEvent>()
             .add_message::<SpawnDrop>()
             .add_message::<DamageReceiveEvent>()

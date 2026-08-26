@@ -15,9 +15,6 @@ pub(crate) struct ClientDisconnectedEvent(pub Entity);
 pub(crate) struct PlayerLevelUp(pub Entity, pub u8);
 
 #[derive(Message)]
-pub(crate) struct LoadingFinishedEvent(pub Entity);
-
-#[derive(Message)]
 pub(crate) struct UniqueKilledEvent {
     pub player: String,
     pub unique: GameEntity,
