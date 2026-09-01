@@ -17,7 +17,7 @@ skrillax-server = { path = "../crates/skrillax-server" }
 skrillax-stream.workspace = true
 skrillax-packet.workspace = true
 tokio.workspace = true
-axum = { version = "0.7", default-features = false, features = [
+axum = { version = "0.8", default-features = false, features = [
     "http1",
     "json",
     "tokio",
