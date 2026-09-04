@@ -89,6 +89,15 @@ impl UniqueSpawnOptions {
 pub(crate) struct MasteryConfig {
     pub(crate) european_per_level: u16,
     pub(crate) chinese_per_level: u16,
+    pub(crate) european: Vec<ConfiguredMastery>,
+    pub(crate) chinese: Vec<ConfiguredMastery>,
+}
+
+#[derive(Deserialize, Clone, Copy)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) struct ConfiguredMastery {
+    pub(crate) ref_id: u16,
+    pub(crate) secondary_id: Option<u8>,
 }
 
 #[derive(Deserialize, Default, Clone)]
@@ -152,3 +161,65 @@ pub(crate) fn get_config() -> &'static GameServerConfig {
 }
 
 static CONFIG: Lazy<GameServerConfig> = Lazy::new(|| GameServerConfig::load().expect("Should be able to load config"));
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Deserialize)]
+    struct Defaults {
+        game: GameDefaults,
+    }
+
+    #[derive(Deserialize)]
+    struct GameDefaults {
+        masteries: MasteryConfig,
+    }
+
+    #[test]
+    fn shipped_mastery_configuration_preserves_current_race_defaults() {
+        let defaults: Defaults = config::Config::builder()
+            .add_source(config::File::from_str(DEFAULT_CONFIG, FileFormat::Toml))
+            .build()
+            .unwrap()
+            .try_deserialize()
+            .unwrap();
+        let configured = |mastery: &ConfiguredMastery| (mastery.ref_id, mastery.secondary_id);
+
+        assert_eq!(
+            defaults
+                .game
+                .masteries
+                .chinese
+                .iter()
+                .map(configured)
+                .collect::<Vec<_>>(),
+            vec![
+                (257, None),
+                (258, None),
+                (259, None),
+                (277, Some(0)),
+                (277, Some(1)),
+                (277, Some(2)),
+                (267, None),
+            ]
+        );
+        assert_eq!(
+            defaults
+                .game
+                .masteries
+                .european
+                .iter()
+                .map(configured)
+                .collect::<Vec<_>>(),
+            vec![
+                (513, None),
+                (514, None),
+                (515, None),
+                (516, None),
+                (517, None),
+                (518, None),
+            ]
+        );
+    }
+}

@@ -7,7 +7,7 @@ use crate::comp::pos::Position;
 use crate::comp::skill::Hotbar;
 use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Playing};
-use crate::config::GameConfig;
+use crate::config::{ConfiguredMastery, GameConfig, MasteryConfig};
 use crate::ext::{CharacterPersistenceResource, EntityIdPool};
 use crate::input::PlayerInputEvent;
 use crate::login::job_distribution::JobDistribution;
@@ -23,8 +23,9 @@ use bevy::prelude::*;
 use cgmath::Vector3;
 use chrono::{TimeZone, Utc};
 use silkroad_agent_persistence::{CharacterOwner, CharacterRace, NewCharacter, NewCharacterItem, WorldJoinError};
+use silkroad_data::masterydata::RefMasteryData;
 use silkroad_data::DataEntry;
-use silkroad_game_base::{Heading, ItemTypeData, LocalPosition};
+use silkroad_game_base::{Heading, ItemTypeData, LocalPosition, Race};
 use silkroad_protocol::auth::{AuthRequest, AuthResponse, AuthResult, AuthResultError, UnknownLargePacket};
 use silkroad_protocol::character::{
     CharacterJoinRequest, CharacterJoinResponse, CharacterListAction, CharacterListContent, CharacterListError,
@@ -279,6 +280,7 @@ pub(crate) fn handle_character_join_received(
             &inventory,
             &position,
             settings.max_level,
+            &settings.masteries,
             &hotbar,
         );
         client.send(MacroStatus::Possible(MACRO_POTION, 0));
@@ -361,6 +363,46 @@ fn send_job_spread(client: &Client, hunters: u8, thieves: u8) {
     ));
 }
 
+fn configured_mastery_matches(configured: &ConfiguredMastery, mastery: &RefMasteryData) -> bool {
+    if configured.ref_id != mastery.ref_id {
+        return false;
+    }
+
+    match configured.secondary_id {
+        None => mastery.secondary.is_none(),
+        Some(secondary_id) => mastery.secondary.map_or(0, |id| id.get()) == secondary_id,
+    }
+}
+
+fn mastery_data_for_spawn(
+    race: Race,
+    persisted_masteries: &[(u32, u8)],
+    mastery_references: &[RefMasteryData],
+    config: &MasteryConfig,
+) -> Vec<MasteryData> {
+    let configured_masteries = match race {
+        Race::Chinese => &config.chinese,
+        Race::European => &config.european,
+    };
+
+    configured_masteries
+        .iter()
+        .filter_map(|configured| {
+            mastery_references
+                .iter()
+                .find(|mastery| configured_mastery_matches(configured, mastery))
+        })
+        .map(|mastery| {
+            let id = mastery.ref_id();
+            let level = persisted_masteries
+                .iter()
+                .find_map(|(persisted_id, level)| (*persisted_id == id).then_some(*level))
+                .unwrap_or(0);
+            MasteryData::new(id, level)
+        })
+        .collect()
+}
+
 fn send_spawn(
     client: &Client,
     entity: &GameEntity,
@@ -368,6 +410,7 @@ fn send_spawn(
     inventory: &PlayerInventory,
     position: &Position,
     max_level: u8,
+    mastery_config: &MasteryConfig,
     hotbar: &Hotbar,
 ) {
     client.send(CharacterSpawnStart);
@@ -441,15 +484,12 @@ fn send_spawn(
         max_level,
         BagContent::new(inventory.size() as u8, inventory_items),
         BagContent::new(5, Vec::new()),
-        player
-            .character
-            .masteries
-            .iter()
-            .map(|(mastery, level)| MasteryData {
-                id: *mastery,
-                level: *level,
-            })
-            .collect(),
+        mastery_data_for_spawn(
+            character_data.race,
+            &character_data.masteries,
+            WorldData::masteries(),
+            mastery_config,
+        ),
         player
             .character
             .skills
@@ -553,5 +593,92 @@ pub(crate) fn create_character_from(
         beginner_mark: true,
         gold: 5_000_000,
         items: vec![item(chest, 1), item(pants, 4), item(boots, 5), item(weapon, 6)],
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::num::NonZeroU8;
+
+    fn mastery(ref_id: u16, secondary_id: Option<u8>) -> RefMasteryData {
+        RefMasteryData {
+            enabled: true,
+            ref_id,
+            secondary: secondary_id.and_then(NonZeroU8::new),
+            id: format!("mastery-{ref_id}-{secondary_id:?}"),
+            weapons: Vec::new(),
+        }
+    }
+
+    fn mastery_config(chinese: &[(u16, Option<u8>)], european: &[(u16, Option<u8>)]) -> MasteryConfig {
+        let configured = |(ref_id, secondary_id): &(u16, Option<u8>)| ConfiguredMastery {
+            ref_id: *ref_id,
+            secondary_id: *secondary_id,
+        };
+
+        MasteryConfig {
+            chinese: chinese.iter().map(configured).collect(),
+            european: european.iter().map(configured).collect(),
+            ..Default::default()
+        }
+    }
+
+    fn mastery_levels(masteries: Vec<MasteryData>) -> Vec<(u32, u8)> {
+        masteries
+            .into_iter()
+            .map(|mastery| (mastery.id, mastery.level))
+            .collect()
+    }
+
+    #[test]
+    fn chinese_spawn_uses_configured_masteries_at_persisted_or_zero_level() {
+        let references = vec![
+            mastery(257, None),
+            mastery(258, None),
+            mastery(259, None),
+            mastery(277, Some(0)),
+            mastery(277, Some(1)),
+            mastery(277, Some(2)),
+            mastery(277, Some(3)),
+            mastery(267, None),
+            mastery(513, None),
+        ];
+
+        let config = mastery_config(
+            &[(267, None), (277, Some(2)), (257, None), (277, Some(0))],
+            &[(513, None)],
+        );
+        let actual = mastery_levels(mastery_data_for_spawn(
+            Race::Chinese,
+            &[(257, 4), (277, 7), (513, 9)],
+            &references,
+            &config,
+        ));
+
+        assert_eq!(actual, vec![(267, 0), (277, 7), (257, 4), (277, 7)]);
+    }
+
+    #[test]
+    fn european_spawn_uses_only_the_european_configuration() {
+        let references = vec![
+            mastery(257, None),
+            mastery(513, None),
+            mastery(514, None),
+            mastery(515, None),
+            mastery(516, None),
+            mastery(517, None),
+            mastery(518, None),
+        ];
+
+        let config = mastery_config(&[(257, None)], &[(518, None), (515, None)]);
+        let actual = mastery_levels(mastery_data_for_spawn(
+            Race::European,
+            &[(515, 3)],
+            &references,
+            &config,
+        ));
+
+        assert_eq!(actual, vec![(518, 0), (515, 3)]);
     }
 }
