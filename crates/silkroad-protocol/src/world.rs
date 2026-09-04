@@ -1,6 +1,10 @@
+use crate::wire_entity::{WireEntityCatalog, WireEntityKind};
+use bytes::BytesMut;
 use skrillax_packet::Packet;
+use skrillax_serde::__internal::byteorder::ReadBytesExt;
 use skrillax_serde::*;
 use skrillax_stream::registry::PacketRegistryBuilder;
+use std::io::Read;
 
 #[derive(Clone, Eq, PartialEq, Copy, Serialize, Deserialize, ByteSize, Debug)]
 pub enum PvpCape {
@@ -135,14 +139,128 @@ pub struct TargetNPCData {
     talk_options: Option<InteractOptions>,
 }
 
-#[derive(Clone, Serialize, ByteSize, Deserialize, Debug)]
+#[derive(Clone, Debug)]
 pub struct TargetSuccessData {
     unique_id: u32,
     health: Option<u32>,
-    #[silkroad(when = "unique_id == 0x00000000")]
     monster_data: Option<TargetMonsterData>,
-    #[silkroad(when = "unique_id == 0x00000001")]
     npc_data: Option<TargetNPCData>,
+}
+
+impl TargetSuccessData {
+    fn wire_kind(&self, ctx: &SerdeContext) -> Result<WireEntityKind, SerializationError> {
+        WireEntityCatalog::for_context(ctx)
+            .lookup(self.unique_id)
+            .map(|record| record.kind)
+            .ok_or(SerializationError::UnknownVariation(
+                u64::from(self.unique_id),
+                "WireEntityCatalog unique_id",
+            ))
+    }
+
+    fn validate_contextual_fields(&self, kind: WireEntityKind) -> Result<(), SerializationError> {
+        let monster_expected = kind == WireEntityKind::Monster;
+        if self.monster_data.is_some() != monster_expected {
+            return Err(SerializationError::ConditionalPresenceMismatch {
+                field: "monster_data",
+                condition: monster_expected,
+                present: self.monster_data.is_some(),
+            });
+        }
+
+        let npc_expected = kind == WireEntityKind::Npc;
+        if self.npc_data.is_some() != npc_expected {
+            return Err(SerializationError::ConditionalPresenceMismatch {
+                field: "npc_data",
+                condition: npc_expected,
+                present: self.npc_data.is_some(),
+            });
+        }
+
+        Ok(())
+    }
+}
+
+impl ByteSize for TargetSuccessData {
+    fn byte_size(&self) -> usize {
+        self.unique_id.byte_size()
+            + 1
+            + self.health.as_ref().map(ByteSize::byte_size).unwrap_or(0)
+            + self.monster_data.as_ref().map(ByteSize::byte_size).unwrap_or(0)
+            + self.npc_data.as_ref().map(ByteSize::byte_size).unwrap_or(0)
+    }
+}
+
+impl Serialize for TargetSuccessData {
+    fn write_to(&self, writer: &mut BytesMut, ctx: &SerdeContext) -> Result<(), SerializationError> {
+        let kind = self.wire_kind(ctx)?;
+        self.validate_contextual_fields(kind)?;
+
+        self.unique_id.write_to(writer, ctx)?;
+        match self.health {
+            Some(health) => {
+                1u8.write_to(writer, ctx)?;
+                health.write_to(writer, ctx)?;
+            },
+            None => 0u8.write_to(writer, ctx)?,
+        }
+
+        match kind {
+            WireEntityKind::Monster => self
+                .monster_data
+                .as_ref()
+                .expect("validated monster target data")
+                .write_to(writer, ctx)?,
+            WireEntityKind::Npc => self
+                .npc_data
+                .as_ref()
+                .expect("validated NPC target data")
+                .write_to(writer, ctx)?,
+            WireEntityKind::Other => {},
+        }
+
+        Ok(())
+    }
+}
+
+impl Deserialize for TargetSuccessData {
+    fn read_from<T: Read + ReadBytesExt>(reader: &mut T, ctx: &SerdeContext) -> Result<Self, SerializationError>
+    where
+        Self: Sized,
+    {
+        let unique_id = u32::read_from(reader, ctx)?;
+        let health = match u8::read_from(reader, ctx)? {
+            0 => None,
+            1 => Some(u32::read_from(reader, ctx)?),
+            value => {
+                return Err(SerializationError::InvalidPresenceMarker {
+                    field: "health",
+                    value: u64::from(value),
+                });
+            },
+        };
+
+        let kind = WireEntityCatalog::for_context(ctx)
+            .lookup(unique_id)
+            .map(|record| record.kind)
+            .ok_or(SerializationError::UnknownVariation(
+                u64::from(unique_id),
+                "WireEntityCatalog unique_id",
+            ))?;
+
+        let (monster_data, npc_data) = match kind {
+            WireEntityKind::Monster => (Some(TargetMonsterData::read_from(reader, ctx)?), None),
+            WireEntityKind::Npc => (None, Some(TargetNPCData::read_from(reader, ctx)?)),
+            WireEntityKind::Other => (None, None),
+        };
+
+        Ok(Self {
+            unique_id,
+            health,
+            monster_data,
+            npc_data,
+        })
+    }
 }
 
 #[derive(Clone, Deserialize, Serialize, ByteSize, Debug)]
@@ -627,5 +745,106 @@ impl WorldPacketRegistryExt for PacketRegistryBuilder {
             .register::<GuildMatchingList>()
             .register::<CelestialUpdate>()
             .register::<LunarEventInfo>()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::wire_entity::WireEntityCatalog;
+    use std::io::Cursor;
+
+    fn context_with(unique_id: u32, kind: WireEntityKind) -> SerdeContext {
+        let context = SerdeContext::default();
+        WireEntityCatalog::install(&context).record_spawn(unique_id, 1000, kind);
+        context
+    }
+
+    #[test]
+    fn monster_target_success_round_trips_without_a_wire_discriminator() {
+        let context = context_with(42, WireEntityKind::Monster);
+        let target = TargetSuccessData {
+            unique_id: 42,
+            health: Some(100),
+            monster_data: Some(TargetMonsterData {
+                unknown: 0,
+                interact_data: Some(5),
+            }),
+            npc_data: None,
+        };
+        let mut bytes = BytesMut::new();
+
+        target.write_to(&mut bytes, &context).unwrap();
+
+        assert_eq!(bytes.as_ref(), &[42, 0, 0, 0, 1, 100, 0, 0, 0, 0, 0, 0, 0, 1, 5]);
+        assert_eq!(target.byte_size(), bytes.len());
+
+        let decoded = TargetSuccessData::read_from(&mut Cursor::new(&bytes), &context).unwrap();
+        assert_eq!(decoded.unique_id, 42);
+        assert_eq!(decoded.health, Some(100));
+        assert_eq!(decoded.monster_data.unwrap().interact_data, Some(5));
+        assert!(decoded.npc_data.is_none());
+    }
+
+    #[test]
+    fn npc_target_success_round_trips_without_a_wire_discriminator() {
+        let context = context_with(7, WireEntityKind::Npc);
+        let target = TargetSuccessData {
+            unique_id: 7,
+            health: None,
+            monster_data: None,
+            npc_data: Some(TargetNPCData {
+                talk_options: Some(InteractOptions::None),
+            }),
+        };
+        let mut bytes = BytesMut::new();
+
+        target.write_to(&mut bytes, &context).unwrap();
+
+        assert_eq!(bytes.as_ref(), &[7, 0, 0, 0, 0, 1, 0]);
+        assert_eq!(target.byte_size(), bytes.len());
+
+        let decoded = TargetSuccessData::read_from(&mut Cursor::new(&bytes), &context).unwrap();
+        assert_eq!(decoded.unique_id, 7);
+        assert!(decoded.health.is_none());
+        assert!(decoded.monster_data.is_none());
+        assert!(matches!(
+            decoded.npc_data.unwrap().talk_options,
+            Some(InteractOptions::None)
+        ));
+    }
+
+    #[test]
+    fn retired_metadata_can_still_decode_delayed_packets() {
+        let context = context_with(42, WireEntityKind::Monster);
+        WireEntityCatalog::for_context(&context).retire(42);
+        let bytes = [42, 0, 0, 0, 1, 100, 0, 0, 0, 0, 0, 0, 0, 1, 5];
+
+        let decoded = TargetSuccessData::read_from(&mut Cursor::new(bytes), &context).unwrap();
+
+        assert_eq!(decoded.unique_id, 42);
+        assert!(decoded.monster_data.is_some());
+    }
+
+    #[test]
+    fn unknown_ids_fail_before_serialization_guesses_a_layout() {
+        let context = SerdeContext::default();
+        WireEntityCatalog::install(&context);
+        let target = TargetSuccessData {
+            unique_id: 99,
+            health: Some(100),
+            monster_data: Some(TargetMonsterData {
+                unknown: 0,
+                interact_data: Some(5),
+            }),
+            npc_data: None,
+        };
+        let mut bytes = BytesMut::new();
+
+        assert!(matches!(
+            target.write_to(&mut bytes, &context),
+            Err(SerializationError::UnknownVariation(99, _))
+        ));
+        assert!(bytes.is_empty());
     }
 }

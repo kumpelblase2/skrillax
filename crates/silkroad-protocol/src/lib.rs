@@ -9,6 +9,7 @@ pub mod movement;
 pub mod runtime;
 pub mod skill;
 pub mod spawn;
+pub mod wire_entity;
 pub mod world;
 
 pub use silkroad_base_protocol::*;

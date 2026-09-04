@@ -18,6 +18,7 @@ use silkroad_protocol::skill::SkillPacketRegistryExt;
 use silkroad_protocol::spawn::{
     GroupEntitySpawnCount, GroupEntitySpawnStart, GroupEntityType, SpawnPacketRegistryExt, register_ref_id,
 };
+use silkroad_protocol::wire_entity::WireEntityCatalog;
 use silkroad_protocol::world::{LevelUpEffect, WorldPacketRegistryExt};
 use skrillax_codec::SilkroadCodec;
 use skrillax_packet::{IncomingPacket, IncomingPacketReframer, Packet, ReframingLimits, SerdeContext};
@@ -315,10 +316,15 @@ struct ConnectionState {
 
 impl ConnectionState {
     fn new(brute_force_threads: usize, opening_syn_sequence: Option<u32>, last_seen_frame: u64) -> Self {
+        let server_to_client_context = SerdeContext::default();
+        let client_to_server_context = SerdeContext::default();
+        let catalog = WireEntityCatalog::install(&server_to_client_context);
+        client_to_server_context.set(catalog);
+
         Self {
             streams: PacketStreams::new(brute_force_threads),
-            server_to_client_context: SerdeContext::default(),
-            client_to_server_context: SerdeContext::default(),
+            server_to_client_context,
+            client_to_server_context,
             opening_syn_sequence,
             last_seen_frame,
         }

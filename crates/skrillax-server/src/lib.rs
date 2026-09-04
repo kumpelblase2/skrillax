@@ -1,5 +1,6 @@
 use kanal::{unbounded, AsyncReceiver, AsyncSender, ReceiveError, Receiver, SendError, Sender};
 use skrillax_stream::handshake::ActiveSecuritySetup;
+use skrillax_stream::packet::SerdeContext;
 use skrillax_stream::registry::PacketRegistry;
 use skrillax_stream::stream::{
     DynamicPacket, InStreamError, OutStreamError, SilkroadStreamRead, SilkroadStreamWrite, SilkroadTcpExt,
@@ -8,6 +9,7 @@ use std::fmt::Debug;
 use std::io::{self, ErrorKind};
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::{TcpListener, TcpSocket, TcpStream};
 use tokio::task::JoinHandle;
@@ -15,6 +17,8 @@ use tokio_util::sync::CancellationToken;
 use tracing::{debug, instrument, trace, warn};
 
 static STREAM_IDENTIFIER: AtomicU64 = AtomicU64::new(1);
+
+type ContextInitializer = Arc<dyn Fn(&SerdeContext) + Send + Sync>;
 
 #[derive(Clone)]
 pub struct Connection {
@@ -46,7 +50,7 @@ impl Connection {
         self.remote_addr
     }
 
-    #[instrument(skip(socket, registry, inbound, outbound, cancel))]
+    #[instrument(skip(socket, registry, inbound, outbound, cancel, initialize_context))]
     async fn handle(
         socket: TcpStream,
         identifier: u64,
@@ -54,8 +58,10 @@ impl Connection {
         cancel: CancellationToken,
         inbound: Sender<DynamicPacket>,
         outbound: Receiver<DynamicPacket>,
+        initialize_context: ContextInitializer,
     ) -> bool {
         let (mut reader, mut writer) = socket.into_silkroad_stream(registry);
+        initialize_context(&reader.context());
         if let Err(err) = ActiveSecuritySetup::handle(&mut reader, &mut writer).await {
             warn!(%err, "Failed to finish handshake.");
             return false;
@@ -167,6 +173,7 @@ impl AsyncServerRunner {
         packet_registry: PacketRegistry,
         cancel_token: CancellationToken,
         connection_sender: Sender<Connection>,
+        initialize_context: ContextInitializer,
     ) {
         loop {
             tokio::select! {
@@ -188,8 +195,17 @@ impl AsyncServerRunner {
 
                             let packet_registry = packet_registry.clone();
                             let connection_sender = connection_sender.clone();
+                            let initialize_context = initialize_context.clone();
                             tokio::spawn(async move {
-                                if Connection::handle(socket, identifier, packet_registry, child, inbound_sender, outbound_receiver).await {
+                                if Connection::handle(
+                                    socket,
+                                    identifier,
+                                    packet_registry,
+                                    child,
+                                    inbound_sender,
+                                    outbound_receiver,
+                                    initialize_context,
+                                ).await {
                                     if let Err(e) = connection_sender.send(connection) {
                                         warn!(%e, "Could not send client over.");
                                     }
@@ -214,6 +230,19 @@ pub struct Server {
 
 impl Server {
     pub fn new(addr: SocketAddr, packet_registry: PacketRegistry) -> Result<Self, io::Error> {
+        Self::new_with_context_initializer(addr, packet_registry, |_| {})
+    }
+
+    /// Creates a server that initializes each connection's serialization context
+    /// before its handshake or packet-processing tasks begin.
+    pub fn new_with_context_initializer<F>(
+        addr: SocketAddr,
+        packet_registry: PacketRegistry,
+        initialize_context: F,
+    ) -> Result<Self, io::Error>
+    where
+        F: Fn(&SerdeContext) + Send + Sync + 'static,
+    {
         let (sender, receiver) = unbounded();
         let cancel = CancellationToken::new();
 
@@ -221,8 +250,10 @@ impl Server {
         let socket = TcpSocket::new_v4()?;
         socket.bind(addr)?;
         let listener = socket.listen(1024)?;
-        let join_handle =
-            tokio::spawn(async move { AsyncServerRunner::run(listener, packet_registry, inner_cancel, sender).await });
+        let initialize_context = Arc::new(initialize_context);
+        let join_handle = tokio::spawn(async move {
+            AsyncServerRunner::run(listener, packet_registry, inner_cancel, sender, initialize_context).await
+        });
 
         Ok(Self {
             listen_addr: addr,

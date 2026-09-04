@@ -2,6 +2,7 @@ use crate::community::GuildInformation;
 use crate::inventory::{BagContent, CharacterSpawnItemData};
 use crate::movement::{EntityMovementState, Position};
 use crate::skill::{HotbarItem, MasteryData, SkillData};
+use crate::wire_entity::{WireEntityCatalog, WireEntityKind};
 use crate::world::{ActiveScroll, EntityState, InteractOptions, JobType, PlayerKillState, PvpCape};
 use chrono::{DateTime, Datelike, TimeZone, Timelike, Utc};
 use silkroad_definitions::rarity::EntityRarity;
@@ -89,6 +90,10 @@ impl JobInformation {
 
 #[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
 #[packet(opcode = 0x3013)]
+#[silkroad(
+    after_serialize = "track_character_spawn",
+    after_deserialize = "track_character_spawn"
+)]
 pub struct CharacterSpawn {
     pub time: PackedSilkroadTime,
     pub ref_id: u32,
@@ -169,6 +174,11 @@ pub struct CharacterSpawn {
     pub potion_delay: u8,
     pub blocked_players: Vec<String>,
     pub unknown_21: u32,
+}
+
+fn track_character_spawn(packet: &CharacterSpawn, ctx: &SerdeContext) -> Result<(), SerializationError> {
+    WireEntityCatalog::for_context(ctx).record_spawn(packet.unique_id, packet.ref_id, wire_entity_kind(packet.ref_id));
+    Ok(())
 }
 
 impl CharacterSpawn {
@@ -299,8 +309,14 @@ pub struct CharacterSpawnEnd;
 
 #[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
 #[packet(opcode = 0x3016)]
+#[silkroad(after_serialize = "track_entity_despawn", after_deserialize = "track_entity_despawn")]
 pub struct EntityDespawn {
     pub entity_id: u32,
+}
+
+fn track_entity_despawn(packet: &EntityDespawn, ctx: &SerdeContext) -> Result<(), SerializationError> {
+    WireEntityCatalog::for_context(ctx).retire(packet.entity_id);
+    Ok(())
 }
 
 impl EntityDespawn {
@@ -311,8 +327,15 @@ impl EntityDespawn {
 
 #[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
 #[packet(opcode = 0x3015)]
+#[silkroad(after_serialize = "track_entity_spawn", after_deserialize = "track_entity_spawn")]
 pub struct EntitySpawn {
     pub data: EntityTypeSpawnData,
+}
+
+fn track_entity_spawn(packet: &EntitySpawn, ctx: &SerdeContext) -> Result<(), SerializationError> {
+    let (unique_id, ref_id) = packet.data.wire_identity();
+    WireEntityCatalog::for_context(ctx).record_spawn(unique_id, ref_id, wire_entity_kind(ref_id));
+    Ok(())
 }
 
 impl EntitySpawn {
@@ -383,12 +406,30 @@ impl From<GroupSpawnType> for GroupEntityType {
 
 #[derive(Clone, Serialize, ByteSize, Deserialize, Packet, Debug)]
 #[packet(opcode = 0x3019)]
+#[silkroad(
+    after_serialize = "track_group_entity_data",
+    after_deserialize = "track_group_entity_data"
+)]
 pub struct GroupEntitySpawnData {
     #[silkroad(
         list_type = "calculated",
         calculate = "ctx.get::<GroupEntitySpawnCount>().unwrap_or_default().0"
     )]
     pub content: Vec<GroupSpawnDataContent>,
+}
+
+fn track_group_entity_data(packet: &GroupEntitySpawnData, ctx: &SerdeContext) -> Result<(), SerializationError> {
+    let catalog = WireEntityCatalog::for_context(ctx);
+    for content in &packet.content {
+        match content {
+            GroupSpawnDataContent::Spawn { data } => {
+                let (unique_id, ref_id) = data.wire_identity();
+                catalog.record_spawn(unique_id, ref_id, wire_entity_kind(ref_id));
+            },
+            GroupSpawnDataContent::Despawn { id } => catalog.retire(*id),
+        }
+    }
+    Ok(())
 }
 
 impl GroupEntitySpawnData {
@@ -483,6 +524,14 @@ static REF_ID_TO_OBJ: OnceLock<HashMap<u32, ObjectType>> = OnceLock::new();
 
 pub fn register_ref_id(map: HashMap<u32, ObjectType>) {
     let _ = REF_ID_TO_OBJ.set(map);
+}
+
+fn wire_entity_kind(ref_id: u32) -> WireEntityKind {
+    match REF_ID_TO_OBJ.get().and_then(|objects| objects.get(&ref_id)) {
+        Some(ObjectType::Entity(ObjectEntity::NonPlayer(ObjectNonPlayer::Monster(_)))) => WireEntityKind::Monster,
+        Some(ObjectType::Entity(ObjectEntity::NonPlayer(ObjectNonPlayer::NPC(_)))) => WireEntityKind::Npc,
+        _ => WireEntityKind::Other,
+    }
 }
 
 fn is_item_ref(id: u32) -> bool {
@@ -669,6 +718,18 @@ pub enum PortalData {
 }
 
 impl EntityTypeSpawnData {
+    fn wire_identity(&self) -> (u32, u32) {
+        match self {
+            EntityTypeSpawnData::GoldItem { ref_id, unique_id, .. }
+            | EntityTypeSpawnData::EquipmentItem { ref_id, unique_id, .. }
+            | EntityTypeSpawnData::ConsumableItem { ref_id, unique_id, .. }
+            | EntityTypeSpawnData::Character { ref_id, unique_id, .. }
+            | EntityTypeSpawnData::NPC { ref_id, unique_id, .. }
+            | EntityTypeSpawnData::Monster { ref_id, unique_id, .. }
+            | EntityTypeSpawnData::Portal { ref_id, unique_id, .. } => (*unique_id, *ref_id),
+        }
+    }
+
     pub fn gold(ref_id: u32, amount: u32, unique_id: u32, position: Position, owner: Option<u32>, rarity: u8) -> Self {
         EntityTypeSpawnData::GoldItem {
             ref_id,
@@ -837,5 +898,71 @@ impl SpawnPacketRegistryExt for PacketRegistryBuilder {
             .register::<GroupEntitySpawnStart>()
             .register::<GroupEntitySpawnData>()
             .register::<GroupEntitySpawnEnd>()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::wire_entity::{WireEntityRecord, WireEntityStatus};
+
+    fn item_spawn(unique_id: u32) -> EntityTypeSpawnData {
+        EntityTypeSpawnData::gold(9000, 1, unique_id, Position::new(1, 2.0, 3.0, 4.0, 5), None, 0)
+    }
+
+    #[test]
+    fn grouped_spawns_are_tracked_and_despawns_become_tombstones() {
+        let context = SerdeContext::default();
+        let catalog = WireEntityCatalog::install(&context);
+        let spawn = GroupEntitySpawnData::new(vec![GroupSpawnDataContent::spawn(item_spawn(77))]);
+
+        track_group_entity_data(&spawn, &context).unwrap();
+        assert_eq!(
+            catalog.lookup(77),
+            Some(WireEntityRecord {
+                ref_id: 9000,
+                kind: WireEntityKind::Other,
+                status: WireEntityStatus::Active,
+            })
+        );
+
+        let despawn = GroupEntitySpawnData::new(vec![GroupSpawnDataContent::despawn(77)]);
+        track_group_entity_data(&despawn, &context).unwrap();
+        assert_eq!(catalog.lookup(77).unwrap().status, WireEntityStatus::Retired);
+    }
+
+    #[test]
+    fn a_visibility_respawn_reactivates_a_tombstone() {
+        let context = SerdeContext::default();
+        let catalog = WireEntityCatalog::install(&context);
+        let despawn = EntityDespawn::new(77);
+        let spawn = EntitySpawn::new(item_spawn(77));
+
+        track_entity_spawn(&spawn, &context).unwrap();
+        track_entity_despawn(&despawn, &context).unwrap();
+        assert_eq!(catalog.lookup(77).unwrap().status, WireEntityStatus::Retired);
+
+        track_entity_spawn(&spawn, &context).unwrap();
+        assert_eq!(catalog.lookup(77).unwrap().status, WireEntityStatus::Active);
+    }
+
+    #[test]
+    fn entity_despawn_hooks_retire_on_encode_and_decode() {
+        let encode_context = SerdeContext::default();
+        let encode_catalog = WireEntityCatalog::install(&encode_context);
+        encode_catalog.record_spawn(77, 9000, WireEntityKind::Other);
+        let mut bytes = bytes::BytesMut::new();
+
+        EntityDespawn::new(77).write_to(&mut bytes, &encode_context).unwrap();
+
+        assert_eq!(bytes.as_ref(), &[77, 0, 0, 0]);
+        assert_eq!(encode_catalog.lookup(77).unwrap().status, WireEntityStatus::Retired);
+
+        let decode_context = SerdeContext::default();
+        let decode_catalog = WireEntityCatalog::install(&decode_context);
+        decode_catalog.record_spawn(77, 9000, WireEntityKind::Other);
+        EntityDespawn::read_from(&mut std::io::Cursor::new(bytes), &decode_context).unwrap();
+
+        assert_eq!(decode_catalog.lookup(77).unwrap().status, WireEntityStatus::Retired);
     }
 }

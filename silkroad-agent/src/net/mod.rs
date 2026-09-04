@@ -12,6 +12,7 @@ use silkroad_protocol::inventory::InventoryPacketRegistryExt;
 use silkroad_protocol::movement::MovementPacketRegistryExt;
 use silkroad_protocol::skill::SkillPacketRegistryExt;
 use silkroad_protocol::spawn::SpawnPacketRegistryExt;
+use silkroad_protocol::wire_entity::WireEntityCatalog;
 use silkroad_protocol::world::WorldPacketRegistryExt;
 use silkroad_protocol::BasePacketRegistryExt;
 use skrillax_server::Server;
@@ -33,7 +34,7 @@ impl Plugin for NetworkPlugin {
         // Need to run this inside a `block_on` to ensure we're inside tokio and can
         // `spawn()` more tasks.
         let server = self.runtime.block_on(async {
-            Server::new(
+            Server::new_with_context_initializer(
                 self.server,
                 PacketRegistry::builder()
                     .register_base_packets()
@@ -51,6 +52,9 @@ impl Plugin for NetworkPlugin {
                     .register_world_packets()
                     .build()
                     .expect("Should be able to create registry."),
+                |context| {
+                    WireEntityCatalog::install(context);
+                },
             )
             .expect("Should be able to create the server")
             .into()

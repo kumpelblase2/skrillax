@@ -1,6 +1,5 @@
 use crate::comp::player::Player;
 use crate::comp::GameEntity;
-use crate::ext::EntityIdPool;
 use bevy::ecs::entity::Entities;
 use bevy::prelude::*;
 use std::collections::HashMap;
@@ -44,7 +43,7 @@ pub(crate) fn collect_entities(
     }
 }
 
-pub fn maintain_entities(mut lookup: ResMut<EntityLookup>, mut id_pool: ResMut<EntityIdPool>, entities: &Entities) {
+pub fn maintain_entities(mut lookup: ResMut<EntityLookup>, entities: &Entities) {
     let before_player_count = lookup.player_map.len();
     lookup.player_map.retain(|_, entity| entities.contains(*entity));
     let after_player_count = lookup.player_map.len();
@@ -61,8 +60,45 @@ pub fn maintain_entities(mut lookup: ResMut<EntityLookup>, mut id_pool: ResMut<E
         .map(|(id, _)| *id)
         .collect();
 
+    // Runtime IDs have no generation on the wire. Reusing one could make a
+    // delayed client action resolve to an unrelated newly spawned entity, so
+    // allocation remains monotonic for the lifetime of this server process.
     for id in removed_entities {
         lookup.id_map.remove(&id);
-        let _ = id_pool.return_id(id);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ext::EntityIdPool;
+
+    #[test]
+    fn despawned_runtime_ids_are_not_reused() {
+        let mut app = App::new();
+        app.init_resource::<EntityLookup>();
+        app.init_resource::<EntityIdPool>();
+        app.add_systems(Update, (collect_entities, maintain_entities).chain());
+
+        let first_id = app.world_mut().resource_mut::<EntityIdPool>().request_id().unwrap();
+        let entity = app
+            .world_mut()
+            .spawn(GameEntity {
+                unique_id: first_id,
+                ref_id: 1000,
+            })
+            .id();
+        app.update();
+        assert_eq!(
+            app.world().resource::<EntityLookup>().get_entity_for_id(first_id),
+            Some(entity)
+        );
+
+        app.world_mut().despawn(entity);
+        app.update();
+        assert_eq!(app.world().resource::<EntityLookup>().get_entity_for_id(first_id), None);
+
+        let next_id = app.world_mut().resource_mut::<EntityIdPool>().request_id().unwrap();
+        assert_ne!(next_id, first_id);
     }
 }
