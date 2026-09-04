@@ -43,8 +43,8 @@ impl FromStr for RefCharacterData {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let elements = s.split('\t').collect::<Vec<&str>>();
         let common = RefCommon::from_columns(&elements)?;
-        let rarity_kind: u8 = elements.get(15).ok_or(ParseError::MissingColumn(16))?.parse()?;
-        let aggressive: u8 = elements.get(93).ok_or(ParseError::MissingColumn(94))?.parse()?;
+        let rarity_kind: u8 = elements.get(15).ok_or(ParseError::MissingColumn(15))?.parse()?;
+        let aggressive: u8 = elements.get(93).ok_or(ParseError::MissingColumn(93))?.parse()?;
         let pickup_range: u16 = elements.get(61).ok_or(ParseError::MissingColumn(61))?.parse()?;
         let mut skills: Vec<u32> = Vec::new();
         for i in 83..=92 {
