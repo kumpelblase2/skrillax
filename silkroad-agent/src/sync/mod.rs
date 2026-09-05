@@ -3,6 +3,7 @@ use crate::comp::mastery::MasteryKnowledge;
 use crate::comp::player::StatPoints;
 use crate::comp::pos::Position;
 use crate::comp::{Health, Mana};
+use crate::sync::equipment::collect_equipment_changes;
 use crate::sync::reset::AppResetExt;
 use crate::sync::system::{
     collect_alives, collect_body_states, collect_deaths, collect_gold_changes, collect_mastery_changes,
@@ -18,14 +19,18 @@ use silkroad_protocol::combat::ReceiveExperience;
 use silkroad_protocol::movement::{EntityMovementInterrupt, PlayerMovementResponse};
 use silkroad_protocol::skill::LevelUpMasteryResponse;
 use silkroad_protocol::world::{
-    CharacterPointsUpdate, EntityBarsUpdate, EntityUpdateState, LevelUpEffect, PlayerPickupAnimation,
+    CharacterEquipmentRemove, CharacterEquipmentUpdate, CharacterPointsUpdate, EntityBarsUpdate, EntityUpdateState,
+    LevelUpEffect, PlayerPickupAnimation,
 };
 use skrillax_stream::stream::DynamicPacket;
 use std::sync::{mpsc, Mutex};
 use system::{collect_movement_starts, collect_movement_transitions};
 
+mod equipment;
 mod reset;
 mod system;
+
+pub(crate) use equipment::LastSynchronizedEquipment;
 
 pub(crate) struct Update {
     source: Entity,
@@ -55,6 +60,8 @@ impl Update {
 pub(crate) enum SelfUpdate {
     EntityBarsUpdate(EntityBarsUpdate),
     CharacterPointsUpdate(CharacterPointsUpdate),
+    CharacterEquipmentUpdate(CharacterEquipmentUpdate),
+    CharacterEquipmentRemove(CharacterEquipmentRemove),
     ReceiveExperience(ReceiveExperience),
     LevelUpEffect(LevelUpEffect),
     CharacterStatsMessage(CharacterStatsMessage),
@@ -70,6 +77,8 @@ impl Into<DynamicPacket> for SelfUpdate {
         match self {
             SelfUpdate::EntityBarsUpdate(p) => p.into(),
             SelfUpdate::CharacterPointsUpdate(p) => p.into(),
+            SelfUpdate::CharacterEquipmentUpdate(p) => p.into(),
+            SelfUpdate::CharacterEquipmentRemove(p) => p.into(),
             SelfUpdate::ReceiveExperience(p) => p.into(),
             SelfUpdate::LevelUpEffect(p) => p.into(),
             SelfUpdate::CharacterStatsMessage(p) => p.into(),
@@ -85,6 +94,8 @@ impl Into<DynamicPacket> for SelfUpdate {
 #[derive(From, Clone, Debug)]
 pub(crate) enum OtherUpdate {
     EntityBarsUpdate(EntityBarsUpdate),
+    CharacterEquipmentUpdate(CharacterEquipmentUpdate),
+    CharacterEquipmentRemove(CharacterEquipmentRemove),
     LevelUpEffect(LevelUpEffect),
     EntityMovementInterrupt(EntityMovementInterrupt),
     PlayerMovementResponse(PlayerMovementResponse),
@@ -96,6 +107,8 @@ impl Into<DynamicPacket> for OtherUpdate {
     fn into(self) -> DynamicPacket {
         match self {
             OtherUpdate::EntityBarsUpdate(p) => p.into(),
+            OtherUpdate::CharacterEquipmentUpdate(p) => p.into(),
+            OtherUpdate::CharacterEquipmentRemove(p) => p.into(),
             OtherUpdate::LevelUpEffect(p) => p.into(),
             OtherUpdate::EntityMovementInterrupt(p) => p.into(),
             OtherUpdate::PlayerMovementResponse(p) => p.into(),
@@ -168,6 +181,7 @@ impl Plugin for SynchronizationPlugin {
                     collect_stat_changes,
                     collect_gold_changes,
                     collect_mastery_changes,
+                    collect_equipment_changes,
                 )
                     .in_set(SynchronizationStage::Collection),
             )

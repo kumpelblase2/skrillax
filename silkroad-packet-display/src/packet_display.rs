@@ -27,9 +27,10 @@ use silkroad_protocol::spawn::{
     GroupEntitySpawnEnd, GroupEntitySpawnStart,
 };
 use silkroad_protocol::world::{
-    AddQuestMarker, CelestialUpdate, CharacterFinished, CharacterPointsUpdate, EntityBarsUpdate, EntityUpdateState,
-    GameGuideResponse, GuildMatchingList, IncreaseInt, IncreaseStr, LevelUpEffect, LunarEventInfo,
-    PlayerPickupAnimation, TargetEntity, TargetEntityResponse, UnTargetEntity, UpdateGameGuide, WeatherUpdate,
+    AddQuestMarker, CelestialUpdate, CharacterEquipmentRemove, CharacterEquipmentUpdate, CharacterFinished,
+    CharacterPointsUpdate, EntityBarsUpdate, EntityUpdateState, GameGuideResponse, GuildMatchingList, IncreaseInt,
+    IncreaseStr, LevelUpEffect, LunarEventInfo, PlayerPickupAnimation, TargetEntity, TargetEntityResponse,
+    UnTargetEntity, UpdateGameGuide, WeatherUpdate,
 };
 use silkroad_protocol::{IdentityInformation, KeepAlive};
 use skrillax_stream::handshake::{HandshakeAccepted, HandshakeChallenge, SecurityCapabilityCheck};
@@ -169,6 +170,8 @@ pub(crate) fn display_packet(packet: DynamicPacket) {
             UnknownPacket,
             UnknownPacket2,
             CharacterStatsMessage,
+            CharacterEquipmentUpdate,
+            CharacterEquipmentRemove,
             EntityDespawn,
             AddQuestMarker,
             EntityUpdateState,

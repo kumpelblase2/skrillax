@@ -18,6 +18,7 @@ use crate::login::{
 };
 use crate::population::{LoginQueue, ReservationError};
 use crate::server_plugin::ServerId;
+use crate::sync::LastSynchronizedEquipment;
 use crate::tasks::TaskCreator;
 use crate::world::WorldData;
 use bevy::prelude::*;
@@ -291,6 +292,7 @@ pub(crate) fn handle_character_join_received(
             ref_id: loaded.reference_id,
             unique_id,
         };
+        let last_synchronized_equipment = LastSynchronizedEquipment::from_inventory(&inventory);
 
         client.send(CharacterJoinResponse::success());
         send_spawn(
@@ -309,15 +311,18 @@ pub(crate) fn handle_character_join_received(
         client.send(UnknownPacket2::new(game_entity.unique_id));
 
         cmd.entity(entity)
-            .insert(PlayerBundle::new(
-                player,
-                game_entity,
-                inventory,
-                gold,
-                agent,
-                position,
-                Visibility::with_radius(500.),
-                hotbar,
+            .insert((
+                PlayerBundle::new(
+                    player,
+                    game_entity,
+                    inventory,
+                    gold,
+                    agent,
+                    position,
+                    Visibility::with_radius(500.),
+                    hotbar,
+                ),
+                last_synchronized_equipment,
             ))
             .remove::<CharacterSelect>()
             .remove::<CharacterJoining>();

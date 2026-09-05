@@ -618,6 +618,23 @@ pub struct PlayerPickupAnimation {
 }
 
 #[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x3038)]
+pub struct CharacterEquipmentUpdate {
+    pub entity: u32,
+    pub slot: u8,
+    pub item_id: u32,
+    pub upgrade_level: u8,
+}
+
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
+#[packet(opcode = 0x3039)]
+pub struct CharacterEquipmentRemove {
+    pub entity: u32,
+    pub slot: u8,
+    pub item_id: u32,
+}
+
+#[derive(Serialize, ByteSize, Deserialize, Copy, Clone, Packet, Debug)]
 #[packet(opcode = 0x3054)]
 pub struct LevelUpEffect {
     /// Unique ID of the entity that levelled up
@@ -736,6 +753,8 @@ impl WorldPacketRegistryExt for PacketRegistryBuilder {
             .register::<EntityBarsUpdate>()
             .register::<LevelUpEffect>()
             .register::<PlayerPickupAnimation>()
+            .register::<CharacterEquipmentUpdate>()
+            .register::<CharacterEquipmentRemove>()
             .register::<GameGuideResponse>()
             .register::<EntityUpdateState>()
             .register::<CharacterPointsUpdate>()
@@ -758,6 +777,50 @@ mod tests {
         let context = SerdeContext::default();
         WireEntityCatalog::install(&context).record_spawn(unique_id, 1000, kind);
         context
+    }
+
+    #[test]
+    fn character_equipment_update_matches_wire_layout() {
+        let context = SerdeContext::default();
+        let update = CharacterEquipmentUpdate {
+            entity: 0x0182_B09A,
+            slot: 3,
+            item_id: 30_121,
+            upgrade_level: 0,
+        };
+        let mut bytes = BytesMut::new();
+
+        update.write_to(&mut bytes, &context).unwrap();
+
+        assert_eq!(bytes.as_ref(), &[0x9A, 0xB0, 0x82, 0x01, 0x03, 0xA9, 0x75, 0, 0, 0]);
+        assert_eq!(update.byte_size(), bytes.len());
+
+        let decoded = CharacterEquipmentUpdate::read_from(&mut Cursor::new(bytes), &context).unwrap();
+        assert_eq!(decoded.entity, update.entity);
+        assert_eq!(decoded.slot, update.slot);
+        assert_eq!(decoded.item_id, update.item_id);
+        assert_eq!(decoded.upgrade_level, update.upgrade_level);
+    }
+
+    #[test]
+    fn character_equipment_remove_matches_wire_layout() {
+        let context = SerdeContext::default();
+        let remove = CharacterEquipmentRemove {
+            entity: 0x0182_B09A,
+            slot: 3,
+            item_id: 30_121,
+        };
+        let mut bytes = BytesMut::new();
+
+        remove.write_to(&mut bytes, &context).unwrap();
+
+        assert_eq!(bytes.as_ref(), &[0x9A, 0xB0, 0x82, 0x01, 0x03, 0xA9, 0x75, 0, 0]);
+        assert_eq!(remove.byte_size(), bytes.len());
+
+        let decoded = CharacterEquipmentRemove::read_from(&mut Cursor::new(bytes), &context).unwrap();
+        assert_eq!(decoded.entity, remove.entity);
+        assert_eq!(decoded.slot, remove.slot);
+        assert_eq!(decoded.item_id, remove.item_id);
     }
 
     #[test]
