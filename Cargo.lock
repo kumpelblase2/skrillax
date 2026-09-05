@@ -5121,6 +5121,7 @@ dependencies = [
  "silkroad-navmesh",
  "silkroad-protocol",
  "silkroad-rpc",
+ "silkroad-starter-gear",
  "skrillax-packet",
  "skrillax-server",
  "skrillax-stream",
@@ -5303,6 +5304,19 @@ name = "silkroad-rpc"
 version = "0.1.0"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "silkroad-starter-gear"
+version = "0.1.0"
+dependencies = [
+ "ron 0.12.2",
+ "serde",
+ "silkroad-data",
+ "silkroad-definitions",
+ "silkroad-game-base",
+ "tempfile",
+ "thiserror 2.0.12",
 ]
 
 [[package]]

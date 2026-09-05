@@ -9,6 +9,7 @@ use crate::comp::visibility::Visibility;
 use crate::comp::{GameEntity, Playing};
 use crate::config::{ConfiguredMastery, GameConfig, MasteryConfig};
 use crate::ext::{CharacterPersistenceResource, EntityIdPool};
+use crate::game::starter_gear::StarterGearResource;
 use crate::input::PlayerInputEvent;
 use crate::login::job_distribution::JobDistribution;
 use crate::login::{
@@ -23,8 +24,10 @@ use bevy::prelude::*;
 use cgmath::Vector3;
 use chrono::{TimeZone, Utc};
 use silkroad_agent_persistence::{CharacterOwner, CharacterRace, NewCharacter, NewCharacterItem, WorldJoinError};
+use silkroad_data::common::RefOrigin;
 use silkroad_data::masterydata::RefMasteryData;
 use silkroad_data::DataEntry;
+use silkroad_definitions::type_id::{ObjectEntity, ObjectRace, ObjectType};
 use silkroad_game_base::{Heading, ItemTypeData, LocalPosition, Race};
 use silkroad_protocol::auth::{AuthRequest, AuthResponse, AuthResult, AuthResultError, UnknownLargePacket};
 use silkroad_protocol::character::{
@@ -40,6 +43,7 @@ use silkroad_protocol::skill::{HotbarItem, MasteryData, SkillData};
 use silkroad_protocol::spawn::{CharacterSpawn, CharacterSpawnEnd, CharacterSpawnStart, JobInformation};
 use silkroad_protocol::world::{ActionState, AliveState, BodyState, EntityState};
 use silkroad_protocol::PackedSilkroadTime;
+use silkroad_starter_gear::{StarterGear, StarterGearSelectionError, StarterSelection};
 use tokio::sync::oneshot::error::TryRecvError;
 use tracing::{debug, warn};
 
@@ -51,6 +55,7 @@ pub(crate) fn handle_list_request(
     job_distribution: Res<JobDistribution>,
     server_id: Res<ServerId>,
     settings: Res<GameConfig>,
+    starter_gear: Res<StarterGearResource>,
     mut reader: MessageReader<PlayerInputEvent<CharacterListRequest>>,
 ) {
     for event in reader.read() {
@@ -75,7 +80,7 @@ pub(crate) fn handle_list_request(
                 }
 
                 character_list.checked_name = None;
-                let character = create_character_from(
+                let character = match create_character_from(
                     playing.0.id,
                     server_id.0,
                     character_name.clone(),
@@ -85,7 +90,22 @@ pub(crate) fn handle_list_request(
                     *pants,
                     *boots,
                     *weapon,
-                );
+                    &starter_gear.0,
+                ) {
+                    Ok(character) => character,
+                    Err(error) => {
+                        warn!(
+                            ?error,
+                            reference_id = ref_id,
+                            "Rejected invalid character creation data"
+                        );
+                        client.send(CharacterListResponse::new(
+                            CharacterListAction::Create,
+                            CharacterListResult::error(CharacterListError::InvalidCharacterData),
+                        ));
+                        continue;
+                    },
+                };
                 let character_persistence = (*character_persistence).clone();
                 let task = task_creator.create_task(async move { character_persistence.create(character).await });
                 cmd.entity(entity).insert(CharacterCreate(task));
@@ -560,23 +580,37 @@ pub(crate) fn create_character_from(
     pants: u32,
     boots: u32,
     weapon: u32,
-) -> NewCharacter {
-    let item = |reference_id, slot| NewCharacterItem {
-        reference_id,
-        upgrade_level: 0,
-        variance: None,
-        slot,
-        amount: 1,
-    };
+    starter_gear: &StarterGear,
+) -> Result<NewCharacter, CharacterCreationError> {
+    let character_reference = WorldData::characters()
+        .find_id(ref_id)
+        .ok_or(CharacterCreationError::UnknownCharacter(ref_id))?;
+    if !character_reference.common.service
+        || !matches!(
+            ObjectType::from_type_id(&character_reference.common.type_id),
+            Some(ObjectType::Entity(ObjectEntity::Player))
+        )
+    {
+        return Err(CharacterCreationError::InvalidCharacter(ref_id));
+    }
 
-    NewCharacter {
+    let (race, object_race) = match character_reference.common.country {
+        RefOrigin::Chinese => (CharacterRace::Chinese, ObjectRace::Chinese),
+        RefOrigin::European => (CharacterRace::European, ObjectRace::European),
+        RefOrigin::General => return Err(CharacterCreationError::InvalidCharacter(ref_id)),
+    };
+    let items = starter_gear.prepare(StarterSelection {
+        race: object_race,
+        chest,
+        pants,
+        boots,
+        weapon,
+    })?;
+
+    Ok(NewCharacter {
         owner: CharacterOwner { user_id, server_id },
         name: character_name,
-        race: if ref_id > 2000 {
-            CharacterRace::European
-        } else {
-            CharacterRace::Chinese
-        },
+        race,
         reference_id: ref_id,
         scale,
         level: 1,
@@ -592,8 +626,27 @@ pub(crate) fn create_character_from(
         region: 24998,
         beginner_mark: true,
         gold: 5_000_000,
-        items: vec![item(chest, 1), item(pants, 4), item(boots, 5), item(weapon, 6)],
-    }
+        items: items
+            .into_iter()
+            .map(|item| NewCharacterItem {
+                reference_id: item.reference_id,
+                upgrade_level: item.upgrade_level,
+                variance: None,
+                slot: item.slot,
+                amount: item.amount,
+            })
+            .collect(),
+    })
+}
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum CharacterCreationError {
+    #[error("unknown character reference {0}")]
+    UnknownCharacter(u32),
+    #[error("character reference {0} is not an active playable character")]
+    InvalidCharacter(u32),
+    #[error(transparent)]
+    StarterGear(#[from] StarterGearSelectionError),
 }
 
 #[cfg(test)]

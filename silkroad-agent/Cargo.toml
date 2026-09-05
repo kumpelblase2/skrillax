@@ -13,6 +13,7 @@ silkroad-data = { path = "../crates/silkroad-data" }
 silkroad-game-base = { path = "../crates/silkroad-game-base" }
 silkroad-definitions = { path = "../crates/silkroad-definitions" }
 silkroad-loot = { path = "../crates/silkroad-loot" }
+silkroad-starter-gear = { path = "../crates/silkroad-starter-gear" }
 silkroad-agent-persistence = { path = "../crates/silkroad-agent-persistence" }
 skrillax-server = { path = "../crates/skrillax-server" }
 skrillax-stream.workspace = true

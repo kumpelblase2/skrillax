@@ -25,6 +25,11 @@ validated against the client's `Media.pk2` at startup. The shipped default gives
 ordinary monster a guaranteed gold drop. See [docs/loot-tables.md](docs/loot-tables.md)
 for the full schema, probability semantics, and examples.
 
+## Starter Gear
+
+New characters receive additive, catalogue-validated starter sets selected by race, clothing family, and weapon type.
+See [docs/starter-gear.md](docs/starter-gear.md) for the RON schema and validation rules.
+
 ## Usage
 
 While there's a lot (probably 97%) still missing, it's possible to run the server(s) and connect to it. There are

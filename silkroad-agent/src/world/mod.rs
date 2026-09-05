@@ -1,6 +1,7 @@
 use crate::config::GameConfig;
 use crate::ext::{EntityIdPool, Navmesh, NpcPositionList};
 use crate::game::loot::LootResource;
+use crate::game::starter_gear::StarterGearResource;
 use crate::world::lookup::{collect_entities, maintain_entities};
 use bevy::prelude::*;
 pub use data::*;
@@ -12,6 +13,7 @@ use silkroad_loot::LootTables;
 use silkroad_navmesh::builder::NavmeshBuilder;
 use silkroad_protocol::runtime::initialize_equipment_ids;
 use silkroad_protocol::spawn::register_ref_id;
+use silkroad_starter_gear::StarterGear;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
@@ -52,6 +54,15 @@ impl Plugin for WorldPlugin {
         )
         .unwrap_or_else(|error| panic!("Invalid loot configuration: {error}"));
 
+        let starter_gear_config = app
+            .world()
+            .get_resource::<GameConfig>()
+            .expect("Game settings should exist")
+            .starter_gear
+            .clone();
+        let starter_gear = StarterGear::load_and_compile(Path::new(&starter_gear_config.directory), WorldData::items())
+            .unwrap_or_else(|error| panic!("Invalid starter gear configuration: {error}"));
+
         let npcs = NpcPosition::from(&media_pk2).unwrap();
         let navmesh = NavmeshBuilder::build_from(&data_pk2).expect("should be able to load navmesh from data.");
 
@@ -79,6 +90,7 @@ impl Plugin for WorldPlugin {
         register_ref_id(object_map);
 
         app.insert_resource(LootResource::new(loot_tables))
+            .insert_resource(StarterGearResource(starter_gear))
             .insert_resource(EntityIdPool::default())
             .insert_resource(EntityLookup::default())
             .insert_resource::<NpcPositionList>(npcs.into())

@@ -1,12 +1,92 @@
-use crate::{Change, ChangeTracked, MergeResult};
+use crate::{Change, ChangeTracked, MergeResult, Race};
 use silkroad_data::itemdata::RefItemData;
 use silkroad_data::DataEntry;
 use silkroad_definitions::inventory::EquipmentSlot;
+use silkroad_definitions::type_id::{
+    ObjectClothingPart, ObjectClothingType, ObjectConsumable, ObjectConsumableAmmo, ObjectEquippable, ObjectItem,
+    ObjectJewelryType, ObjectRace, ObjectType, ObjectWeaponType,
+};
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 
 pub const WEAPON_SLOT: u8 = 6;
 pub const GOLD_SLOT: u8 = 0xFE;
+
+/// Whether an item kind is allowed in a specific equipment slot.
+pub fn item_type_matches_equipment_slot(slot: u8, object_type: ObjectType) -> bool {
+    let ObjectType::Item(item) = object_type else {
+        return false;
+    };
+    match item {
+        ObjectItem::Equippable(equipment) => match equipment {
+            ObjectEquippable::Clothing(_, part) => match part {
+                ObjectClothingPart::Head => slot == 0,
+                ObjectClothingPart::Shoulder => slot == 1,
+                ObjectClothingPart::Body => slot == 2,
+                ObjectClothingPart::Leg => slot == 4,
+                ObjectClothingPart::Arm => slot == 3,
+                ObjectClothingPart::Foot => slot == 5,
+                ObjectClothingPart::Any => false,
+            },
+            ObjectEquippable::Shield(_) => slot == 7,
+            ObjectEquippable::Jewelry(_, kind) => match kind {
+                ObjectJewelryType::Earring => slot == 8,
+                ObjectJewelryType::Necklace => slot == 9,
+                ObjectJewelryType::Ring => slot == 10 || slot == 11,
+            },
+            ObjectEquippable::Weapon(_) => slot == WEAPON_SLOT,
+            _ => false,
+        },
+        ObjectItem::Consumable(ObjectConsumable::Ammo(_)) => slot == 7,
+        _ => false,
+    }
+}
+
+/// Whether an item kind may be used by a character race.
+pub fn item_type_matches_race(user_race: Race, object_type: ObjectType) -> bool {
+    let ObjectType::Item(item) = object_type else {
+        return false;
+    };
+    match item {
+        ObjectItem::Equippable(equipment) => match equipment {
+            ObjectEquippable::Clothing(kind, _) => match kind {
+                ObjectClothingType::Garment | ObjectClothingType::Protector | ObjectClothingType::Armor => {
+                    user_race == Race::Chinese
+                },
+                ObjectClothingType::Robe | ObjectClothingType::LightArmor | ObjectClothingType::HeavyArmor => {
+                    user_race == Race::European
+                },
+            },
+            ObjectEquippable::Shield(race) | ObjectEquippable::Jewelry(race, _) => match race {
+                ObjectRace::Chinese => user_race == Race::Chinese,
+                ObjectRace::European => user_race == Race::European,
+            },
+            ObjectEquippable::Weapon(kind) => match kind {
+                ObjectWeaponType::Sword
+                | ObjectWeaponType::Blade
+                | ObjectWeaponType::Spear
+                | ObjectWeaponType::Glavie
+                | ObjectWeaponType::Bow => user_race == Race::Chinese,
+                ObjectWeaponType::OneHandSword
+                | ObjectWeaponType::TwoHandSword
+                | ObjectWeaponType::Axe
+                | ObjectWeaponType::WarlockStaff
+                | ObjectWeaponType::Staff
+                | ObjectWeaponType::Crossbow
+                | ObjectWeaponType::Dagger
+                | ObjectWeaponType::Harp
+                | ObjectWeaponType::ClericRod => user_race == Race::European,
+                _ => false,
+            },
+            _ => false,
+        },
+        ObjectItem::Consumable(ObjectConsumable::Ammo(kind)) => match kind {
+            ObjectConsumableAmmo::Arrows => user_race == Race::Chinese,
+            ObjectConsumableAmmo::Bolts => user_race == Race::European,
+        },
+        _ => false,
+    }
+}
 
 #[derive(Copy, Clone)]
 pub struct Item {

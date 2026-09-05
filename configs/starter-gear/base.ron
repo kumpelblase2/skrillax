@@ -1,0 +1,11 @@
+// Grants shared by every new Character.
+(
+    version: 1,
+    sets: [
+        (
+            name: "all-characters",
+            applies_to: All,
+            grants: [],
+        ),
+    ],
+)

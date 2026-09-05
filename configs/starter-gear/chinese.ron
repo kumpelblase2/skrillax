@@ -1,0 +1,21 @@
+// Chinese Starter Gear. Every matching set is additive.
+(
+    version: 1,
+    sets: [
+        (
+            name: "chinese-characters",
+            applies_to: Race(Chinese),
+            grants: [],
+        ),
+
+        (name: "chinese-garment", applies_to: Clothing(Garment), grants: []),
+        (name: "chinese-protector", applies_to: Clothing(Protector), grants: []),
+        (name: "chinese-armor", applies_to: Clothing(Armor), grants: []),
+
+        (name: "chinese-sword", applies_to: Weapon(Sword), grants: []),
+        (name: "chinese-blade", applies_to: Weapon(Blade), grants: []),
+        (name: "chinese-spear", applies_to: Weapon(Spear), grants: []),
+        (name: "chinese-glavie", applies_to: Weapon(Glavie), grants: []),
+        (name: "chinese-bow", applies_to: Weapon(Bow), grants: []),
+    ],
+)

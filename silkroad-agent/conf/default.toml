@@ -70,3 +70,6 @@ sp-experience = 1.0
 [game.loot]
 directory = "configs/loot"
 rate = 1.0
+
+[game.starter-gear]
+directory = "configs/starter-gear"

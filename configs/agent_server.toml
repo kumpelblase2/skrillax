@@ -8,3 +8,7 @@ data-location = "/usr/silkroad"
 # "configs/loot"); see docs/loot-tables.md for the full schema.
 # [game.loot]
 # rate = 1.0
+# Starter gear definitions default to "configs/starter-gear"; see
+# docs/starter-gear.md.
+# [game.starter-gear]
+# directory = "configs/starter-gear"

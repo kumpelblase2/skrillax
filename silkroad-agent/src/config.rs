@@ -54,6 +54,7 @@ pub(crate) struct GameConfig {
     pub(crate) persist_interval: u64,
     pub(crate) drop: DropConfig,
     pub(crate) loot: LootConfig,
+    pub(crate) starter_gear: StarterGearConfig,
 }
 
 #[derive(Deserialize, Default, Clone)]
@@ -127,6 +128,22 @@ impl Default for LootConfig {
     }
 }
 
+/// Operational settings for starter gear definitions.
+#[derive(Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) struct StarterGearConfig {
+    /// Directory containing starter gear `.ron` files.
+    pub(crate) directory: String,
+}
+
+impl Default for StarterGearConfig {
+    fn default() -> Self {
+        Self {
+            directory: String::from("configs/starter-gear"),
+        }
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct GameServerConfig {
@@ -172,8 +189,22 @@ mod tests {
     }
 
     #[derive(Deserialize)]
+    #[serde(rename_all = "kebab-case")]
     struct GameDefaults {
         masteries: MasteryConfig,
+        starter_gear: StarterGearConfig,
+    }
+
+    #[test]
+    fn shipped_starter_gear_configuration_uses_the_project_directory() {
+        let defaults: Defaults = config::Config::builder()
+            .add_source(config::File::from_str(DEFAULT_CONFIG, FileFormat::Toml))
+            .build()
+            .unwrap()
+            .try_deserialize()
+            .unwrap();
+
+        assert_eq!(defaults.game.starter_gear.directory, "configs/starter-gear");
     }
 
     #[test]

@@ -1,0 +1,15 @@
+[package]
+name = "silkroad-starter-gear"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ron.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+silkroad-data = { path = "../silkroad-data" }
+silkroad-definitions = { path = "../silkroad-definitions" }
+silkroad-game-base = { path = "../silkroad-game-base" }
+
+[dev-dependencies]
+tempfile = "3"

@@ -49,6 +49,7 @@ mod mastery;
 mod movement;
 pub(crate) mod player_activity;
 mod spawn;
+pub(crate) mod starter_gear;
 mod stats;
 pub(crate) mod target;
 mod unique;

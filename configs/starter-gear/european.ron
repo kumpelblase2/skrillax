@@ -1,0 +1,25 @@
+// European Starter Gear. Every matching set is additive.
+(
+    version: 1,
+    sets: [
+        (
+            name: "european-characters",
+            applies_to: Race(European),
+            grants: [],
+        ),
+
+        (name: "european-robe", applies_to: Clothing(Robe), grants: []),
+        (name: "european-light-armor", applies_to: Clothing(LightArmor), grants: []),
+        (name: "european-heavy-armor", applies_to: Clothing(HeavyArmor), grants: []),
+
+        (name: "european-one-hand-sword", applies_to: Weapon(OneHandSword), grants: []),
+        (name: "european-two-hand-sword", applies_to: Weapon(TwoHandSword), grants: []),
+        (name: "european-axe", applies_to: Weapon(Axe), grants: []),
+        (name: "european-warlock-staff", applies_to: Weapon(WarlockStaff), grants: []),
+        (name: "european-staff", applies_to: Weapon(Staff), grants: []),
+        (name: "european-crossbow", applies_to: Weapon(Crossbow), grants: []),
+        (name: "european-dagger", applies_to: Weapon(Dagger), grants: []),
+        (name: "european-harp", applies_to: Weapon(Harp), grants: []),
+        (name: "european-cleric-rod", applies_to: Weapon(ClericRod), grants: []),
+    ],
+)

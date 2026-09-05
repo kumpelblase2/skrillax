@@ -8,11 +8,8 @@ use crate::game::drop::SpawnDrop;
 use crate::game::loot::LootResource;
 use crate::input::PlayerInputEvent;
 use bevy::prelude::*;
-use silkroad_definitions::type_id::{
-    ObjectClothingPart, ObjectClothingType, ObjectConsumable, ObjectConsumableAmmo, ObjectEquippable, ObjectItem,
-    ObjectJewelryType, ObjectRace, ObjectType, ObjectWeaponType,
-};
-use silkroad_game_base::{Inventory, MoveError, Race};
+use silkroad_definitions::type_id::ObjectType;
+use silkroad_game_base::{item_type_matches_equipment_slot, item_type_matches_race, Inventory, MoveError};
 use silkroad_protocol::inventory::{
     InventoryOperation, InventoryOperationError, InventoryOperationRequest, InventoryOperationResponseData,
     InventoryOperationResult,
@@ -65,13 +62,13 @@ pub(crate) fn handle_inventory_input(
                         let type_id = source_item.reference.common.type_id;
                         let object_type =
                             ObjectType::from_type_id(&type_id).expect("Item to equip should have valid object type.");
-                        let fits = does_object_type_match_slot(target, object_type)
+                        let fits = item_type_matches_equipment_slot(target, object_type)
                             && source_item
                                 .reference
                                 .required_level
                                 .map(|val| val.get() <= level.current_level())
                                 .unwrap_or(true)
-                            && does_object_type_match_race(race.inner(), object_type);
+                            && item_type_matches_race(race.inner(), object_type);
                         // TODO: check if equipment requirement sex matches
                         //  check if required masteries matches
                         if !fits {
@@ -99,96 +96,4 @@ pub(crate) fn handle_inventory_input(
             InventoryOperationRequest::DropItem { .. } => {},
         }
     }
-}
-
-fn does_object_type_match_race(user_race: Race, obj_type: ObjectType) -> bool {
-    if let ObjectType::Item(item) = obj_type {
-        match item {
-            ObjectItem::Equippable(equipment) => match equipment {
-                ObjectEquippable::Clothing(kind, _) => {
-                    return match kind {
-                        ObjectClothingType::Garment | ObjectClothingType::Protector | ObjectClothingType::Armor => {
-                            user_race == Race::Chinese
-                        },
-                        ObjectClothingType::Robe | ObjectClothingType::LightArmor | ObjectClothingType::HeavyArmor => {
-                            user_race == Race::European
-                        },
-                    }
-                },
-                ObjectEquippable::Shield(race) | ObjectEquippable::Jewelry(race, _) => {
-                    return match race {
-                        ObjectRace::Chinese => user_race == Race::Chinese,
-                        ObjectRace::European => user_race == Race::European,
-                    }
-                },
-                ObjectEquippable::Weapon(kind) => {
-                    return match kind {
-                        ObjectWeaponType::Sword
-                        | ObjectWeaponType::Blade
-                        | ObjectWeaponType::Spear
-                        | ObjectWeaponType::Glavie
-                        | ObjectWeaponType::Bow => user_race == Race::Chinese,
-                        ObjectWeaponType::OneHandSword
-                        | ObjectWeaponType::TwoHandSword
-                        | ObjectWeaponType::Axe
-                        | ObjectWeaponType::WarlockStaff
-                        | ObjectWeaponType::Staff
-                        | ObjectWeaponType::Crossbow
-                        | ObjectWeaponType::Dagger
-                        | ObjectWeaponType::Harp
-                        | ObjectWeaponType::ClericRod => user_race == Race::European,
-                        _ => false,
-                    }
-                },
-                _ => {},
-            },
-            ObjectItem::Consumable(ObjectConsumable::Ammo(kind)) => {
-                return match kind {
-                    ObjectConsumableAmmo::Arrows => user_race == Race::Chinese,
-                    ObjectConsumableAmmo::Bolts => user_race == Race::European,
-                }
-            },
-            _ => {},
-        }
-    }
-    false
-}
-
-fn does_object_type_match_slot(slot: u8, obj_type: ObjectType) -> bool {
-    if let ObjectType::Item(item) = obj_type {
-        match item {
-            ObjectItem::Equippable(equipment) => match equipment {
-                ObjectEquippable::Clothing(_, part) => {
-                    return match part {
-                        ObjectClothingPart::Head => slot == 0,
-                        ObjectClothingPart::Shoulder => slot == 1,
-                        ObjectClothingPart::Body => slot == 2,
-                        ObjectClothingPart::Leg => slot == 4,
-                        ObjectClothingPart::Arm => slot == 3,
-                        ObjectClothingPart::Foot => slot == 5,
-                        ObjectClothingPart::Any => false,
-                    }
-                },
-                ObjectEquippable::Shield(_) => {
-                    return slot == 7;
-                },
-                ObjectEquippable::Jewelry(_, kind) => {
-                    return match kind {
-                        ObjectJewelryType::Earring => slot == 8,
-                        ObjectJewelryType::Necklace => slot == 9,
-                        ObjectJewelryType::Ring => slot == 11 || slot == 10,
-                    }
-                },
-                ObjectEquippable::Weapon(_) => {
-                    return slot == 6;
-                },
-                _ => {},
-            },
-            ObjectItem::Consumable(ObjectConsumable::Ammo(_)) => {
-                return slot == 7;
-            },
-            _ => {},
-        }
-    }
-    false
 }
