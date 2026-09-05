@@ -452,7 +452,7 @@ fn send_spawn(
     let inventory_items = inventory
         .items()
         .map(|(slot, item)| InventoryItemData {
-            slot: *slot,
+            slot: slot.into(),
             rent_data: RentInfo::Empty,
             content_data: match item.type_data {
                 ItemTypeData::Equipment { upgrade_level } => ItemContentData::new_equipment(

@@ -97,7 +97,7 @@ pub(crate) fn pickup(
                 _ => {
                     if let Some(slot) = inventory.add_item(drop.item) {
                         client.send(InventoryOperationResult::success_gain_item(
-                            slot,
+                            slot.into(),
                             ItemContentData::new_expendable(
                                 drop.item.reference.ref_id(),
                                 ExpendableItemContentData::new(drop.item.stack_size()),

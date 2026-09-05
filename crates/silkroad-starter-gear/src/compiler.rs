@@ -9,7 +9,7 @@ use silkroad_definitions::type_id::{
     ObjectClothingType, ObjectConsumable, ObjectConsumableAmmo, ObjectEquippable, ObjectItem, ObjectRace, ObjectType,
     ObjectWeaponType,
 };
-use silkroad_game_base::{item_type_matches_equipment_slot, item_type_matches_race, Race};
+use silkroad_game_base::{item_type_matches_equipment_slot, item_type_matches_race, EquipmentSlot, Race};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
@@ -126,24 +126,25 @@ impl StarterGear {
                 let slot = match grant.placement {
                     PlacementDef::Bag => None,
                     PlacementDef::Equip(slot) => {
-                        let slot = equipment_slot(slot);
-                        if matches!(slot, 1 | 4 | 5 | 6) {
+                        let equipment_slot = equipment_slot(slot);
+                        let raw_slot = u8::from(equipment_slot);
+                        if matches!(raw_slot, 1 | 4 | 5 | 6) {
                             issues.push(ValidationIssue::new(
                                 &sourced.path,
                                 Some(sourced.set.name.clone()),
-                                format!("item '{}' targets occupied equipment slot {}", grant.code, slot),
+                                format!("item '{}' targets occupied equipment slot {}", grant.code, raw_slot),
                             ));
                             continue;
                         }
-                        if !item_type_matches_equipment_slot(slot, object_type) {
+                        if !item_type_matches_equipment_slot(equipment_slot, object_type) {
                             issues.push(ValidationIssue::new(
                                 &sourced.path,
                                 Some(sourced.set.name.clone()),
-                                format!("item '{}' cannot be equipped in slot {}", grant.code, slot),
+                                format!("item '{}' cannot be equipped in slot {}", grant.code, raw_slot),
                             ));
                             continue;
                         }
-                        Some(slot)
+                        Some(raw_slot)
                     },
                 };
                 grants.push(CompiledGrant {
@@ -340,19 +341,19 @@ fn selector(definition: AppliesToDef) -> CompiledSelector {
     }
 }
 
-fn equipment_slot(slot: EquipmentSlotDef) -> u8 {
+fn equipment_slot(slot: EquipmentSlotDef) -> EquipmentSlot {
     match slot {
-        EquipmentSlotDef::HeadArmor => 0,
-        EquipmentSlotDef::ShoulderArmor => 1,
-        EquipmentSlotDef::ChestArmor => 2,
-        EquipmentSlotDef::WristArmor => 3,
-        EquipmentSlotDef::LegArmor => 4,
-        EquipmentSlotDef::FootArmor => 5,
-        EquipmentSlotDef::Weapon => 6,
-        EquipmentSlotDef::SecondaryWeapon => 7,
-        EquipmentSlotDef::Earring => 8,
-        EquipmentSlotDef::Necklace => 9,
-        EquipmentSlotDef::LeftRing => 10,
-        EquipmentSlotDef::RightRing => 11,
+        EquipmentSlotDef::HeadArmor => EquipmentSlot::HeadArmor,
+        EquipmentSlotDef::ShoulderArmor => EquipmentSlot::ShoulderArmor,
+        EquipmentSlotDef::ChestArmor => EquipmentSlot::ChestArmor,
+        EquipmentSlotDef::WristArmor => EquipmentSlot::WristArmor,
+        EquipmentSlotDef::LegArmor => EquipmentSlot::LegArmor,
+        EquipmentSlotDef::FootArmor => EquipmentSlot::FootArmor,
+        EquipmentSlotDef::Weapon => EquipmentSlot::Weapon,
+        EquipmentSlotDef::SecondaryWeapon => EquipmentSlot::SecondaryWeapon,
+        EquipmentSlotDef::Earring => EquipmentSlot::Earring,
+        EquipmentSlotDef::Necklace => EquipmentSlot::Necklace,
+        EquipmentSlotDef::LeftRing => EquipmentSlot::LeftRing,
+        EquipmentSlotDef::RightRing => EquipmentSlot::RightRing,
     }
 }

@@ -1,43 +1,127 @@
 use crate::{Change, ChangeTracked, MergeResult, Race};
 use silkroad_data::itemdata::RefItemData;
 use silkroad_data::DataEntry;
-use silkroad_definitions::inventory::EquipmentSlot;
+pub use silkroad_definitions::inventory::EquipmentSlot;
 use silkroad_definitions::type_id::{
     ObjectClothingPart, ObjectClothingType, ObjectConsumable, ObjectConsumableAmmo, ObjectEquippable, ObjectItem,
     ObjectJewelryType, ObjectRace, ObjectType, ObjectWeaponType,
 };
-use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 
-pub const WEAPON_SLOT: u8 = 6;
-pub const GOLD_SLOT: u8 = 0xFE;
+const EQUIPMENT_SLOT_COUNT: u8 = 13;
+const FIRST_BAG_SLOT: u8 = EQUIPMENT_SLOT_COUNT;
+const LAST_ITEM_SLOT: u8 = 0xFD;
+
+/// A zero-based position in the bag section of the main inventory.
+///
+/// This deliberately does not expose the protocol's `13`-based representation.
+#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Ord, PartialOrd)]
+pub struct BagSlot(u8);
+
+impl BagSlot {
+    pub const MAX_INDEX: u8 = LAST_ITEM_SLOT - FIRST_BAG_SLOT;
+
+    pub const fn new(index: u8) -> Option<Self> {
+        if index <= Self::MAX_INDEX {
+            Some(Self(index))
+        } else {
+            None
+        }
+    }
+
+    pub const fn index(self) -> u8 {
+        self.0
+    }
+
+    const fn from_raw(raw: u8) -> Option<Self> {
+        if raw >= FIRST_BAG_SLOT && raw <= LAST_ITEM_SLOT {
+            Some(Self(raw - FIRST_BAG_SLOT))
+        } else {
+            None
+        }
+    }
+
+    const fn as_raw(self) -> u8 {
+        self.0 + FIRST_BAG_SLOT
+    }
+}
+
+/// A semantic slot in the character's main inventory.
+#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq)]
+pub enum MainInventorySlot {
+    Equipment(EquipmentSlot),
+    Bag(BagSlot),
+}
+
+impl MainInventorySlot {
+    /// Decodes the representation shared by the protocol and current database schema.
+    pub fn from_raw(raw: u8) -> Result<Self, InvalidInventorySlot> {
+        if raw < EQUIPMENT_SLOT_COUNT {
+            return Ok(Self::Equipment(
+                raw.try_into().expect("every equipment slot value has a definition"),
+            ));
+        }
+
+        BagSlot::from_raw(raw)
+            .map(Self::Bag)
+            .ok_or(InvalidInventorySlot::ReservedOrInvalid { raw })
+    }
+
+    /// Encodes this slot for the protocol or current database schema.
+    pub const fn as_raw(self) -> u8 {
+        match self {
+            Self::Equipment(slot) => slot as u8,
+            Self::Bag(slot) => slot.as_raw(),
+        }
+    }
+}
+
+impl From<EquipmentSlot> for MainInventorySlot {
+    fn from(slot: EquipmentSlot) -> Self {
+        Self::Equipment(slot)
+    }
+}
+
+impl From<MainInventorySlot> for u8 {
+    fn from(slot: MainInventorySlot) -> Self {
+        slot.as_raw()
+    }
+}
+
+#[derive(Debug, thiserror::Error, Eq, PartialEq)]
+pub enum InvalidInventorySlot {
+    #[error("raw inventory slot {raw:#04X} is reserved or invalid")]
+    ReservedOrInvalid { raw: u8 },
+    #[error("inventory slot {raw:#04X} is outside inventory size {size}")]
+    OutsideInventory { raw: u8, size: usize },
+}
 
 /// Whether an item kind is allowed in a specific equipment slot.
-pub fn item_type_matches_equipment_slot(slot: u8, object_type: ObjectType) -> bool {
+pub fn item_type_matches_equipment_slot(slot: EquipmentSlot, object_type: ObjectType) -> bool {
     let ObjectType::Item(item) = object_type else {
         return false;
     };
     match item {
         ObjectItem::Equippable(equipment) => match equipment {
             ObjectEquippable::Clothing(_, part) => match part {
-                ObjectClothingPart::Head => slot == 0,
-                ObjectClothingPart::Shoulder => slot == 1,
-                ObjectClothingPart::Body => slot == 2,
-                ObjectClothingPart::Leg => slot == 4,
-                ObjectClothingPart::Arm => slot == 3,
-                ObjectClothingPart::Foot => slot == 5,
+                ObjectClothingPart::Head => slot == EquipmentSlot::HeadArmor,
+                ObjectClothingPart::Shoulder => slot == EquipmentSlot::ShoulderArmor,
+                ObjectClothingPart::Body => slot == EquipmentSlot::ChestArmor,
+                ObjectClothingPart::Leg => slot == EquipmentSlot::LegArmor,
+                ObjectClothingPart::Arm => slot == EquipmentSlot::WristArmor,
+                ObjectClothingPart::Foot => slot == EquipmentSlot::FootArmor,
                 ObjectClothingPart::Any => false,
             },
-            ObjectEquippable::Shield(_) => slot == 7,
+            ObjectEquippable::Shield(_) => slot == EquipmentSlot::SecondaryWeapon,
             ObjectEquippable::Jewelry(_, kind) => match kind {
-                ObjectJewelryType::Earring => slot == 8,
-                ObjectJewelryType::Necklace => slot == 9,
-                ObjectJewelryType::Ring => slot == 10 || slot == 11,
+                ObjectJewelryType::Earring => slot == EquipmentSlot::Earring,
+                ObjectJewelryType::Necklace => slot == EquipmentSlot::Necklace,
+                ObjectJewelryType::Ring => slot == EquipmentSlot::LeftRing || slot == EquipmentSlot::RightRing,
             },
-            ObjectEquippable::Weapon(_) => slot == WEAPON_SLOT,
+            ObjectEquippable::Weapon(_) => slot == EquipmentSlot::Weapon,
             _ => false,
         },
-        ObjectItem::Consumable(ObjectConsumable::Ammo(_)) => slot == 7,
+        ObjectItem::Consumable(ObjectConsumable::Ammo(_)) => slot == EquipmentSlot::SecondaryWeapon,
         _ => false,
     }
 }
@@ -166,24 +250,24 @@ impl ItemTypeData {
 
 pub enum InventoryChange {
     AddItem {
-        slot: u8,
+        slot: MainInventorySlot,
         item: Item,
     },
     ChangeTypeData {
-        slot: u8,
+        slot: MainInventorySlot,
         old_item: ItemTypeData,
         new_item: ItemTypeData,
     },
     MoveItem {
-        source_slot: u8,
-        target_slot: u8,
+        source_slot: MainInventorySlot,
+        target_slot: MainInventorySlot,
     },
     RemoveItem {
-        slot: u8,
+        slot: MainInventorySlot,
     },
     Swap {
-        first_slot: u8,
-        second_slot: u8,
+        first_slot: MainInventorySlot,
+        second_slot: MainInventorySlot,
     },
 }
 
@@ -374,13 +458,20 @@ impl Change for InventoryChange {
 pub struct Inventory {
     size: usize,
     // TODO: wouldn't this make more sense as an array of N size?
-    items: HashMap<u8, Item>,
+    items: HashMap<MainInventorySlot, Item>,
     changes: Vec<InventoryChange>,
 }
 
 impl Inventory {
     pub fn new(size: usize) -> Self {
-        assert!(size > 0xC, "Minimum Inventory size is 12");
+        assert!(
+            size > usize::from(EQUIPMENT_SLOT_COUNT),
+            "inventory must contain at least one bag slot"
+        );
+        assert!(
+            size <= usize::from(LAST_ITEM_SLOT) + 1,
+            "inventory is too large for the protocol"
+        );
         Inventory {
             size,
             items: HashMap::new(),
@@ -392,31 +483,59 @@ impl Inventory {
         self.size
     }
 
-    pub fn get_item_at(&self, slot: u8) -> Option<&Item> {
+    /// Decodes and validates a protocol or persistence slot for this inventory.
+    pub fn slot_from_raw(&self, raw: u8) -> Result<MainInventorySlot, InvalidInventorySlot> {
+        let slot = MainInventorySlot::from_raw(raw)?;
+        self.ensure_slot(slot)?;
+        Ok(slot)
+    }
+
+    fn ensure_slot(&self, slot: MainInventorySlot) -> Result<(), InvalidInventorySlot> {
+        let raw = slot.as_raw();
+        if usize::from(raw) < self.size {
+            Ok(())
+        } else {
+            Err(InvalidInventorySlot::OutsideInventory { raw, size: self.size })
+        }
+    }
+
+    pub fn get_item_at(&self, slot: MainInventorySlot) -> Option<&Item> {
         self.items.get(&slot)
     }
 
-    pub fn equipment_items(&self) -> impl Iterator<Item = (&u8, &Item)> {
-        self.items.iter().filter(|(index, _)| Self::is_equipment_slot(**index))
+    pub fn equipment_items(&self) -> impl Iterator<Item = (EquipmentSlot, &Item)> {
+        self.items.iter().filter_map(|(slot, item)| match slot {
+            MainInventorySlot::Equipment(slot) => Some((*slot, item)),
+            MainInventorySlot::Bag(_) => None,
+        })
     }
 
-    pub fn items(&self) -> Iter<'_, u8, Item> {
-        self.items.iter()
+    pub fn items(&self) -> impl Iterator<Item = (MainInventorySlot, &Item)> {
+        self.items.iter().map(|(slot, item)| (*slot, item))
     }
 
     pub fn weapon(&self) -> Option<&Item> {
-        self.items.get(&WEAPON_SLOT)
+        self.get_equipment_item(EquipmentSlot::Weapon)
     }
 
-    fn non_equipment_slots(&self) -> impl Iterator<Item = u8> {
-        (0u8..(self.size as u8)).filter(|index| !Self::is_equipment_slot(*index))
+    fn bag_slots(&self) -> impl Iterator<Item = MainInventorySlot> {
+        (FIRST_BAG_SLOT..self.size as u8)
+            .map(|raw| MainInventorySlot::from_raw(raw).expect("inventory size excludes reserved protocol slots"))
     }
 
-    fn empty_slot(&self) -> Option<u8> {
-        self.non_equipment_slots().find(|slot| !self.items.contains_key(slot))
+    fn empty_slot(&self) -> Option<MainInventorySlot> {
+        self.bag_slots().find(|slot| !self.items.contains_key(slot))
     }
 
-    pub fn move_item(&mut self, source: u8, target: u8, amount: u16) -> Result<u16, MoveError> {
+    pub fn move_item(
+        &mut self,
+        source: MainInventorySlot,
+        target: MainInventorySlot,
+        amount: u16,
+    ) -> Result<u16, MoveError> {
+        self.ensure_slot(source)?;
+        self.ensure_slot(target)?;
+
         if let Some(mut source_item) = self.items.remove(&source) {
             if let Some(mut target_item) = self.items.remove(&target) {
                 if source_item.reference.ref_id() == target_item.reference.ref_id()
@@ -475,19 +594,17 @@ impl Inventory {
         Ok(amount)
     }
 
-    pub fn is_equipment_slot(slot: u8) -> bool {
-        slot <= 0xCu8
-    }
-
     pub fn get_equipment_item(&self, slot: EquipmentSlot) -> Option<&Item> {
         self.items.get(&slot.into())
     }
 
-    pub fn set_item(&mut self, slot: u8, item: Item) {
+    pub fn set_item(&mut self, slot: MainInventorySlot, item: Item) -> Result<(), InvalidInventorySlot> {
+        self.ensure_slot(slot)?;
         self.items.insert(slot, item);
+        Ok(())
     }
 
-    fn find_slots_matching(&self, item: Item) -> impl Iterator<Item = u8> + '_ {
+    fn find_slots_matching(&self, item: Item) -> impl Iterator<Item = MainInventorySlot> + '_ {
         self.items
             .iter()
             .filter(move |(_, existing)| existing.reference == item.reference && existing.variance == item.variance)
@@ -495,7 +612,7 @@ impl Inventory {
             .copied()
     }
 
-    pub fn add_item(&mut self, mut item: Item) -> Option<u8> {
+    pub fn add_item(&mut self, mut item: Item) -> Option<MainInventorySlot> {
         if item.reference.max_stack_size > 1 {
             for i in self.find_slots_matching(item).collect::<Vec<_>>() {
                 let free_slot = self.empty_slot();
@@ -533,7 +650,8 @@ impl Inventory {
                                         new_item: new_data,
                                     });
                                     item.type_data = ItemTypeData::Consumable { amount: remaining };
-                                    self.set_item(free_slot, item);
+                                    self.set_item(free_slot, item)
+                                        .expect("empty slots are valid for this inventory");
                                     self.changes.push(InventoryChange::AddItem { slot: free_slot, item });
                                     Some(free_slot)
                                 } else {
@@ -609,11 +727,16 @@ impl Default for Inventory {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum MoveError {
+    #[error("item does not exist")]
     ItemDoesNotExist,
+    #[error("item is not stackable")]
     NotStackable,
+    #[error("inventory operation is impossible")]
     Impossible,
+    #[error(transparent)]
+    InvalidSlot(#[from] InvalidInventorySlot),
 }
 
 #[cfg(test)]
@@ -670,6 +793,44 @@ mod test {
         params: [0, 0, 0, 0],
     });
 
+    fn bag(index: u8) -> MainInventorySlot {
+        MainInventorySlot::Bag(BagSlot::new(index).unwrap())
+    }
+
+    #[test]
+    fn main_inventory_slots_translate_at_the_raw_seam() {
+        assert_eq!(
+            MainInventorySlot::from_raw(0).unwrap(),
+            MainInventorySlot::Equipment(EquipmentSlot::HeadArmor)
+        );
+        assert_eq!(
+            MainInventorySlot::from_raw(2).unwrap(),
+            MainInventorySlot::Equipment(EquipmentSlot::ChestArmor)
+        );
+        assert_eq!(MainInventorySlot::from_raw(13).unwrap(), bag(0));
+        assert_eq!(MainInventorySlot::from_raw(45).unwrap(), bag(32));
+        assert_eq!(u8::from(bag(0)), 13);
+        assert_eq!(u8::from(bag(32)), 45);
+        assert_eq!(
+            MainInventorySlot::from_raw(0xFE),
+            Err(InvalidInventorySlot::ReservedOrInvalid { raw: 0xFE })
+        );
+        assert_eq!(
+            MainInventorySlot::from_raw(0xFF),
+            Err(InvalidInventorySlot::ReservedOrInvalid { raw: 0xFF })
+        );
+    }
+
+    #[test]
+    fn inventory_validates_slots_against_its_size() {
+        let inventory = Inventory::new(14);
+        assert_eq!(inventory.slot_from_raw(13), Ok(bag(0)));
+        assert_eq!(
+            inventory.slot_from_raw(14),
+            Err(InvalidInventorySlot::OutsideInventory { raw: 14, size: 14 })
+        );
+    }
+
     #[test]
     pub fn simple_inventory_tracking() {
         let mut inv = Inventory::default();
@@ -698,7 +859,7 @@ mod test {
         assert_eq!(1, optimized.len());
         assert!(matches!(
             optimized.pop().unwrap(),
-            InventoryChange::AddItem { slot, .. }
+            InventoryChange::AddItem { slot: changed_slot, .. } if changed_slot == slot
         ));
     }
 
@@ -741,15 +902,15 @@ mod test {
         };
 
         let mut inv = Inventory::default();
-        inv.set_item(13, item(10));
-        inv.set_item(14, item(45));
-        assert_eq!(5, inv.move_item(13, 14, 5).unwrap());
-        assert_eq!(5, inv.get_item_at(13).unwrap().stack_size());
+        inv.set_item(bag(0), item(10)).unwrap();
+        inv.set_item(bag(1), item(45)).unwrap();
+        assert_eq!(5, inv.move_item(bag(0), bag(1), 5).unwrap());
+        assert_eq!(5, inv.get_item_at(bag(0)).unwrap().stack_size());
 
         let mut full = Inventory::new(14);
-        full.set_item(13, item(45));
+        full.set_item(bag(0), item(45)).unwrap();
         assert_eq!(None, full.add_item(item(10)));
-        assert_eq!(45, full.get_item_at(13).unwrap().stack_size());
+        assert_eq!(45, full.get_item_at(bag(0)).unwrap().stack_size());
         assert!(full.changes().is_empty());
 
         let mut overflow = item(u16::MAX);
@@ -757,12 +918,12 @@ mod test {
         assert_eq!(u16::MAX, overflow.stack_size());
 
         let mut remove = Inventory::default();
-        remove.set_item(13, item(10));
+        remove.set_item(bag(0), item(10)).unwrap();
         remove.remove_item(item(4)).unwrap();
-        assert_eq!(6, remove.get_item_at(13).unwrap().stack_size());
+        assert_eq!(6, remove.get_item_at(bag(0)).unwrap().stack_size());
         assert!(matches!(
             remove.changes().as_slice(),
-            [InventoryChange::ChangeTypeData { slot: 13, .. }]
+            [InventoryChange::ChangeTypeData { slot, .. }] if *slot == bag(0)
         ));
     }
 
@@ -779,9 +940,12 @@ mod test {
         let slot = inv.add_item(item).unwrap();
         let _ = inv.changes(); // consume the changes
         inv.remove_item(item).unwrap();
-        assert_eq!(0, inv.items().len());
+        assert_eq!(0, inv.items().count());
         let mut changes = inv.changes();
         assert_eq!(1, changes.len());
-        assert!(matches!(changes.pop().unwrap(), InventoryChange::RemoveItem { slot }));
+        assert!(matches!(
+            changes.pop().unwrap(),
+            InventoryChange::RemoveItem { slot: removed_slot } if removed_slot == slot
+        ));
     }
 }

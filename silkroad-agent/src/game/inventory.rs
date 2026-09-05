@@ -9,7 +9,7 @@ use crate::game::loot::LootResource;
 use crate::input::PlayerInputEvent;
 use bevy::prelude::*;
 use silkroad_definitions::type_id::ObjectType;
-use silkroad_game_base::{item_type_matches_equipment_slot, item_type_matches_race, Inventory, MoveError};
+use silkroad_game_base::{item_type_matches_equipment_slot, item_type_matches_race, MainInventorySlot, MoveError};
 use silkroad_protocol::inventory::{
     InventoryOperation, InventoryOperationError, InventoryOperationRequest, InventoryOperationResponseData,
     InventoryOperationResult,
@@ -57,12 +57,21 @@ pub(crate) fn handle_inventory_input(
             },
             InventoryOperationRequest::PickupItem { unique_id } => {},
             InventoryOperationRequest::Move { source, target, amount } => {
-                if let Some(source_item) = inventory.get_item_at(source) {
-                    if Inventory::is_equipment_slot(target) {
+                let (Ok(source_slot), Ok(target_slot)) =
+                    (inventory.slot_from_raw(source), inventory.slot_from_raw(target))
+                else {
+                    client.send(InventoryOperationResult::Failure(
+                        InventoryOperationError::InvalidTarget,
+                    ));
+                    continue;
+                };
+
+                if let Some(source_item) = inventory.get_item_at(source_slot) {
+                    if let MainInventorySlot::Equipment(target_equipment_slot) = target_slot {
                         let type_id = source_item.reference.common.type_id;
                         let object_type =
                             ObjectType::from_type_id(&type_id).expect("Item to equip should have valid object type.");
-                        let fits = item_type_matches_equipment_slot(target, object_type)
+                        let fits = item_type_matches_equipment_slot(target_equipment_slot, object_type)
                             && source_item
                                 .reference
                                 .required_level
@@ -77,13 +86,18 @@ pub(crate) fn handle_inventory_input(
                             continue;
                         }
                     }
-                    match inventory.move_item(source, target, max(1, amount)) {
+                    match inventory.move_item(source_slot, target_slot, max(1, amount)) {
                         Err(MoveError::Impossible) => {},
                         Err(MoveError::ItemDoesNotExist) => {},
                         Err(MoveError::NotStackable) => {},
+                        Err(MoveError::InvalidSlot(_)) => {},
                         Ok(amount_moved) => {
                             client.send(InventoryOperationResult::Success(
-                                InventoryOperationResponseData::move_item(source, target, amount_moved),
+                                InventoryOperationResponseData::move_item(
+                                    source_slot.into(),
+                                    target_slot.into(),
+                                    amount_moved,
+                                ),
                             ));
                         },
                     }

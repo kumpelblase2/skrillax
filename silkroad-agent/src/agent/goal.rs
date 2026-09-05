@@ -15,8 +15,7 @@ use bevy::prelude::*;
 use cgmath::num_traits::Pow;
 use cgmath::{InnerSpace, MetricSpace};
 use silkroad_data::skilldata::RefSkillData;
-use silkroad_definitions::inventory::EquipmentSlot;
-use silkroad_game_base::{AttackSkill, GlobalLocation, GlobalPosition, Heading, Vector3Ext};
+use silkroad_game_base::{AttackSkill, EquipmentSlot, GlobalLocation, GlobalPosition, Heading, Vector3Ext};
 use silkroad_protocol::combat::{DoActionResponseCode, PerformActionResponse};
 
 pub struct AttackingGoal {

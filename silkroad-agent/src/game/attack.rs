@@ -2,8 +2,7 @@ use crate::comp::inventory::PlayerInventory;
 use crate::comp::GameEntity;
 use crate::world::WorldData;
 use silkroad_data::skilldata::RefSkillData;
-use silkroad_definitions::inventory::EquipmentSlot;
-use silkroad_game_base::{AttackSkill, AttackSkillError};
+use silkroad_game_base::{AttackSkill, AttackSkillError, EquipmentSlot};
 
 pub struct Attack;
 

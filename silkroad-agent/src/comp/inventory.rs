@@ -46,7 +46,7 @@ impl ApplyToDatabase for InventoryChange {
                     character_id as i32,
                     item.reference.common.ref_id as i32,
                     item.type_data.upgrade_level().map(|a| a as i16).unwrap_or(0),
-                    *slot as i16,
+                    i16::from(u8::from(*slot)),
                     item.variance.map(|a| a as i64),
                     item.type_data.amount() as i16 // This should be fine, since we should never have gold inside an item slot
                 ).execute(pool).await?;
@@ -57,7 +57,7 @@ impl ApplyToDatabase for InventoryChange {
                     new_item.upgrade_level().map(|a| a as i16).unwrap_or(0),
                     new_item.amount() as i16, // This should be fine, since we should never have gold inside an item slot
                     character_id as i32,
-                    *slot as i16,
+                    i16::from(u8::from(*slot)),
                 )
                 .execute(pool)
                 .await?;
@@ -68,9 +68,9 @@ impl ApplyToDatabase for InventoryChange {
             } => {
                 sqlx::query!(
                     "UPDATE character_items SET slot = $1 WHERE character_id = $2 AND slot = $3",
-                    *target_slot as i16,
+                    i16::from(u8::from(*target_slot)),
                     character_id as i32,
-                    *source_slot as i16,
+                    i16::from(u8::from(*source_slot)),
                 )
                 .execute(pool)
                 .await?;
@@ -79,7 +79,7 @@ impl ApplyToDatabase for InventoryChange {
                 sqlx::query!(
                     "DELETE FROM character_items WHERE character_id = $1 AND slot = $2",
                     character_id as i32,
-                    *slot as i16,
+                    i16::from(u8::from(*slot)),
                 )
                 .execute(pool)
                 .await?;
@@ -91,8 +91,8 @@ impl ApplyToDatabase for InventoryChange {
                 sqlx::query!(
                     "UPDATE character_items SET slot = case slot when $2 then $3 when $3 then $2 end WHERE character_id = $1 AND slot in ($2, $3)",
                     character_id as i32,
-                    *first_slot as i16,
-                    *second_slot as i16,
+                    i16::from(u8::from(*first_slot)),
+                    i16::from(u8::from(*second_slot)),
                 )
                 .execute(pool)
                 .await?;
@@ -110,14 +110,17 @@ impl PlayerInventory {
         for item in items {
             let item_def = item_map.find_id(item.reference_id)?;
             let type_data = Self::item_type_data_for(item_def, item)?;
-            inventory.set_item(
-                item.slot,
-                Item {
-                    reference: item_def,
-                    variance: item.variance,
-                    type_data,
-                },
-            );
+            let slot = inventory.slot_from_raw(item.slot).ok()?;
+            inventory
+                .set_item(
+                    slot,
+                    Item {
+                        reference: item_def,
+                        variance: item.variance,
+                        type_data,
+                    },
+                )
+                .ok()?;
         }
 
         Some(inventory)
