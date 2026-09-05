@@ -22,7 +22,8 @@ use silkroad_definitions::type_id::{ObjectItem, ObjectType};
 use silkroad_game_base::{GlobalLocation, Heading, ItemTypeData, LocalLocation, Vector3Ext};
 use silkroad_protocol::combat::{DoActionResponseCode, PerformActionError, PerformActionResponse};
 use silkroad_protocol::inventory::{
-    ExpendableItemContentData, InventoryOperationError, InventoryOperationResult, ItemContentData,
+    EquipmentItemContentData, ExpendableItemContentData, InventoryItemBindingData, InventoryOperationError,
+    InventoryOperationResult, ItemContentData,
 };
 use silkroad_protocol::movement::{MovementTarget, PlayerMovementRequest, Rotation};
 use std::ops::Deref;
@@ -96,13 +97,26 @@ pub(crate) fn pickup(
                 },
                 _ => {
                     if let Some(slot) = inventory.add_item(drop.item) {
-                        client.send(InventoryOperationResult::success_gain_item(
-                            slot.into(),
-                            ItemContentData::new_expendable(
+                        let content = match drop.item.type_data {
+                            ItemTypeData::Equipment { upgrade_level } => ItemContentData::new_equipment(
+                                drop.item.reference.ref_id(),
+                                EquipmentItemContentData::new(
+                                    upgrade_level,
+                                    drop.item.variance.unwrap_or_default(),
+                                    1,
+                                    vec![],
+                                    InventoryItemBindingData::new(1, 0),
+                                    InventoryItemBindingData::new(2, 0),
+                                    InventoryItemBindingData::new(3, 0),
+                                    InventoryItemBindingData::new(4, 0),
+                                ),
+                            ),
+                            _ => ItemContentData::new_expendable(
                                 drop.item.reference.ref_id(),
                                 ExpendableItemContentData::new(drop.item.stack_size()),
                             ),
-                        ));
+                        };
+                        client.send(InventoryOperationResult::success_gain_item(slot.into(), content));
                     } else {
                         client.send(InventoryOperationResult::Failure(
                             InventoryOperationError::InventoryFull,
