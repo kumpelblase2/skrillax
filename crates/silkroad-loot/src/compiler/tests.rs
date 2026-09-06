@@ -34,7 +34,7 @@ fn item_row(
     // Origin: general (usable by both origins).
     elements[14] = String::from("3");
     elements[15] = rarity.to_string();
-    elements[20] = can_drop.to_string();
+    elements[21] = can_drop.to_string();
     elements[26] = String::from("100");
     elements[33] = required_level.to_string();
     elements[57] = max_stack.to_string();

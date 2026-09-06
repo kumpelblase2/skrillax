@@ -149,7 +149,7 @@ mod test {
     fn parse_item_metadata() {
         let mut row = item_row();
         row[15] = String::from("2");
-        row[20] = String::from("1");
+        row[21] = String::from("1");
 
         let item = parse_row(row).unwrap();
         assert!(item.common.service);
@@ -163,7 +163,7 @@ mod test {
         let mut row = item_row();
         row[0] = String::from("0");
         row[15] = String::from("0");
-        row[20] = String::from("0");
+        row[21] = String::from("0");
 
         let item = parse_row(row).unwrap();
         assert!(!item.common.service);
@@ -178,7 +178,7 @@ mod test {
         assert!(parse_row(row.clone()).is_err());
 
         row[15] = String::from("0");
-        row[20] = String::from("2");
+        row[21] = String::from("2");
         assert!(parse_row(row).is_err());
     }
 }
