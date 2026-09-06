@@ -93,8 +93,8 @@ Multipliers multiply and upgrade bonuses add.
 ### `Gold`
 
 Samples an amount from the level-appropriate inclusive range of `levelgold.txt`, applies the gold amount multipliers,
-and picks the existing small/medium/large gold item based on the final amount. Missing or invalid ranges for applicable
-levels will throw an error on startup.
+and picks the existing small/medium/large gold item based on the final amount. If a monster's level is absent from
+`levelgold.txt`, the generator produces no gold for that monster; malformed ranges still cause an error on startup.
 
 ### `Item`
 
@@ -273,6 +273,7 @@ A fuller example demonstrating consumables, equipment, level bands, a monster-sp
 
 ## Shipped defaults
 
-The server ships with `configs/loot/base.ron`, a conservative definition giving every ordinary monster death one
-guaranteed gold drop drawn from `levelgold.txt`. Everything else is intentionally left to operators. Note that item code
-names depend on your `Media.pk2` version; verify codes against your own client before enabling additional pools.
+The server ships with `configs/loot/base.ron`, a conservative definition giving ordinary monster deaths one guaranteed
+gold drop when their level has an entry in `levelgold.txt`. Monsters at levels absent from that file drop no gold.
+Everything else is intentionally left to operators. Note that item code names depend on your `Media.pk2` version; verify
+codes against your own client before enabling additional pools.

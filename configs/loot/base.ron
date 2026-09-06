@@ -1,9 +1,9 @@
 // Conservative default loot definitions.
 //
-// Every ordinary monster death is guaranteed to drop a gold amount drawn
-// from the level-appropriate range of levelgold.txt. Additional pools can
-// be added in further .ron files in this directory; see the project
-// documentation for the full schema and semantics.
+// Ordinary monster deaths drop a gold amount drawn from the level-appropriate
+// range of levelgold.txt. Monsters whose level is absent from that file drop
+// no gold. Additional pools can be added in further .ron files in this
+// directory; see the project documentation for the full schema and semantics.
 (
     version: 1,
     default_profile: Some("world-default"),

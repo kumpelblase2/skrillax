@@ -165,6 +165,16 @@ fn chance_success_and_failure_boundary() {
 }
 
 #[test]
+fn missing_gold_range_produces_no_gold() {
+    let mut plan = normal_plan(vec![roll(fixed_pool(CompiledGenerator::Gold), 1, 1.0)]);
+    plan.gold_range = None;
+    let tables = tables(plan, CompiledModifiers::default(), 1.0);
+
+    let items = tables.generate(100, normal_rarity(), &mut ScriptedRandom::default());
+    assert!(items.is_empty());
+}
+
+#[test]
 fn global_rate_produces_guaranteed_and_fractional_selections() {
     // Rate 2.5 with guaranteed chance: 2 guaranteed selections plus one
     // fractional selection with probability 0.5 per attempt.

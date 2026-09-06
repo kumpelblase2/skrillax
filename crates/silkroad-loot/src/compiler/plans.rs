@@ -169,15 +169,10 @@ impl LootCompiler<'_> {
                         ));
                         None
                     },
-                    None => {
-                        issues.push(Self::issue_at(
-                            source_or_config(self.directory, executed_source.as_ref()),
-                            "generator",
-                            Some(format!("gold for {}", character.common.id)),
-                            format!("no gold range is defined for monster level {}", character.level),
-                        ));
-                        None
-                    },
+                    // Some Media catalogues contain monsters above the levels
+                    // covered by levelgold.txt. Gold is simply unavailable for
+                    // those monsters; their other configured loot still applies.
+                    None => None,
                 }
             } else {
                 None

@@ -638,7 +638,7 @@ fn rejects_stack_overflow() {
 }
 
 #[test]
-fn rejects_missing_gold_range() {
+fn missing_gold_range_disables_gold_for_that_monster() {
     let catalog = catalog();
     // Monster MOB_TEST_OLD is level 30; remove its gold range.
     let mut gold_map = StdHashMap::new();
@@ -659,8 +659,9 @@ fn rejects_missing_gold_range() {
     let dir = tempfile::tempdir().unwrap();
     write_definitions(dir.path(), BASE_DEFINITIONS);
 
-    let error = compile_in(dir.path(), &catalog_missing_gold).unwrap_err();
-    assert!(first_issue(&error).contains("no gold range"), "{}", error);
+    let tables = compile_in(dir.path(), &catalog_missing_gold).unwrap();
+    assert_eq!(tables.plans()[&100].gold_range, Some((40, 60)));
+    assert_eq!(tables.plans()[&101].gold_range, None);
 }
 
 #[test]
