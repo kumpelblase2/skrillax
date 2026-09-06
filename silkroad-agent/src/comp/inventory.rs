@@ -1,6 +1,6 @@
 use crate::persistence::ApplyToDatabase;
 use crate::world::WorldData;
-use axum::async_trait;
+use async_trait::async_trait;
 use bevy::prelude::*;
 use silkroad_agent_persistence::CharacterWorldItem;
 use silkroad_data::itemdata::RefItemData;

@@ -19,7 +19,7 @@ skrillax-server = { path = "../crates/skrillax-server" }
 skrillax-stream.workspace = true
 skrillax-packet.workspace = true
 tokio.workspace = true
-axum = { version = "0.7", default-features = false, features = [
+axum = { version = "0.8", default-features = false, features = [
     "http1",
     "json",
     "tokio",
@@ -42,6 +42,7 @@ pk2-sync.workspace = true
 id-pool = { version = "0.2", features = ["u32"], default-features = false }
 derive_more = { version = "2", features = ["deref", "deref_mut", "from", "constructor"] }
 futures = "0.3"
+async-trait = "0.1"
 gumdrop = "0.8.1"
 
 [dev-dependencies]

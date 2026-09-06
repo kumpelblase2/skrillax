@@ -1,5 +1,5 @@
 use crate::persistence::ApplyToDatabase;
-use axum::async_trait;
+use async_trait::async_trait;
 use bevy::prelude::*;
 use silkroad_data::skilldata::RefSkillData;
 use silkroad_game_base::{Change, ChangeTracked, MergeResult};

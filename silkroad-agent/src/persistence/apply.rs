@@ -3,7 +3,7 @@ use crate::comp::gold::GoldChange;
 use crate::comp::player::StatPoints;
 use crate::comp::pos::Position;
 use crate::comp::{Health, Mana};
-use axum::async_trait;
+use async_trait::async_trait;
 use silkroad_game_base::{ChangeProvided, GlobalPosition, Heading, Stats};
 use sqlx::PgPool;
 

@@ -1,6 +1,6 @@
 use crate::persistence::ApplyToDatabase;
 use crate::sync::Reset;
-use axum::async_trait;
+use async_trait::async_trait;
 use bevy::prelude::*;
 use silkroad_game_base::ChangeProvided;
 use sqlx::{PgPool, QueryBuilder};
